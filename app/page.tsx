@@ -17,6 +17,73 @@ import {
 import Logo from "@/components/shared/logo";
 import Header from "@/components/shared/header";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+
+const showcaseItems = [
+  {
+    image: "/vietnamese_female.png",
+    title: "Áo Dài Lụa Truyền Thống",
+    culture: "Việt Nam",
+    desc: "Áo dài lụa cao cấp thêu hoa, mang đậm bản sắc Việt.",
+  },
+  {
+    image: "/japanese_female.png",
+    title: "Kimono Cách Điệu",
+    culture: "Nhật Bản",
+    desc: "Linen Kimono phối phụ kiện streetwear phong cách Harajuku.",
+  },
+  {
+    image: "/indian_female.png",
+    title: "Designer Sari",
+    culture: "Ấn Độ",
+    desc: "Sari lụa pastel sang trọng tối giản, hiện đại và quý phái.",
+  },
+  {
+    image: "/vietnamese_male.png",
+    title: "Linen Casual Suit",
+    culture: "Việt Nam",
+    desc: "Mẫu nam vest đũi thanh lịch, năng động cho mùa hè.",
+  },
+  {
+    image: "/western_female.png",
+    title: "Parisian Trench Coat",
+    culture: "Châu Âu",
+    desc: "Măng tô dạ ấm áp, thiết kế cổ điển thời thượng.",
+  },
+];
+
+const showcaseItems2 = [
+  {
+    image: "/japanese_female.png",
+    title: "Kimono Cách Điệu",
+    culture: "Nhật Bản",
+    desc: "Linen Kimono phối phụ kiện streetwear phong cách Harajuku.",
+  },
+  {
+    image: "/indian_female.png",
+    title: "Designer Sari",
+    culture: "Ấn Độ",
+    desc: "Sari lụa pastel sang trọng tối giản, hiện đại và quý phái.",
+  },
+  {
+    image: "/vietnamese_female.png",
+    title: "Áo Dài Lụa Truyền Thống",
+    culture: "Việt Nam",
+    desc: "Áo dài lụa cao cấp thêu hoa, mang đậm bản sắc Việt.",
+  },
+  {
+    image: "/western_female.png",
+    title: "Parisian Trench Coat",
+    culture: "Châu Âu",
+    desc: "Măng tô dạ ấm áp, thiết kế cổ điển thời thượng.",
+  },
+  {
+    image: "/vietnamese_male.png",
+    title: "Linen Casual Suit",
+    culture: "Việt Nam",
+    desc: "Mẫu nam vest đũi thanh lịch, năng động cho mùa hè.",
+  },
+];
 
 export default function LandingPage() {
   const [sliderPosition, setSliderPosition] = useState(50);
@@ -83,6 +150,94 @@ export default function LandingPage() {
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[600px] rounded-full bg-primary/5 blur-[150px] pointer-events-none" />
         <div className="absolute top-10 right-10 size-[300px] rounded-full bg-rose-500/5 blur-[100px] pointer-events-none" />
         <div className="absolute top-0 inset-x-0 h-full bg-[linear-gradient(to_right,rgba(var(--color-primary),0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(var(--color-primary),0.02)_1px,transparent_1px)] bg-[size:30px_30px]" />
+
+        {/* Floating Blurred Background Images */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          {/* Top Left - Vietnamese Female */}
+          <motion.div
+            className="absolute top-[10%] left-[2%] md:left-[8%] w-24 sm:w-36 lg:w-44 aspect-[3/4] rounded-2xl overflow-hidden border border-primary/10 shadow-lg opacity-[0.12] blur-[2px] md:blur-[3px]"
+            animate={{
+              y: [0, -20, 0],
+              x: [0, 10, 0],
+              rotate: [0, 4, 0]
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          >
+            <img src="/vietnamese_female.png" alt="" className="size-full object-cover" />
+          </motion.div>
+
+          {/* Top Right - Japanese Female */}
+          <motion.div
+            className="absolute top-[8%] right-[2%] md:right-[8%] w-20 sm:w-32 lg:w-40 aspect-[3/4] rounded-2xl overflow-hidden border border-primary/10 shadow-lg opacity-[0.15] blur-[3px] md:blur-[4px]"
+            animate={{
+              y: [0, 24, 0],
+              x: [0, -12, 0],
+              rotate: [0, -6, 0]
+            }}
+            transition={{
+              duration: 9.5,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          >
+            <img src="/japanese_female.png" alt="" className="size-full object-cover" />
+          </motion.div>
+
+          {/* Bottom Left - Indian Female */}
+          <motion.div
+            className="absolute bottom-[8%] left-[4%] md:left-[10%] w-28 sm:w-40 lg:w-48 aspect-[3/4] rounded-2xl overflow-hidden border border-primary/10 shadow-lg opacity-[0.1] blur-[1px] md:blur-[2px]"
+            animate={{
+              y: [0, -15, 0],
+              x: [0, -8, 0],
+              rotate: [0, -3, 0]
+            }}
+            transition={{
+              duration: 11,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          >
+            <img src="/indian_female.png" alt="" className="size-full object-cover" />
+          </motion.div>
+
+          {/* Bottom Right - Western Female */}
+          <motion.div
+            className="absolute bottom-[10%] right-[4%] md:right-[10%] w-24 sm:w-36 lg:w-44 aspect-[3/4] rounded-2xl overflow-hidden border border-primary/10 shadow-lg opacity-[0.14] blur-[2px] md:blur-[3px]"
+            animate={{
+              y: [0, 18, 0],
+              x: [0, 8, 0],
+              rotate: [0, 5, 0]
+            }}
+            transition={{
+              duration: 8.5,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          >
+            <img src="/western_female.png" alt="" className="size-full object-cover" />
+          </motion.div>
+
+          {/* Center Middle Left-ish - Vietnamese Male */}
+          <motion.div
+            className="absolute top-[40%] left-[2%] md:left-[5%] w-20 sm:w-28 lg:w-36 aspect-[3/4] rounded-2xl overflow-hidden border border-primary/10 shadow-lg opacity-[0.08] blur-[4px] md:blur-[5px] hidden sm:block"
+            animate={{
+              y: [0, -12, 0],
+              x: [0, 15, 0],
+              rotate: [0, 6, 0]
+            }}
+            transition={{
+              duration: 10,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          >
+            <img src="/vietnamese_male.png" alt="" className="size-full object-cover" />
+          </motion.div>
+        </div>
 
         <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10 text-center">
           
@@ -160,51 +315,54 @@ export default function LandingPage() {
             >
               
               {/* After: AI generated model (Left/Visible side when slider goes right) */}
-              <div className="absolute inset-0 bg-secondary/10 flex flex-col justify-end p-8 text-left bg-gradient-to-t from-background/95 via-background/10 to-transparent">
-                {/* Simulated AI Fashion Model render */}
-                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-tr from-primary/10 via-rose-500/5 to-amber-500/5">
-                  {/* Lotus flower silhouette or minimalist model wireframe */}
-                  <div className="relative size-64 flex items-center justify-center opacity-30">
-                    <div className="absolute inset-0 rounded-full border border-primary/30 animate-ping" />
-                    <div className="size-48 rounded-full border border-primary/20 bg-primary/5 flex items-center justify-center">
-                      <Logo iconOnly href="" className="scale-[2.5]" />
-                    </div>
-                  </div>
-                  <div className="absolute top-8 left-8 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-[10px] text-primary uppercase font-mono tracking-wider font-semibold">
-                    Model: Ngoc Trinh (Vietnamese AI)
-                  </div>
-                  <div className="absolute top-8 right-8 rounded-full bg-card border border-border px-3 py-1 text-[10px] text-foreground uppercase font-mono tracking-wider">
-                    Lighting: Soft Studio Warm
-                  </div>
+              <div className="absolute inset-0 flex flex-col justify-end p-8 text-left">
+                {/* AI Fashion Model image */}
+                <img 
+                  src="/vietnamese_female.png" 
+                  alt="AI Generated Fashion Model" 
+                  className="absolute inset-0 size-full object-cover select-none"
+                />
+                
+                {/* Gradient overlay to make text readable */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent z-10" />
+
+                <div className="absolute top-8 left-8 rounded-full bg-primary/20 border border-primary/40 px-3 py-1 text-[10px] text-primary-foreground uppercase font-mono tracking-wider font-semibold z-20 backdrop-blur-md">
+                  Model: Vy Nguyen (Vietnamese AI)
+                </div>
+                <div className="absolute top-8 right-8 rounded-full bg-white/10 border border-white/20 px-3 py-1 text-[10px] text-white uppercase font-mono tracking-wider z-20 backdrop-blur-md">
+                  Lighting: Studio Soft Light
                 </div>
                 
-                <div className="relative z-10">
+                <div className="relative z-20">
                   <span className="text-[10px] font-mono tracking-wider uppercase text-primary font-bold">KẾT QUẢ AI RENDER</span>
-                  <h4 className="font-serif text-2xl text-foreground mt-1">Ảnh Mẫu Mặc Đồ Hoàn Thiện</h4>
-                  <p className="text-xs font-light text-muted-foreground mt-1">Họa tiết vải chính xác 99%, chuẩn phom dáng, ảnh sáng tự nhiên.</p>
+                  <h4 className="font-serif text-2xl text-white mt-1">Ảnh Mẫu Mặc Đồ Hoàn Thiện</h4>
+                  <p className="text-xs font-light text-white/80 mt-1">Họa tiết vải chính xác 99%, chuẩn phom dáng, ánh sáng tự nhiên.</p>
                 </div>
               </div>
 
               {/* Before: Raw product on hanger (Right side, cropped by clipPath) */}
               <div 
-                className="absolute inset-0 bg-secondary/20 flex flex-col justify-end p-8 text-left transition-all duration-75 select-none"
+                className="absolute inset-0 flex flex-col justify-end p-8 text-left transition-all duration-75 select-none"
                 style={{ clipPath: `polygon(${sliderPosition}% 0, 100% 0, 100% 100%, ${sliderPosition}% 100%)` }}
               >
-                {/* Simulated Raw Product Photo */}
-                <div className="absolute inset-0 flex items-center justify-center bg-secondary/5">
-                  <div className="size-48 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-3 text-muted-foreground/45 bg-background">
-                    <Layers className="size-10" />
-                    <span className="text-[11px] uppercase tracking-wider font-mono">Ảnh Chụp Treo Móc</span>
-                  </div>
-                  <div className="absolute top-8 right-8 rounded-full bg-card border border-border px-3 py-1 text-[10px] text-foreground uppercase font-mono tracking-wider">
-                    Flatlay / Hanger Only
-                  </div>
+                {/* Raw Product Photo */}
+                <img 
+                  src="https://images.unsplash.com/photo-1595777457583-95e059d581b8?q=80&w=600&auto=format&fit=crop" 
+                  alt="Raw Dress Hanger Input" 
+                  className="absolute inset-0 size-full object-cover select-none filter contrast-[1.05]"
+                />
+                
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent z-10" />
+
+                <div className="absolute top-8 right-8 rounded-full bg-white/20 border border-white/30 px-3 py-1 text-[10px] text-white uppercase font-mono tracking-wider z-20 backdrop-blur-md">
+                  Flatlay / Hanger Only
                 </div>
                 
-                <div className="relative z-10">
-                  <span className="text-[10px] font-mono tracking-wider uppercase text-muted-foreground">ẢNH ĐẦU VÀO</span>
-                  <h4 className="font-serif text-2xl text-foreground/80 mt-1">Ảnh Chụp Thô Sản Phẩm</h4>
-                  <p className="text-xs font-light text-muted-foreground mt-1">Ảnh chụp tự chụp bằng điện thoại hoặc móc treo, phông trắng thô sơ.</p>
+                <div className="relative z-20">
+                  <span className="text-[10px] font-mono tracking-wider uppercase text-white/70">ẢNH ĐẦU VÀO</span>
+                  <h4 className="font-serif text-2xl text-white mt-1">Ảnh Chụp Thô Sản Phẩm</h4>
+                  <p className="text-xs font-light text-white/80 mt-1">Ảnh chụp tự treo trên móc, phông nền đơn điệu, thiếu ánh sáng.</p>
                 </div>
               </div>
 
@@ -222,6 +380,87 @@ export default function LandingPage() {
 
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Infinite Scrolling Showcases (AI Model Diversity & Cultural Styles) */}
+      <section className="py-24 bg-secondary/15 border-t border-b border-border/40 overflow-hidden">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8 mb-16 text-center">
+          <span className="text-xs font-semibold uppercase tracking-wider text-primary">AI MODEL SHOWCASE & DIVERSITY</span>
+          <h2 className="font-serif text-3xl font-light tracking-tight text-foreground sm:text-4xl mt-2">
+            Đa dạng phong cách & <span className="font-normal italic text-primary">bản sắc văn hóa</span>
+          </h2>
+          <p className="mt-4 text-sm font-light text-muted-foreground max-w-xl mx-auto leading-relaxed">
+            Hệ thống mẫu ảo của GU.AI hỗ trợ nhận diện và tái tạo nhiều kiểu trang phục truyền thống và hiện đại của các nền văn hóa khác nhau, với độ chi tiết chân thực tuyệt đối.
+          </p>
+        </div>
+
+        {/* Marquee Row 1: Left scrolling */}
+        <div className="relative flex w-full overflow-hidden py-4 gap-6 select-none">
+          <motion.div 
+            className="flex gap-6 whitespace-nowrap min-w-full"
+            animate={{ x: ["0%", "-50%"] }}
+            transition={{ ease: "linear", duration: 30, repeat: Infinity }}
+          >
+            {[...showcaseItems, ...showcaseItems].map((item, idx) => (
+              <div 
+                key={idx}
+                className="inline-flex flex-col flex-shrink-0 w-72 rounded-2xl border border-border bg-card p-3 shadow-md group hover:border-primary/30 transition-all duration-300"
+              >
+                <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-secondary/20">
+                  <img 
+                    src={item.image} 
+                    alt={item.title} 
+                    className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                  />
+                  <div className="absolute top-3 left-3 rounded-full bg-background/90 backdrop-blur-md px-2.5 py-0.5 text-[10px] text-foreground font-medium border border-border/50">
+                    {item.culture}
+                  </div>
+                </div>
+                <div className="mt-3 text-left">
+                  <h4 className="text-xs font-semibold text-foreground">{item.title}</h4>
+                  <p className="text-[10px] font-light text-muted-foreground mt-0.5 whitespace-normal leading-relaxed">
+                    {item.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+
+        {/* Marquee Row 2: Right scrolling */}
+        <div className="relative flex w-full overflow-hidden py-4 gap-6 select-none mt-4">
+          <motion.div 
+            className="flex gap-6 whitespace-nowrap min-w-full"
+            animate={{ x: ["-50%", "0%"] }}
+            transition={{ ease: "linear", duration: 32, repeat: Infinity }}
+          >
+            {[...showcaseItems2, ...showcaseItems2].map((item, idx) => (
+              <div 
+                key={idx}
+                className="inline-flex flex-col flex-shrink-0 w-72 rounded-2xl border border-border bg-card p-3 shadow-md group hover:border-primary/30 transition-all duration-300"
+              >
+                <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-secondary/20">
+                  <img 
+                    src={item.image} 
+                    alt={item.title} 
+                    className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                  />
+                  <div className="absolute top-3 left-3 rounded-full bg-background/90 backdrop-blur-md px-2.5 py-0.5 text-[10px] text-foreground font-medium border border-border/50">
+                    {item.culture}
+                  </div>
+                </div>
+                <div className="mt-3 text-left">
+                  <h4 className="text-xs font-semibold text-foreground">{item.title}</h4>
+                  <p className="text-[10px] font-light text-muted-foreground mt-0.5 whitespace-normal leading-relaxed">
+                    {item.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </motion.div>
         </div>
       </section>
 
