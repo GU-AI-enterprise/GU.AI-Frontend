@@ -68,7 +68,7 @@ Deployment | Vercel
 
 ## 📂 Folder Structure
 
-text
+```plain
 guai-frontend/
 │
 ├── app/
@@ -196,7 +196,7 @@ guai-frontend/
 ├── next.config.ts
 ├── tsconfig.json
 └── README.md
-
+```
 ## 🚀 Setup & Run
 
 ### Prerequisites
