@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import Logo from "@/components/shared/logo";
+import GuaiLoader from "@/components/shared/guai-loader";
 import { Button } from "@/components/ui/button";
 import { LogOut, User as UserIcon, LayoutDashboard, History, Settings, ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -15,17 +16,20 @@ export default function Header() {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Get user session on mount
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
+      setAuthLoading(false);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      setAuthLoading(false);
     });
 
     // Close dropdown on click outside
@@ -55,8 +59,10 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl transition-all">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
-        <Logo />
-        
+        <div className="flex items-center gap-4">
+          {authLoading ? <GuaiLoader size="sm" /> : <Logo />}
+        </div>
+
         {/* Main Navigation */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-light text-muted-foreground">
           <Link href={isLanding ? "#features" : "/#features"} className="hover:text-foreground transition-colors">
@@ -89,7 +95,7 @@ export default function Header() {
                   className="size-8 rounded-full object-cover border border-primary/20 shadow-sm"
                   referrerPolicy="no-referrer"
                 />
-                
+
                 {/* User Info (Desktop only) */}
                 <div className="hidden sm:flex flex-col items-start text-left">
                   <span className="text-xs font-semibold text-foreground leading-none">
@@ -99,7 +105,7 @@ export default function Header() {
                     {user.email}
                   </span>
                 </div>
-                
+
                 <ChevronDown className={`size-3 text-muted-foreground transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : ""}`} />
               </button>
 
