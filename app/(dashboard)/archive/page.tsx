@@ -451,7 +451,8 @@ export default function ArchivePage() {
         body: JSON.stringify({
           fileUrl: publicUrl,
           fileSize: file.size,
-          type: "input",
+          type: "image",
+          category: "reference",
           thumbnailUrl: publicUrl,
         }),
       });
