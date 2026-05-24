@@ -48,8 +48,21 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuthRoute && session) {
-    // Redirect to dashboard if trying to access auth route with active session
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    // Check if user is admin - redirect to admin panel
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', session.user.id)
+      .single()
+
+    if (!userError && userData && userData.role === 'admin') {
+      // Redirect admin to admin panel
+      const adminPanelUrl = process.env.NEXT_PUBLIC_ADMIN_PANEL_URL || 'http://localhost:3001'
+      return NextResponse.redirect(adminPanelUrl)
+    }
+
+    // Redirect regular user to dashboard
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
   return supabaseResponse

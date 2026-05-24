@@ -2,12 +2,13 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase";
 import Logo from "@/components/shared/logo";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
   const [statusMessage, setStatusMessage] = useState("Đang thiết lập phiên đăng nhập...");
+  const supabase = createClient();
 
   useEffect(() => {
     // Supabase will automatically parse the hash parameters (implicit flow #access_token=...)
@@ -31,7 +32,7 @@ export default function AuthCallbackPage() {
           }, 1500);
         } else {
           // If no session found yet, wait for state to settle (sometimes hash parse takes a tick)
-          const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+          const { data: authListener } = supabase.auth.onAuthStateChange((event: any, session: any) => {
             if (event === "SIGNED_IN" && session) {
               setStatusMessage("Đăng nhập thành công! Đang chuyển hướng...");
               router.push("/");
@@ -57,7 +58,7 @@ export default function AuthCallbackPage() {
     };
 
     checkSession();
-  }, [router]);
+  }, [router, supabase]);
 
   return (
     <div className="flex flex-col min-h-[60vh] items-center justify-center text-center p-6 space-y-6 bg-background">
