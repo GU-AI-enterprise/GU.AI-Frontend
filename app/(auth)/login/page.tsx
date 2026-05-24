@@ -2,12 +2,16 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect') || '/dashboard';
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -19,20 +23,43 @@ export default function LoginPage() {
     setIsLoading(true);
     setError("");
 
-    // Simulate login for frontend demonstration
-    setTimeout(() => {
-      setIsLoading(false);
-      if (email === "admin@gu.ai" && password === "123456") {
-        router.push("/dashboard");
-      } else {
-        setError("Email hoặc mật khẩu không chính xác. Thử lại với admin@gu.ai / 123456.");
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setError(error.message);
+        setIsLoading(false);
+        return;
       }
-    }, 1200);
+
+      // Redirect to the page user was trying to access or dashboard
+      router.push(redirect);
+      router.refresh();
+    } catch (err: any) {
+      setError("Đăng nhập thất bại. Vui lòng thử lại.");
+      setIsLoading(false);
+    }
   };
 
-  const handleGoogleLogin = () => {
-    // Redirect to backend OAuth route
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/auth/oauth/google`;
+  const handleGoogleLogin = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    if (data.url) {
+      window.location.href = data.url;
+    }
   };
 
   return (

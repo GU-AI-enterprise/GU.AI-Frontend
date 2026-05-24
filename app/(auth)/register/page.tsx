@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -28,18 +29,55 @@ export default function RegisterPage() {
       return;
     }
 
-    // Simulate signup for frontend demonstration
-    setTimeout(() => {
+    if (password.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự.");
       setIsLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name,
+          },
+        },
+      });
+
+      if (error) {
+        setError(error.message);
+        setIsLoading(false);
+        return;
+      }
+
       setSuccess(true);
       setTimeout(() => {
         router.push("/login");
       }, 2000);
-    }, 1500);
+    } catch (err: any) {
+      setError("Đăng ký thất bại. Vui lòng thử lại.");
+      setIsLoading(false);
+    }
   };
 
-  const handleGoogleSignup = () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/auth/oauth/google`;
+  const handleGoogleSignup = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    if (data.url) {
+      window.location.href = data.url;
+    }
   };
 
   if (success) {
