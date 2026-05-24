@@ -130,6 +130,10 @@ export default function Header() {
 
                     {/* Menu items */}
                     <div className="space-y-1">
+                      <Link href="/profile" className="flex items-center gap-2.5 w-full px-2.5 py-2 text-xs text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-all" onClick={() => setIsDropdownOpen(false)}>
+                        <UserIcon className="size-4 text-primary" />
+                        Hồ sơ cá nhân
+                      </Link>
                       <Link href="/dashboard" className="flex items-center gap-2.5 w-full px-2.5 py-2 text-xs text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-all" onClick={() => setIsDropdownOpen(false)}>
                         <LayoutDashboard className="size-4 text-primary" />
                         GU.AI Studio Dashboard

@@ -11,7 +11,8 @@ import {
   Wand2,
   LogOut,
   CreditCard,
-  LayoutDashboard
+  LayoutDashboard,
+  User
 } from "lucide-react";
 import Logo from "@/components/shared/logo";
 
@@ -25,6 +26,7 @@ export default function Sidebar() {
   ];
 
   const bottomItems = [
+    { name: "Hồ sơ", href: "/profile", icon: <User className="size-5" /> },
     { name: "Cài đặt", href: "/settings", icon: <Settings className="size-5" /> },
     { name: "Đăng xuất", href: "/logout", icon: <LogOut className="size-5" /> },
   ];
