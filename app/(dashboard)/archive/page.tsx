@@ -28,11 +28,12 @@ import GuaiLoader from "@/components/shared/guai-loader";
 import { supabase } from "@/lib/supabase";
 
 // Interfaces
-interface DBImage {
+interface DBAsset {
   id: string;
-  file_url: string;
+  url: string;
   thumbnail_url: string;
-  type: "input" | "output" | "edit" | "temp";
+  type: string;
+  category?: string;
   file_size: number;
   created_at: string;
 }
@@ -40,27 +41,26 @@ interface DBImage {
 interface Collection {
   id: string;
   name: string;
-  cover_image_id: string | null;
-  image_count: number;
+  cover_asset_id: string | null;
   created_at: string;
-  cover_image?: {
-    file_url: string;
+  cover_asset?: {
+    url: string;
     thumbnail_url: string;
   };
 }
 
 interface AIJob {
   id: string;
-  job_type: string;
-  status: "pending" | "processing" | "completed" | "failed" | "cancelled";
-  cost_credits: number;
+  type: string;
+  status: "queued" | "processing" | "completed" | "failed" | "cancelled";
+  credit_cost: number;
   created_at: string;
   result_url?: string;
 }
 
 interface Transaction {
   id: string;
-  amount_vnd: number;
+  amount: number;
   provider: string;
   status: string;
   created_at: string;
@@ -89,7 +89,7 @@ export default function ArchivePage() {
   const [filterType, setFilterType] = useState<"all" | "input" | "output" | "edit">("all");
 
   // State dữ liệu
-  const [images, setImages] = useState<DBImage[]>([]);
+  const [assets, setAssets] = useState<DBAsset[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [history, setHistory] = useState<{ aiJobs: AIJob[]; transactions: Transaction[] }>({
     aiJobs: [],
@@ -108,7 +108,7 @@ export default function ArchivePage() {
 
   // Bộ sưu tập
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
-  const [collectionImages, setCollectionImages] = useState<DBImage[]>([]);
+  const [collectionAssets, setCollectionAssets] = useState<DBAsset[]>([]);
   const [colImagesLoading, setColImagesLoading] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
@@ -168,7 +168,7 @@ export default function ArchivePage() {
       // 1. Fetch images
       const imagesRes = await fetch(`${apiUrl}/api/images`, { headers });
       const imagesJson = await imagesRes.json();
-      if (imagesJson.success) setImages(imagesJson.data);
+      if (imagesJson.success) setAssets(imagesJson.data);
 
       // 2. Fetch collections
       const collectionsRes = await fetch(`${apiUrl}/api/collections`, { headers });
@@ -205,7 +205,7 @@ export default function ArchivePage() {
       });
       const json = await res.json();
       if (json.success) {
-        setCollectionImages(json.data);
+        setCollectionAssets(json.data);
       }
     } catch (err) {
       console.error("Lỗi lấy ảnh bộ sưu tập:", err);
@@ -238,9 +238,9 @@ export default function ArchivePage() {
       const json = await res.json();
 
       if (json.success) {
-        setImages(prev => prev.filter(img => img.id !== imageId));
+        setAssets(prev => prev.filter(img => img.id !== imageId));
         if (selectedCollectionId) {
-          setCollectionImages(prev => prev.filter(img => img.id !== imageId));
+          setCollectionAssets(prev => prev.filter(img => img.id !== imageId));
         }
       }
     } catch (err) {
@@ -298,7 +298,7 @@ export default function ArchivePage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ imageId: activeImageForCollection }),
+        body: JSON.stringify({ assetId: activeImageForCollection }),
       });
       const json = await res.json();
 
@@ -306,13 +306,11 @@ export default function ArchivePage() {
         alert("Thêm ảnh vào bộ sưu tập thành công!");
         setIsAddToColOpen(false);
         setActiveImageForCollection(null);
-        // Cập nhật lại số lượng ảnh của bộ sưu tập cục bộ
         setCollections(prev => prev.map(col => {
           if (col.id === colId) {
             return {
               ...col,
-              image_count: col.image_count + 1,
-              cover_image: col.cover_image ? col.cover_image : images.find(img => img.id === activeImageForCollection)
+              cover_asset: col.cover_asset ? col.cover_asset : assets.find(img => img.id === activeImageForCollection)
             };
           }
           return col;
@@ -482,8 +480,8 @@ export default function ArchivePage() {
   };
 
   // Lọc ảnh
-  const filteredImages = (selectedCollectionId ? collectionImages : images).filter(img => {
-    const matchesSearch = img.file_url.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredAssets = (selectedCollectionId ? collectionAssets : assets).filter(img => {
+    const matchesSearch = img.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
       img.type.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterType === "all" || img.type === filterType;
     return matchesSearch && matchesFilter;
@@ -624,7 +622,7 @@ export default function ArchivePage() {
                   </div>
                 )}
 
-                {filteredImages.length === 0 ? (
+                {filteredAssets.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 rounded-3xl border border-dashed border-border bg-card">
                     <ImageIcon className="size-12 text-zinc-700 mb-4" />
                     <h3 className="text-sm font-semibold text-muted-foreground">Không tìm thấy hình ảnh nào</h3>
@@ -645,14 +643,14 @@ export default function ArchivePage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {filteredImages.map((img) => (
+                    {filteredAssets.map((img) => (
                       <motion.div
                         key={img.id}
                         layoutId={img.id}
                         className="group relative rounded-2xl overflow-hidden border border-border bg-card aspect-square transition-all duration-300 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.1)]"
                       >
                         <img
-                          src={img.file_url}
+                          src={img.url}
                           alt="GU.AI Asset"
                           className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
                           loading="lazy"
@@ -675,7 +673,7 @@ export default function ArchivePage() {
                           <div className="flex items-center gap-2 mt-3.5">
                             {/* Nút tải về */}
                             <a
-                              href={img.file_url}
+                              href={img.url}
                               download={`guai_${img.id}.jpg`}
                               target="_blank"
                               rel="noreferrer"
@@ -758,9 +756,9 @@ export default function ArchivePage() {
                       >
                         {/* Ảnh bìa collection */}
                         <div className="aspect-[4/3] rounded-xl overflow-hidden bg-muted border border-border relative">
-                          {col.cover_image ? (
+                          {col.cover_asset ? (
                             <img
-                              src={col.cover_image.thumbnail_url || col.cover_image.file_url}
+                              src={col.cover_asset.thumbnail_url || col.cover_asset.url}
                               alt={col.name}
                               className="size-full object-cover transition-transform duration-500 group-hover:scale-102"
                             />
@@ -770,10 +768,6 @@ export default function ArchivePage() {
                               <span className="text-[10px] text-zinc-600 mt-2 font-light">Album trống</span>
                             </div>
                           )}
-
-                          <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md border border-border px-2.5 py-1 rounded-lg text-[10px] font-semibold text-foreground">
-                            {col.image_count} ảnh
-                          </div>
                         </div>
 
                         {/* Tiêu đề & Thông tin */}
@@ -960,7 +954,7 @@ export default function ArchivePage() {
                         >
                           <div>
                             <span className="text-[10px] uppercase font-bold tracking-wider text-primary">
-                              Tác vụ: {job.job_type}
+                              Tác vụ: {job.type}
                             </span>
                             <p className="text-xs text-foreground font-semibold mt-1">
                               ID: {job.id.substr(0, 8)}...
@@ -982,7 +976,7 @@ export default function ArchivePage() {
                               {job.status}
                             </span>
                             <span className="text-[10px] text-muted-foreground">
-                              Tiêu hao: {job.cost_credits} Credits
+                              Tiêu hao: {job.credit_cost} Credits
                             </span>
                           </div>
                         </div>
@@ -1015,7 +1009,7 @@ export default function ArchivePage() {
                               {tx.package?.name || "Gói nạp Credit"}
                             </span>
                             <p className="text-xs text-foreground font-semibold mt-1">
-                              Giá: {tx.amount_vnd.toLocaleString("vi-VN")} VNĐ
+                              Giá: {tx.amount.toLocaleString("vi-VN")} VNĐ
                             </p>
                             <p className="text-[10px] text-muted-foreground mt-0.5">
                               {new Date(tx.created_at).toLocaleString("vi-VN")} (Cổng: {tx.provider})
@@ -1174,9 +1168,6 @@ export default function ArchivePage() {
                       <span className="flex items-center gap-2 text-zinc-200">
                         <Folder className="size-4 text-primary" />
                         {col.name}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground font-light">
-                        {col.image_count} ảnh
                       </span>
                     </button>
                   ))}
