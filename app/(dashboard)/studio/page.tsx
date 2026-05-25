@@ -26,6 +26,7 @@ import {
   Loader2
 } from "lucide-react";
 import GuaiLoader from "@/components/shared/guai-loader";
+import AiGenerateTest from "@/components/ai-generate-test";
 import { supabase } from "@/lib/supabase";
 
 interface UserCredit {
@@ -234,7 +235,7 @@ export default function StudioPage() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-background text-foreground flex flex-col">
+    <div className="w-full h-screen bg-background text-foreground flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-8 py-5 flex items-center justify-between border-b border-border/40">
         <div>
@@ -269,7 +270,7 @@ export default function StudioPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 relative">
+      <div className="flex-1 flex flex-col items-center px-6 py-8 relative overflow-y-auto">
         {/* Drop Zone / Image Preview */}
         <div
           onDragOver={handleDragOver}
@@ -384,17 +385,18 @@ export default function StudioPage() {
             </div>
           )}
         </div>
+
       </div>
 
       {/* Bottom Tool Bar */}
-      <div className="border-t border-border/40 bg-background/80 backdrop-blur-xl px-6 py-4 pb-6">
+      <div className="shrink-0 border-t border-border/40 bg-background/80 backdrop-blur-xl px-6 py-3">
         {/* Tool Tabs */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-3 scrollbar-hide">
+        <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-2 scrollbar-hide">
           {TOOLS.map((tool) => (
             <button
               key={tool.id}
               onClick={() => setSelectedTool(tool.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
                 selectedTool === tool.id
                   ? "bg-foreground text-background"
                   : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
@@ -409,8 +411,11 @@ export default function StudioPage() {
           </button>
         </div>
 
+        {/* AI Generate + Action Bar */}
+        <AiGenerateTest />
+
         {/* Action Bar */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mt-2">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Sparkles className="size-3.5 text-primary" />
@@ -425,7 +430,7 @@ export default function StudioPage() {
           <button
             onClick={handleRun}
             disabled={!canRun}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-semibold transition-all ${
               canRun
                 ? "bg-foreground text-background hover:bg-foreground/90 shadow-lg"
                 : "bg-muted text-muted-foreground cursor-not-allowed"
