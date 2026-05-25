@@ -16,6 +16,8 @@ import Header from "@/components/shared/header";
 import { Button } from "@/components/ui/button";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { ConfirmModal } from "@/components/shared/confirm-modal";
 
 interface DBAsset {
   id: string;
@@ -34,6 +36,7 @@ export default function GalleryPage() {
   const [authLoading, setAuthLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "input" | "output" | "edit">("all");
+  const [deleteImageId, setDeleteImageId] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -90,8 +93,12 @@ export default function GalleryPage() {
     }
   };
 
-  const handleDeleteImage = async (imageId: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa ảnh này?")) return;
+  const handleDeleteImage = (imageId: string) => {
+    setDeleteImageId(imageId);
+  };
+
+  const executeDeleteImage = async () => {
+    if (!deleteImageId) return;
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -99,17 +106,23 @@ export default function GalleryPage() {
       if (!token) return;
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${apiUrl}/api/images/${imageId}`, {
+      const res = await fetch(`${apiUrl}/api/images/${deleteImageId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
       const json = await res.json();
 
       if (json.success) {
-        setAssets(prev => prev.filter(img => img.id !== imageId));
+        setAssets(prev => prev.filter(img => img.id !== deleteImageId));
+        toast.success("Xóa ảnh thành công!");
+      } else {
+        toast.error(json.error || "Không thể xóa ảnh.");
       }
     } catch (err) {
       console.error("Lỗi xóa ảnh:", err);
+      toast.error("Có lỗi xảy ra khi xóa ảnh.");
+    } finally {
+      setDeleteImageId(null);
     }
   };
 
@@ -291,6 +304,16 @@ export default function GalleryPage() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={deleteImageId !== null}
+        onClose={() => setDeleteImageId(null)}
+        onConfirm={executeDeleteImage}
+        title="Xóa ảnh khỏi thư viện"
+        description="Bạn có chắc chắn muốn xóa ảnh này? Thao tác này không thể phục hồi."
+        confirmText="Xóa ảnh"
+        variant="destructive"
+      />
     </div>
   );
 }

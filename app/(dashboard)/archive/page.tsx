@@ -26,6 +26,8 @@ import Header from "@/components/shared/header";
 import { Button } from "@/components/ui/button";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { ConfirmModal } from "@/components/shared/confirm-modal";
 
 // Interfaces
 interface DBAsset {
@@ -115,6 +117,10 @@ export default function ArchivePage() {
   const [isCreatingCol, setIsCreatingCol] = useState(false);
   const [activeImageForCollection, setActiveImageForCollection] = useState<string | null>(null);
   const [isAddToColOpen, setIsAddToColOpen] = useState(false);
+
+  // States cho confirm modals
+  const [deleteImageId, setDeleteImageId] = useState<string | null>(null);
+  const [deleteCollectionId, setDeleteCollectionId] = useState<string | null>(null);
 
   // Đăng nhập xác thực
   useEffect(() => {
@@ -220,10 +226,15 @@ export default function ArchivePage() {
     }
   }, [selectedCollectionId]);
 
-  // Xóa ảnh mềm
-  const handleDeleteImage = async (imageId: string, e?: React.MouseEvent) => {
+  // Trigger mở confirm modal xóa ảnh
+  const handleDeleteImageTrigger = (imageId: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (!window.confirm("Bạn có chắc chắn muốn xóa ảnh này khỏi thư viện?")) return;
+    setDeleteImageId(imageId);
+  };
+
+  // Thực thi xóa ảnh khi bấm confirm
+  const executeDeleteImage = async () => {
+    if (!deleteImageId) return;
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -231,20 +242,26 @@ export default function ArchivePage() {
       if (!token) return;
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${apiUrl}/api/images/${imageId}`, {
+      const res = await fetch(`${apiUrl}/api/images/${deleteImageId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
 
       if (json.success) {
-        setAssets(prev => prev.filter(img => img.id !== imageId));
+        setAssets(prev => prev.filter(img => img.id !== deleteImageId));
         if (selectedCollectionId) {
-          setCollectionAssets(prev => prev.filter(img => img.id !== imageId));
+          setCollectionAssets(prev => prev.filter(img => img.id !== deleteImageId));
         }
+        toast.success("Xóa ảnh thành công!");
+      } else {
+        toast.error(json.error || "Không thể xóa ảnh.");
       }
     } catch (err) {
       console.error("Lỗi xóa ảnh:", err);
+      toast.error("Có lỗi xảy ra khi xóa ảnh.");
+    } finally {
+      setDeleteImageId(null);
     }
   };
 
@@ -303,7 +320,7 @@ export default function ArchivePage() {
       const json = await res.json();
 
       if (json.success) {
-        alert("Thêm ảnh vào bộ sưu tập thành công!");
+        toast.success("Thêm ảnh vào bộ sưu tập thành công!");
         setIsAddToColOpen(false);
         setActiveImageForCollection(null);
         setCollections(prev => prev.map(col => {
@@ -316,17 +333,22 @@ export default function ArchivePage() {
           return col;
         }));
       } else {
-        alert(json.error || "Có lỗi xảy ra");
+        toast.error(json.error || "Có lỗi xảy ra");
       }
     } catch (err: any) {
-      alert("Ảnh đã tồn tại hoặc có lỗi xảy ra");
+      toast.error("Ảnh đã tồn tại hoặc có lỗi xảy ra");
     }
   };
 
-  // Xóa bộ sưu tập
-  const handleDeleteCollection = async (colId: string, e: React.MouseEvent) => {
+  // Trigger mở confirm modal xóa bộ sưu tập
+  const handleDeleteCollectionTrigger = (colId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm("Bạn có chắc chắn muốn xóa bộ sưu tập này? Các ảnh bên trong sẽ không bị xóa.")) return;
+    setDeleteCollectionId(colId);
+  };
+
+  // Thực thi xóa bộ sưu tập
+  const executeDeleteCollection = async () => {
+    if (!deleteCollectionId) return;
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -334,18 +356,24 @@ export default function ArchivePage() {
       if (!token) return;
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${apiUrl}/api/collections/${colId}`, {
+      const res = await fetch(`${apiUrl}/api/collections/${deleteCollectionId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
 
       if (json.success) {
-        setCollections(prev => prev.filter(col => col.id !== colId));
-        if (selectedCollectionId === colId) setSelectedCollectionId(null);
+        setCollections(prev => prev.filter(col => col.id !== deleteCollectionId));
+        if (selectedCollectionId === deleteCollectionId) setSelectedCollectionId(null);
+        toast.success("Xóa bộ sưu tập thành công!");
+      } else {
+        toast.error(json.error || "Không thể xóa bộ sưu tập.");
       }
     } catch (err) {
       console.error("Lỗi xóa bộ sưu tập:", err);
+      toast.error("Có lỗi xảy ra khi xóa bộ sưu tập.");
+    } finally {
+      setDeleteCollectionId(null);
     }
   };
 
@@ -385,7 +413,7 @@ export default function ArchivePage() {
   const handleFilesSelected = (files: File[]) => {
     const validImageFiles = files.filter(file => file.type.startsWith("image/"));
     if (validImageFiles.length === 0) {
-      alert("Vui lòng kéo thả file hình ảnh hợp lệ (PNG, JPG, WEBP).");
+      toast.warning("Vui lòng kéo thả file hình ảnh hợp lệ (PNG, JPG, WEBP).");
       return;
     }
 
@@ -697,7 +725,7 @@ export default function ArchivePage() {
 
                             {/* Nút xóa */}
                             <button
-                              onClick={(e) => handleDeleteImage(img.id, e)}
+                              onClick={(e) => handleDeleteImageTrigger(img.id, e)}
                               className="p-2 rounded-xl bg-red-950/40 border border-red-500/20 hover:bg-red-500/20 hover:text-red-400 transition-all text-red-500"
                               title="Xóa ảnh"
                             >
@@ -783,7 +811,7 @@ export default function ArchivePage() {
                           </div>
 
                           <button
-                            onClick={(e) => handleDeleteCollection(col.id, e)}
+                            onClick={(e) => handleDeleteCollectionTrigger(col.id, e)}
                             className="p-2 rounded-xl bg-red-950/30 border border-red-500/10 hover:bg-red-500/20 hover:text-red-400 text-red-500 opacity-0 group-hover:opacity-100 transition-all duration-300"
                             title="Xóa bộ sưu tập"
                           >
@@ -1178,6 +1206,28 @@ export default function ArchivePage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Confirm modal xóa ảnh */}
+      <ConfirmModal
+        isOpen={deleteImageId !== null}
+        onClose={() => setDeleteImageId(null)}
+        onConfirm={executeDeleteImage}
+        title="Xóa ảnh khỏi thư viện"
+        description="Bạn có chắc chắn muốn xóa ảnh này khỏi thư viện? Hành động này không thể hoàn tác."
+        confirmText="Xóa ảnh"
+        variant="destructive"
+      />
+
+      {/* Confirm modal xóa album */}
+      <ConfirmModal
+        isOpen={deleteCollectionId !== null}
+        onClose={() => setDeleteCollectionId(null)}
+        onConfirm={executeDeleteCollection}
+        title="Xóa bộ sưu tập (Album)"
+        description="Bạn có chắc chắn muốn xóa bộ sưu tập này? Các ảnh bên trong sẽ không bị xóa khỏi thư viện chính."
+        confirmText="Xóa Album"
+        variant="destructive"
+      />
     </div>
   );
 }

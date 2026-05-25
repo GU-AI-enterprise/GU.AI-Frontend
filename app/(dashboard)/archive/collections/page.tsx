@@ -15,6 +15,8 @@ import Header from "@/components/shared/header";
 import { Button } from "@/components/ui/button";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { ConfirmModal } from "@/components/shared/confirm-modal";
 
 interface Collection {
   id: string;
@@ -35,6 +37,7 @@ export default function CollectionsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [deleteCollectionId, setDeleteCollectionId] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -124,8 +127,12 @@ export default function CollectionsPage() {
     }
   };
 
-  const handleDeleteCollection = async (colId: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa bộ sưu tập này?")) return;
+  const handleDeleteCollection = (colId: string) => {
+    setDeleteCollectionId(colId);
+  };
+
+  const executeDeleteCollection = async () => {
+    if (!deleteCollectionId) return;
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -133,17 +140,23 @@ export default function CollectionsPage() {
       if (!token) return;
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${apiUrl}/api/collections/${colId}`, {
+      const res = await fetch(`${apiUrl}/api/collections/${deleteCollectionId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
       const json = await res.json();
 
       if (json.success) {
-        setCollections(prev => prev.filter(col => col.id !== colId));
+        setCollections(prev => prev.filter(col => col.id !== deleteCollectionId));
+        toast.success("Xóa bộ sưu tập thành công!");
+      } else {
+        toast.error(json.error || "Không thể xóa bộ sưu tập.");
       }
     } catch (err) {
       console.error("Lỗi xóa bộ sưu tập:", err);
+      toast.error("Có lỗi xảy ra khi xóa bộ sưu tập.");
+    } finally {
+      setDeleteCollectionId(null);
     }
   };
 
@@ -297,6 +310,16 @@ export default function CollectionsPage() {
           </div>
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        isOpen={deleteCollectionId !== null}
+        onClose={() => setDeleteCollectionId(null)}
+        onConfirm={executeDeleteCollection}
+        title="Xóa bộ sưu tập (Album)"
+        description="Bạn có chắc chắn muốn xóa bộ sưu tập này? Các ảnh bên trong sẽ không bị ảnh hưởng."
+        confirmText="Xóa Album"
+        variant="destructive"
+      />
     </div>
   );
 }

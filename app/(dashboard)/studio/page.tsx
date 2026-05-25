@@ -28,6 +28,7 @@ import {
 import GuaiLoader from "@/components/shared/guai-loader";
 import AiGenerateTest from "@/components/ai-generate-test";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 interface UserCredit {
   current_credit: number;
@@ -187,9 +188,9 @@ export default function StudioPage() {
           return;
         }
       }
-      alert("Không tìm thấy ảnh trong clipboard.");
+      toast.warning("Không tìm thấy ảnh trong clipboard.");
     } catch {
-      alert("Trình duyệt không hỗ trợ paste ảnh hoặc chưa cấp quyền.");
+      toast.error("Trình duyệt không hỗ trợ paste ảnh hoặc chưa cấp quyền.");
     }
   }, []);
 
@@ -204,14 +205,14 @@ export default function StudioPage() {
 
   const handleRun = async () => {
     if (images.length === 0) {
-      alert("Vui lòng thêm ít nhất 1 ảnh.");
+      toast.warning("Vui lòng thêm ít nhất 1 ảnh.");
       return;
     }
     const tool = TOOLS.find(t => t.id === selectedTool);
     if (!tool) return;
 
     if (credit && credit.current_credit < tool.credit) {
-      alert(`Bạn cần ${tool.credit} credits để sử dụng công cụ này.`);
+      toast.warning(`Bạn cần ${tool.credit} credits để sử dụng công cụ này.`);
       return;
     }
 
@@ -219,7 +220,7 @@ export default function StudioPage() {
     // Simulate processing - replace with actual API call
     setTimeout(() => {
       setIsProcessing(false);
-      alert("Đang xử lý... Tính năng này sẽ sớm được cập nhật!");
+      toast.info("Đang xử lý... Tính năng này sẽ sớm được cập nhật!");
     }, 2000);
   };
 
@@ -237,7 +238,7 @@ export default function StudioPage() {
   return (
     <div className="w-full h-screen bg-background text-foreground flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="px-8 py-5 flex items-center justify-between border-b border-border/40">
+      <div className="shrink-0 px-8 py-5 flex items-center justify-between border-b border-border/40">
         <div>
           <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2">
             <Sparkles className="size-5 text-primary" />
@@ -270,7 +271,7 @@ export default function StudioPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center px-6 py-8 relative overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-h-0 flex flex-col items-center px-6 py-6 relative">
         {/* Drop Zone / Image Preview */}
         <div
           onDragOver={handleDragOver}
@@ -300,10 +301,10 @@ export default function StudioPage() {
               />
               
               {/* Placeholder images (decorative) */}
-              <div className="flex items-center justify-center gap-2 mb-6">
-                <div className="w-16 h-20 rounded-xl bg-gradient-to-br from-orange-200 to-orange-400 shadow-lg -rotate-6" />
-                <div className="w-16 h-20 rounded-xl bg-gradient-to-br from-sky-200 to-sky-400 shadow-lg z-10" />
-                <div className="w-16 h-20 rounded-xl bg-gradient-to-br from-amber-200 to-amber-400 shadow-lg rotate-6" />
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <div className="w-14 h-18 rounded-xl bg-gradient-to-br from-orange-200 to-orange-400 shadow-lg -rotate-6" />
+                <div className="w-14 h-18 rounded-xl bg-gradient-to-br from-sky-200 to-sky-400 shadow-lg z-10" />
+                <div className="w-14 h-18 rounded-xl bg-gradient-to-br from-amber-200 to-amber-400 shadow-lg rotate-6" />
               </div>
 
               {/* Action Buttons */}
@@ -389,36 +390,33 @@ export default function StudioPage() {
       </div>
 
       {/* Bottom Tool Bar */}
-      <div className="shrink-0 border-t border-border/40 bg-background/80 backdrop-blur-xl px-6 py-3">
-        {/* Tool Tabs */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-2 scrollbar-hide">
-          {TOOLS.map((tool) => (
-            <button
-              key={tool.id}
-              onClick={() => setSelectedTool(tool.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                selectedTool === tool.id
-                  ? "bg-foreground text-background"
-                  : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
-              }`}
-            >
-              {tool.icon}
-              {tool.name}
+      <div className="shrink-0 border-t border-border/40 bg-background/80 backdrop-blur-xl px-6 py-3 pb-4">
+        {/* Tool Tabs + Info */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+            {TOOLS.map((tool) => (
+              <button
+                key={tool.id}
+                onClick={() => setSelectedTool(tool.id)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                  selectedTool === tool.id
+                    ? "bg-foreground text-background"
+                    : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}
+              >
+                {tool.icon}
+                {tool.name}
+              </button>
+            ))}
+            <button className="flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
+              <ChevronRight className="size-4" />
             </button>
-          ))}
-          <button className="flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
-            <ChevronRight className="size-4" />
-          </button>
-        </div>
+          </div>
 
-        {/* AI Generate + Action Bar */}
-        <AiGenerateTest />
-
-        {/* Action Bar */}
-        <div className="flex items-center justify-between mt-2">
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          {/* Info pills */}
+          <div className="hidden sm:flex items-center gap-2 text-[11px] text-muted-foreground shrink-0">
             <span className="flex items-center gap-1">
-              <Sparkles className="size-3.5 text-primary" />
+              <Sparkles className="size-3 text-primary" />
               {selectedToolData?.name}
             </span>
             <span className="text-border">|</span>
@@ -426,28 +424,11 @@ export default function StudioPage() {
             <span className="text-border">|</span>
             <span>{images.length} ảnh</span>
           </div>
+        </div>
 
-          <button
-            onClick={handleRun}
-            disabled={!canRun}
-            className={`flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-semibold transition-all ${
-              canRun
-                ? "bg-foreground text-background hover:bg-foreground/90 shadow-lg"
-                : "bg-muted text-muted-foreground cursor-not-allowed"
-            }`}
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                Đang xử lý...
-              </>
-            ) : (
-              <>
-                <Play className="size-4" />
-                Run
-              </>
-            )}
-          </button>
+        {/* AI Test Generate Panel */}
+        <div className="mt-2 pt-2 border-t border-border/30 w-full">
+          <AiGenerateTest />
         </div>
       </div>
 

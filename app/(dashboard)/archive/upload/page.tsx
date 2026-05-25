@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 interface UploadingFile {
   id: string;
@@ -90,7 +91,7 @@ export default function UploadPage() {
   const handleFiles = (files: File[]) => {
     const validFiles = files.filter(file => file.type.startsWith("image/"));
     if (validFiles.length === 0) {
-      alert("Vui lòng chọn file hình ảnh (PNG, JPG, WEBP).");
+      toast.warning("Vui lòng chọn file hình ảnh (PNG, JPG, WEBP).");
       return;
     }
 
