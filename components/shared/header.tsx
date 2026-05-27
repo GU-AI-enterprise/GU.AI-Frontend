@@ -138,10 +138,7 @@ export default function Header() {
                         <LayoutDashboard className="size-4 text-primary" />
                         GU.AI Studio Dashboard
                       </Link>
-                      <Link href="/archive" className="flex items-center gap-2.5 w-full px-2.5 py-2 text-xs text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-all" onClick={() => setIsDropdownOpen(false)}>
-                        <History className="size-4" />
-                        Lịch sử tác vụ (Archive)
-                      </Link>
+
                       <Link href="/pricing" className="flex items-center gap-2.5 w-full px-2.5 py-2 text-xs text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-all" onClick={() => setIsDropdownOpen(false)}>
                         <Settings className="size-4" />
                         Nâng cấp gói dịch vụ

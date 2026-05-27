@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAppSelector } from "@/store/hooks";
+
 import { createClient } from "@/lib/supabase";
 import { Lock, Eye, EyeOff, ArrowLeft, Save, X, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,8 @@ import { useRouter } from "next/navigation";
 import GuaiLoader from "@/components/shared/guai-loader";
 
 export default function ChangePasswordPage() {
-  const { user } = useAuth();
+  const { user } = useAppSelector((state) => state.auth);
+
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");

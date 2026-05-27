@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Logo from "@/components/shared/logo";
 import Header from "@/components/shared/header";
+import SupportChatWidget from "@/components/support/support-chat-widget";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 
@@ -703,6 +704,7 @@ export default function LandingPage() {
         </div>
       </footer>
 
+      <SupportChatWidget />
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, X, Loader2, Headphones } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAppSelector } from "@/store/hooks";
 
 interface SupportUser {
   id: string;
@@ -31,7 +31,7 @@ interface SupportConversation {
 }
 
 export default function SupportChatWidget() {
-  const { session, loading } = useAuth();
+  const { session, loading } = useAppSelector((state) => state.auth);
   const [open, setOpen] = useState(false);
   const [conversation, setConversation] = useState<SupportConversation | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);

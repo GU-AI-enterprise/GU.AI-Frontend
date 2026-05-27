@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAppSelector } from "@/store/hooks";
+
 import { createClient } from "@/lib/supabase";
 import { User, Mail, Camera, ArrowLeft, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,8 @@ interface UserProfile {
 }
 
 export default function EditProfilePage() {
-  const { user } = useAuth();
+  const { user } = useAppSelector((state) => state.auth);
+
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);

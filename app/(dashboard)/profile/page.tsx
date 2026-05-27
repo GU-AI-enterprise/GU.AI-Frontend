@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAppSelector } from "@/store/hooks";
+
 import { createClient } from "@/lib/supabase";
 import { User, Mail, Calendar, CreditCard, Shield, Edit, Camera, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,8 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
-  const { user, signOut } = useAuth();
+  const { user } = useAppSelector((state) => state.auth);
+
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,8 @@ export default function ProfilePage() {
   };
 
   const handleSignOut = async () => {
-    await signOut();
+    const supabase = createClient();
+    await supabase.auth.signOut();
     router.push('/login');
   };
 
