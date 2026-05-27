@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/sonner";
+import StoreProvider from "@/store/StoreProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,10 +38,12 @@ export default function RootLayout({
       style={{ colorScheme: "light" }}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary">
-        <AuthProvider>
-          {children}
-          <Toaster position="top-center" />
-        </AuthProvider>
+        <StoreProvider>
+          <AuthProvider>
+            {children}
+            <Toaster position="top-center" />
+          </AuthProvider>
+        </StoreProvider>
       </body>
     </html>
   );

@@ -1,5 +1,6 @@
 import React from "react";
 import Sidebar from "@/components/shared/sidebar";
+import SupportChatWidget from "@/components/support/support-chat-widget";
 
 export default function DashboardLayout({
   children,
@@ -16,6 +17,7 @@ export default function DashboardLayout({
         <div className="flex-1 overflow-y-auto">
           {children}
         </div>
+        <SupportChatWidget />
       </main>
     </div>
   );
