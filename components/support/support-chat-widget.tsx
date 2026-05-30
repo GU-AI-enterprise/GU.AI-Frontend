@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, X, Loader2, Headphones } from "lucide-react";
 import { toast } from "sonner";
 import { useAppSelector } from "@/store/hooks";
+import { io, Socket } from "socket.io-client";
 
 interface SupportUser {
   id: string;
@@ -38,9 +39,12 @@ export default function SupportChatWidget() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<Socket | null>(null);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const socketUrl = apiUrl.replace(/\/api$/, "").replace(/:5000$/, ":5000");
   const token = session?.access_token;
 
   const fetchConversation = async (silent = false) => {
@@ -61,15 +65,60 @@ export default function SupportChatWidget() {
     }
   };
 
+  // Fetch conversation khi mở widget
   useEffect(() => {
     if (open && token) fetchConversation();
   }, [open, token]);
 
+  // Socket.IO connection
   useEffect(() => {
     if (!open || !token || !conversation?.id) return;
-    const interval = window.setInterval(() => fetchConversation(true), 5000);
-    return () => window.clearInterval(interval);
-  }, [open, token, conversation?.id]);
+
+    // Kết nối socket
+    const socket = io(socketUrl, {
+      auth: { token },
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("[SupportChat] Socket connected:", socket.id);
+      setIsConnected(true);
+      // Join conversation room
+      socket.emit("join-conversation", conversation.id);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("[SupportChat] Socket disconnected");
+      setIsConnected(false);
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("[SupportChat] Socket connection error:", err.message);
+      setIsConnected(false);
+    });
+
+    // Nhận message mới từ server
+    socket.on("message", (payload: any) => {
+      console.log("[SupportChat] Received message:", payload);
+      if (payload.conversationId === conversation.id) {
+        // Fetch lại messages để đồng bộ
+        fetchConversation(true);
+      }
+    });
+
+    return () => {
+      if (conversation?.id) {
+        socket.emit("leave-conversation", conversation.id);
+      }
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [open, token, conversation?.id, socketUrl]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -118,12 +167,17 @@ export default function SupportChatWidget() {
         <div className="fixed bottom-5 right-5 z-50 flex h-[560px] w-[360px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-3xl border border-border bg-background shadow-2xl">
           <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
             <div className="flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <div className={`flex size-9 items-center justify-center rounded-full ${isConnected ? "bg-green-500/10" : "bg-primary/10"} ${isConnected ? "text-green-500" : "text-primary"}`}>
                 <Headphones className="size-4" />
               </div>
               <div>
-                <p className="text-sm font-semibold">GU.AI Support</p>
-                <p className="text-[11px] text-muted-foreground">Admin sẽ phản hồi tại đây</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold">GU.AI Support</p>
+                  <span className={`size-2 rounded-full ${isConnected ? "bg-green-500 animate-pulse" : "bg-amber-500"}`} title={isConnected ? "Đã kết nối" : "Đang kết nối..."} />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {isConnected ? "Đã kết nối • Real-time" : "Đang kết nối..."}
+                </p>
               </div>
             </div>
             <button onClick={() => setOpen(false)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground">
