@@ -25,6 +25,10 @@ const playfairDisplay = Playfair_Display({
 export const metadata: Metadata = {
   title: "GU.AI - AI Virtual Fashion Model Generation",
   description: "AI-powered Virtual Fashion Model Generation Platform for the Vietnamese Market. Save 90% photoshoot cost.",
+  icons: {
+    icon: "/lotus.svg",
+    apple: "/lotus.svg",
+  },
 };
 
 export default function RootLayout({

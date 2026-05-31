@@ -219,6 +219,7 @@ export default function CollectionsPage() {
                 key={col.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
+                onClick={() => router.push(`/archive/collections/${col.id}`)}
                 className="group relative rounded-2xl overflow-hidden border border-border bg-card p-4 transition-all duration-300 hover:border-primary/40 cursor-pointer"
               >
                 <div className="aspect-[4/3] rounded-xl overflow-hidden bg-muted border border-border relative">
@@ -247,7 +248,7 @@ export default function CollectionsPage() {
                   </div>
 
                   <button
-                    onClick={() => handleDeleteCollection(col.id)}
+                    onClick={(e) => { e.stopPropagation(); handleDeleteCollection(col.id); }}
                     className="p-2 rounded-xl bg-red-950/30 border border-red-500/10 hover:bg-red-500/20 hover:text-red-400 text-red-500 opacity-0 group-hover:opacity-100 transition-all"
                   >
                     <Trash2 className="size-3.5" />
