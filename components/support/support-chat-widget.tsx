@@ -4,32 +4,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, X, Loader2, Headphones } from "lucide-react";
 import { toast } from "sonner";
 import { useAppSelector } from "@/store/hooks";
+import { getSupportConversation, sendSupportMessage, type SupportMessage, type SupportConversation } from "@/features/support/supportService";
 import { io, Socket } from "socket.io-client";
-
-interface SupportUser {
-  id: string;
-  name?: string | null;
-  email?: string | null;
-  avatar_url?: string | null;
-  role?: string | null;
-}
-
-interface SupportMessage {
-  id: string;
-  conversation_id: string;
-  sender_id: string;
-  sender_type: "customer" | "staff" | "admin" | "bot" | "system";
-  content: string;
-  message_type: string;
-  is_read: boolean;
-  created_at: string;
-  sender?: SupportUser | SupportUser[] | null;
-}
-
-interface SupportConversation {
-  id: string;
-  status: string;
-}
 
 export default function SupportChatWidget() {
   const { session, loading } = useAppSelector((state) => state.auth);
@@ -51,13 +27,9 @@ export default function SupportChatWidget() {
     if (!token) return;
     try {
       if (!silent) setIsLoading(true);
-      const res = await fetch(`${apiUrl}/api/support/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error || "Không thể tải hội thoại hỗ trợ.");
-      setConversation(json.data.conversation);
-      setMessages(json.data.messages || []);
+      const data = await getSupportConversation();
+      setConversation(data.conversation);
+      setMessages(data.messages);
     } catch (err: any) {
       if (!silent) toast.error(err.message || "Không thể tải chat hỗ trợ.");
     } finally {
@@ -130,18 +102,9 @@ export default function SupportChatWidget() {
 
     try {
       setIsSending(true);
-      const res = await fetch(`${apiUrl}/api/support/conversations/${conversation.id}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ content: message }),
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error || "Gửi tin nhắn thất bại.");
+      const newMsg = await sendSupportMessage(conversation.id, message);
       setMessage("");
-      setMessages((prev) => [...prev, json.data]);
+      setMessages((prev) => [...prev, newMsg]);
     } catch (err: any) {
       toast.error(err.message || "Gửi tin nhắn thất bại.");
     } finally {

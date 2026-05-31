@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useAppDispatch } from "@/store/hooks";
-import { setAuth, setLoading, clearAuth } from "@/store/slices/authSlice";
+import { setAuth, setLoading, clearAuth } from "@/features/auth/authSlice";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();

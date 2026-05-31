@@ -15,27 +15,7 @@ import {
 } from "lucide-react";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { supabase } from "@/lib/supabase";
-
-interface AIJob {
-  id: string;
-  type: string;
-  status: "queued" | "processing" | "completed" | "failed" | "cancelled";
-  credit_cost: number;
-  created_at: string;
-  result_url?: string;
-}
-
-interface Transaction {
-  id: string;
-  amount: number;
-  provider: string;
-  status: string;
-  created_at: string;
-  package?: {
-    name: string;
-    credits: number;
-  };
-}
+import { getHistory, type AIJob, type Transaction } from "@/features/history/historyService";
 
 export default function HistoryPage() {
   const router = useRouter();
@@ -58,7 +38,7 @@ export default function HistoryPage() {
         }
 
         setAuthLoading(false);
-        fetchHistory(session.user.id);
+        fetchHistory();
       } catch (err) {
         if (isMounted) router.push("/login");
       }
@@ -79,23 +59,12 @@ export default function HistoryPage() {
     };
   }, [router]);
 
-  const fetchHistory = async (uid: string) => {
+  const fetchHistory = async () => {
     try {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) return;
-
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${apiUrl}/api/history`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const json = await res.json();
-
-      if (json.success) {
-        setAiJobs(json.data.aiJobs || []);
-        setTransactions(json.data.transactions || []);
-      }
+      const data = await getHistory();
+      setAiJobs(data.aiJobs);
+      setTransactions(data.transactions);
     } catch (err) {
       console.error("Lỗi lấy lịch sử:", err);
     } finally {

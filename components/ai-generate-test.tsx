@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Wand2, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import { generateAI, type GenerateResult } from "@/features/studio/studioService";
 import {
   Dialog,
   DialogContent,
@@ -11,16 +11,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-
-interface GenerateResult {
-  imageUrl: string;
-  assetId: string;
-  jobId: string;
-  creditsUsed: number;
-  modelUsed: string;
-  keyIndex: number;
-  textResponse?: string;
-}
 
 const ASPECT_RATIOS = [
   { label: "1:1", value: "1:1" },
@@ -55,33 +45,9 @@ export default function AiGenerateTest() {
     setResult(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) {
-        toast.error("Chưa đăng nhập.");
-        setIsLoading(false);
-        return;
-      }
-
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${apiUrl}/api/ai/generate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ prompt, aspectRatio, imageSize }),
-      });
-
-      const json = await res.json();
-      if (!json.success) {
-        toast.error(json.error || "Generate thất bại.");
-        setIsLoading(false);
-        return;
-      }
-
-      setResult(json.data);
-      toast.success(`Generate thành công! -${json.data.creditsUsed} credits`);
+      const result = await generateAI({ prompt, aspectRatio, imageSize });
+      setResult(result);
+      toast.success(`Generate thành công! -${result.creditsUsed} credits`);
     } catch (err: any) {
       toast.error(err.message || "Lỗi kết nối server.");
     } finally {

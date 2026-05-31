@@ -9,25 +9,10 @@ import {
 import { Button } from "@/components/ui/button";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { supabase } from "@/lib/supabase";
+import { getCollection, getCollectionItems, removeItemFromCollection, type Collection } from "@/features/archive/collectionService";
+import { type DBAsset as Asset } from "@/features/archive/imageService";
 import { toast } from "sonner";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
-
-interface Collection {
-  id: string;
-  name: string;
-  description?: string | null;
-  created_at: string;
-}
-
-interface Asset {
-  id: string;
-  url: string;
-  thumbnail_url: string;
-  type: string;
-  category?: string;
-  file_size: number;
-  created_at: string;
-}
 
 export default function CollectionDetailPage() {
   const router = useRouter();
@@ -41,8 +26,6 @@ export default function CollectionDetailPage() {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [removeTargetId, setRemoveTargetId] = useState<string | null>(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
   useEffect(() => {
     let isMounted = true;
 
@@ -52,7 +35,7 @@ export default function CollectionDetailPage() {
         if (!isMounted) return;
         if (error || !session?.user) { router.push("/login"); return; }
         setAuthLoading(false);
-        fetchData(session.access_token);
+        fetchData();
       } catch {
         if (isMounted) router.push("/login");
       }
@@ -68,26 +51,18 @@ export default function CollectionDetailPage() {
     return () => { isMounted = false; subscription.unsubscribe(); };
   }, [router, collectionId]);
 
-  const fetchData = async (token: string) => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const [colRes, itemsRes] = await Promise.all([
-        fetch(`${apiUrl}/api/collections/${collectionId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${apiUrl}/api/collections/${collectionId}/items`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+      const [col, items] = await Promise.all([
+        getCollection(collectionId),
+        getCollectionItems(collectionId),
       ]);
-
-      const [colJson, itemsJson] = await Promise.all([colRes.json(), itemsRes.json()]);
-
-      if (colJson.success) setCollection(colJson.data);
-      else { toast.error("Không tìm thấy bộ sưu tập."); router.push("/archive/collections"); return; }
-
-      if (itemsJson.success) setAssets(itemsJson.data);
+      setCollection(col);
+      setAssets(items);
     } catch {
-      toast.error("Có lỗi khi tải dữ liệu.");
+      toast.error("Không tìm thấy bộ sưu tập.");
+      router.push("/archive/collections");
     } finally {
       setLoading(false);
     }
@@ -96,24 +71,11 @@ export default function CollectionDetailPage() {
   const handleRemoveAsset = async () => {
     if (!removeTargetId) return;
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) return;
-
-      const res = await fetch(`${apiUrl}/api/collections/${collectionId}/items`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ assetId: removeTargetId }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setAssets(prev => prev.filter(a => a.id !== removeTargetId));
-        toast.success("Đã xóa ảnh khỏi bộ sưu tập.");
-      } else {
-        toast.error(json.error || "Không thể xóa ảnh.");
-      }
-    } catch {
-      toast.error("Có lỗi xảy ra.");
+      await removeItemFromCollection(collectionId, removeTargetId);
+      setAssets(prev => prev.filter(a => a.id !== removeTargetId));
+      toast.success("Đã xóa ảnh khỏi bộ sưu tập.");
+    } catch (err: any) {
+      toast.error(err.message || "Không thể xóa ảnh.");
     } finally {
       setRemoveTargetId(null);
     }

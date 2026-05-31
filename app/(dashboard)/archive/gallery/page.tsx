@@ -10,24 +10,10 @@ import {
 import { Button } from "@/components/ui/button";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { supabase } from "@/lib/supabase";
+import { getImages, deleteImage, type DBAsset } from "@/features/archive/imageService";
+import { getCollections, addItemToCollection, type Collection } from "@/features/archive/collectionService";
 import { toast } from "sonner";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
-
-interface DBAsset {
-  id: string;
-  url: string;
-  thumbnail_url: string;
-  type: string;
-  category?: string;
-  file_size: number;
-  created_at: string;
-}
-
-interface Collection {
-  id: string;
-  name: string;
-  cover_asset?: { url: string; thumbnail_url: string } | null;
-}
 
 export default function GalleryPage() {
   const router = useRouter();
@@ -43,8 +29,6 @@ export default function GalleryPage() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [collectionsLoading, setCollectionsLoading] = useState(false);
   const [savingToId, setSavingToId] = useState<string | null>(null);
-
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   useEffect(() => {
     let isMounted = true;
@@ -71,19 +55,10 @@ export default function GalleryPage() {
     return () => { isMounted = false; subscription.unsubscribe(); };
   }, [router]);
 
-  const getToken = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token ?? null;
-  };
-
   const fetchImages = async () => {
     try {
       setLoading(true);
-      const token = await getToken();
-      if (!token) return;
-      const res = await fetch(`${apiUrl}/api/images`, { headers: { Authorization: `Bearer ${token}` } });
-      const json = await res.json();
-      if (json.success) setAssets(json.data);
+      setAssets(await getImages());
     } catch {
       // silent
     } finally {
@@ -95,11 +70,7 @@ export default function GalleryPage() {
     setSaveAssetId(assetId);
     setCollectionsLoading(true);
     try {
-      const token = await getToken();
-      if (!token) return;
-      const res = await fetch(`${apiUrl}/api/collections`, { headers: { Authorization: `Bearer ${token}` } });
-      const json = await res.json();
-      if (json.success) setCollections(json.data);
+      setCollections(await getCollections());
     } catch {
       toast.error("Không thể tải danh sách album.");
     } finally {
@@ -111,24 +82,15 @@ export default function GalleryPage() {
     if (!saveAssetId) return;
     setSavingToId(collectionId);
     try {
-      const token = await getToken();
-      if (!token) return;
-      const res = await fetch(`${apiUrl}/api/collections/${collectionId}/items`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ assetId: saveAssetId }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        toast.success("Đã lưu ảnh vào album!");
-        setSaveAssetId(null);
-      } else if (json.error?.includes("đã tồn tại")) {
+      await addItemToCollection(collectionId, saveAssetId);
+      toast.success("Đã lưu ảnh vào album!");
+      setSaveAssetId(null);
+    } catch (err: any) {
+      if (err.message?.includes("đã tồn tại")) {
         toast.info("Ảnh này đã có trong album rồi.");
       } else {
-        toast.error(json.error || "Không thể lưu ảnh vào album.");
+        toast.error(err.message || "Không thể lưu ảnh vào album.");
       }
-    } catch {
-      toast.error("Có lỗi xảy ra.");
     } finally {
       setSavingToId(null);
     }
@@ -137,21 +99,11 @@ export default function GalleryPage() {
   const executeDeleteImage = async () => {
     if (!deleteImageId) return;
     try {
-      const token = await getToken();
-      if (!token) return;
-      const res = await fetch(`${apiUrl}/api/images/${deleteImageId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (json.success) {
-        setAssets(prev => prev.filter(img => img.id !== deleteImageId));
-        toast.success("Xóa ảnh thành công!");
-      } else {
-        toast.error(json.error || "Không thể xóa ảnh.");
-      }
-    } catch {
-      toast.error("Có lỗi xảy ra khi xóa ảnh.");
+      await deleteImage(deleteImageId);
+      setAssets(prev => prev.filter(img => img.id !== deleteImageId));
+      toast.success("Xóa ảnh thành công!");
+    } catch (err: any) {
+      toast.error(err.message || "Không thể xóa ảnh.");
     } finally {
       setDeleteImageId(null);
     }

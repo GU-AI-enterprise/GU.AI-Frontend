@@ -28,12 +28,10 @@ import {
 import GuaiLoader from "@/components/shared/guai-loader";
 import AiGenerateTest from "@/components/ai-generate-test";
 import { supabase } from "@/lib/supabase";
+import { getUserCredit, type UserCredit } from "@/features/studio/studioService";
+import { getImages } from "@/features/archive/imageService";
+import { AIToolType, CREDIT_COST } from "@/constants/ai";
 import { toast } from "sonner";
-
-interface UserCredit {
-  current_credit: number;
-  plan_type: string;
-}
 
 interface StudioImage {
   id: string;
@@ -42,21 +40,21 @@ interface StudioImage {
 }
 
 const TOOLS = [
-  { id: "product_to_model", name: "Product to Model", icon: <Wand2 className="size-4" />, credit: 15 },
-  { id: "try_on", name: "Try-On", icon: <Shirt className="size-4" />, credit: 10 },
-  { id: "model_swap", name: "Model Swap", icon: <UserCircle2 className="size-4" />, credit: 12 },
-  { id: "face_swap", name: "Face Swap", icon: <Smile className="size-4" />, credit: 8 },
-  { id: "edit", name: "Edit", icon: <Pencil className="size-4" />, credit: 5 },
-  { id: "create_model", name: "Create Model", icon: <UserPlus className="size-4" />, credit: 20 },
-  { id: "image_to_video", name: "Image to Video", icon: <Video className="size-4" />, credit: 25 },
-  { id: "upscale", name: "Image Upscale", icon: <Maximize2 className="size-4" />, credit: 8 },
+  { id: AIToolType.PRODUCT_TO_MODEL, name: "Product to Model", icon: <Wand2 className="size-4" />, credit: CREDIT_COST[AIToolType.PRODUCT_TO_MODEL] },
+  { id: AIToolType.TRY_ON,           name: "Try-On",           icon: <Shirt className="size-4" />, credit: CREDIT_COST[AIToolType.TRY_ON] },
+  { id: AIToolType.MODEL_SWAP,       name: "Model Swap",       icon: <UserCircle2 className="size-4" />, credit: CREDIT_COST[AIToolType.MODEL_SWAP] },
+  { id: AIToolType.FACE_SWAP,        name: "Face Swap",        icon: <Smile className="size-4" />, credit: CREDIT_COST[AIToolType.FACE_SWAP] },
+  { id: AIToolType.EDIT,             name: "Edit",             icon: <Pencil className="size-4" />, credit: CREDIT_COST[AIToolType.EDIT] },
+  { id: AIToolType.CREATE_MODEL,     name: "Create Model",     icon: <UserPlus className="size-4" />, credit: CREDIT_COST[AIToolType.CREATE_MODEL] },
+  { id: AIToolType.IMAGE_TO_VIDEO,   name: "Image to Video",   icon: <Video className="size-4" />, credit: CREDIT_COST[AIToolType.IMAGE_TO_VIDEO] },
+  { id: AIToolType.UPSCALE,         name: "Image Upscale",    icon: <Maximize2 className="size-4" />, credit: CREDIT_COST[AIToolType.UPSCALE] },
 ];
 
 export default function StudioPage() {
   const router = useRouter();
   const [authLoading, setAuthLoading] = useState(true);
   const [credit, setCredit] = useState<UserCredit | null>(null);
-  const [selectedTool, setSelectedTool] = useState("product_to_model");
+  const [selectedTool, setSelectedTool] = useState<AIToolType>(AIToolType.PRODUCT_TO_MODEL);
   const [images, setImages] = useState<StudioImage[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -102,22 +100,8 @@ export default function StudioPage() {
 
   const fetchCredit = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) return;
-
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${apiUrl}/api/users/profile`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const json = await res.json();
-      
-      if (json.current_credit !== undefined) {
-        setCredit({
-          current_credit: json.current_credit,
-          plan_type: json.plan_type
-        });
-      }
+      const credit = await getUserCredit();
+      if (credit) setCredit(credit);
     } catch (err) {
       console.error("Lỗi lấy credit:", err);
     }
@@ -125,18 +109,8 @@ export default function StudioPage() {
 
   const fetchGalleryImages = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) return;
-
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${apiUrl}/api/images`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const json = await res.json();
-      if (json.success) {
-        setGalleryImages(json.data?.map((img: any) => ({ id: img.id, url: img.url })) || []);
-      }
+      const images = await getImages();
+      setGalleryImages(images.map(img => ({ id: img.id, url: img.url })));
     } catch (err) {
       console.error("Lỗi lấy gallery:", err);
     }

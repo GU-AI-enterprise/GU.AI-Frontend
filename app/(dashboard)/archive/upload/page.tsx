@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { supabase } from "@/lib/supabase";
+import { syncImage } from "@/features/archive/imageService";
 import { toast } from "sonner";
 
 interface UploadingFile {
@@ -135,28 +136,13 @@ export default function UploadPage() {
       const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(uniqueFilename);
 
       // Sync with backend
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) throw new Error("Phiên hết hạn.");
-
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${apiUrl}/api/images`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          fileUrl: publicUrl,
-          fileSize: file.size,
-          type: "image",
-          category: "reference",
-          thumbnailUrl: publicUrl,
-        }),
+      await syncImage({
+        fileUrl: publicUrl,
+        fileSize: file.size,
+        type: "image",
+        category: "reference",
+        thumbnailUrl: publicUrl,
       });
-
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error || "Lỗi đồng bộ.");
 
       setUploadFiles(prev =>
         prev.map(item => item.id === uploadItem.id ? { ...item, progress: 100, status: "success" } : item)
