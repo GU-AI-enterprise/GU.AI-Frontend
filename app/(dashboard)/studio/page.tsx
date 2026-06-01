@@ -3,10 +3,10 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { selectCreditBalance, adjustBalance } from "@/features/credit/creditSlice";
 import {
   Sparkles,
-  CreditCard,
-  AlertTriangle,
   Upload,
   ImageIcon,
   ClipboardPaste,
@@ -28,7 +28,6 @@ import {
 import GuaiLoader from "@/components/shared/guai-loader";
 import AiGenerateTest from "@/components/ai-generate-test";
 import { supabase } from "@/lib/supabase";
-import { getUserCredit, type UserCredit } from "@/features/studio/studioService";
 import { getImages } from "@/features/archive/imageService";
 import { AIToolType, CREDIT_COST } from "@/constants/ai";
 import { toast } from "sonner";
@@ -41,25 +40,26 @@ interface StudioImage {
 
 const TOOLS = [
   { id: AIToolType.PRODUCT_TO_MODEL, name: "Product to Model", icon: <Wand2 className="size-4" />, credit: CREDIT_COST[AIToolType.PRODUCT_TO_MODEL] },
-  { id: AIToolType.TRY_ON,           name: "Try-On",           icon: <Shirt className="size-4" />, credit: CREDIT_COST[AIToolType.TRY_ON] },
-  { id: AIToolType.MODEL_SWAP,       name: "Model Swap",       icon: <UserCircle2 className="size-4" />, credit: CREDIT_COST[AIToolType.MODEL_SWAP] },
-  { id: AIToolType.FACE_SWAP,        name: "Face Swap",        icon: <Smile className="size-4" />, credit: CREDIT_COST[AIToolType.FACE_SWAP] },
-  { id: AIToolType.EDIT,             name: "Edit",             icon: <Pencil className="size-4" />, credit: CREDIT_COST[AIToolType.EDIT] },
-  { id: AIToolType.CREATE_MODEL,     name: "Create Model",     icon: <UserPlus className="size-4" />, credit: CREDIT_COST[AIToolType.CREATE_MODEL] },
-  { id: AIToolType.IMAGE_TO_VIDEO,   name: "Image to Video",   icon: <Video className="size-4" />, credit: CREDIT_COST[AIToolType.IMAGE_TO_VIDEO] },
-  { id: AIToolType.UPSCALE,         name: "Image Upscale",    icon: <Maximize2 className="size-4" />, credit: CREDIT_COST[AIToolType.UPSCALE] },
+  { id: AIToolType.TRY_ON, name: "Try-On", icon: <Shirt className="size-4" />, credit: CREDIT_COST[AIToolType.TRY_ON] },
+  { id: AIToolType.MODEL_SWAP, name: "Model Swap", icon: <UserCircle2 className="size-4" />, credit: CREDIT_COST[AIToolType.MODEL_SWAP] },
+  { id: AIToolType.FACE_SWAP, name: "Face Swap", icon: <Smile className="size-4" />, credit: CREDIT_COST[AIToolType.FACE_SWAP] },
+  { id: AIToolType.EDIT, name: "Edit", icon: <Pencil className="size-4" />, credit: CREDIT_COST[AIToolType.EDIT] },
+  { id: AIToolType.CREATE_MODEL, name: "Create Model", icon: <UserPlus className="size-4" />, credit: CREDIT_COST[AIToolType.CREATE_MODEL] },
+  { id: AIToolType.IMAGE_TO_VIDEO, name: "Image to Video", icon: <Video className="size-4" />, credit: CREDIT_COST[AIToolType.IMAGE_TO_VIDEO] },
+  { id: AIToolType.UPSCALE, name: "Image Upscale", icon: <Maximize2 className="size-4" />, credit: CREDIT_COST[AIToolType.UPSCALE] },
 ];
 
 export default function StudioPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const creditBalance = useAppSelector(selectCreditBalance);
   const [authLoading, setAuthLoading] = useState(true);
-  const [credit, setCredit] = useState<UserCredit | null>(null);
   const [selectedTool, setSelectedTool] = useState<AIToolType>(AIToolType.PRODUCT_TO_MODEL);
   const [images, setImages] = useState<StudioImage[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showGalleryPicker, setShowGalleryPicker] = useState(false);
-  const [galleryImages, setGalleryImages] = useState<{id: string; url: string}[]>([]);
+  const [galleryImages, setGalleryImages] = useState<{ id: string; url: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -76,7 +76,6 @@ export default function StudioPage() {
         }
 
         setAuthLoading(false);
-        fetchCredit();
         fetchGalleryImages();
       } catch (err) {
         if (isMounted) router.push("/login");
@@ -97,15 +96,6 @@ export default function StudioPage() {
       subscription.unsubscribe();
     };
   }, [router]);
-
-  const fetchCredit = async () => {
-    try {
-      const credit = await getUserCredit();
-      if (credit) setCredit(credit);
-    } catch (err) {
-      console.error("Lỗi lấy credit:", err);
-    }
-  };
 
   const fetchGalleryImages = async () => {
     try {
@@ -185,7 +175,7 @@ export default function StudioPage() {
     const tool = TOOLS.find(t => t.id === selectedTool);
     if (!tool) return;
 
-    if (credit && credit.current_credit < tool.credit) {
+    if (creditBalance !== null && creditBalance < tool.credit) {
       toast.warning(`Bạn cần ${tool.credit} credits để sử dụng công cụ này.`);
       return;
     }
@@ -194,6 +184,7 @@ export default function StudioPage() {
     // Simulate processing - replace with actual API call
     setTimeout(() => {
       setIsProcessing(false);
+      dispatch(adjustBalance(-tool.credit));
       toast.info("Đang xử lý... Tính năng này sẽ sớm được cập nhật!");
     }, 2000);
   };
@@ -210,40 +201,7 @@ export default function StudioPage() {
   }
 
   return (
-    <div className="w-full h-screen bg-background text-foreground flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="shrink-0 px-8 py-5 flex items-center justify-between border-b border-border/40">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2">
-            <Sparkles className="size-5 text-primary" />
-            Studio
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Công cụ AI tạo và chỉnh sửa ảnh sản phẩm chuyên nghiệp
-          </p>
-        </div>
-
-        {/* Credit Display */}
-        <motion.div
-          initial={{ opacity: 0, x: 10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-3 bg-secondary/40 border border-border/30 rounded-2xl px-4 py-2.5"
-        >
-          <CreditCard className="size-4 text-primary" />
-          <div className="text-right">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-              Credits
-            </p>
-            <p className="text-base font-serif leading-none">
-              {credit ? credit.current_credit.toLocaleString("vi-VN") : "--"}
-            </p>
-          </div>
-          {credit && credit.current_credit < 20 && (
-            <AlertTriangle className="size-4 text-amber-400" />
-          )}
-        </motion.div>
-      </div>
-
+    <div className="w-full h-[100%] bg-background text-foreground flex flex-col overflow-hidden">
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto min-h-0 flex flex-col items-center px-6 py-6 relative">
         {/* Drop Zone / Image Preview */}
@@ -251,19 +209,17 @@ export default function StudioPage() {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`relative w-full max-w-2xl transition-all duration-300 ${
-            images.length === 0 ? "min-h-[320px]" : ""
-          }`}
+          className={`relative w-full max-w-2xl transition-all duration-300 ${images.length === 0 ? "min-h-[320px]" : ""
+            }`}
         >
           {images.length === 0 ? (
             /* Empty State */
             <div
               onClick={() => fileInputRef.current?.click()}
-              className={`w-full h-[320px] rounded-3xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${
-                isDragging
+              className={`w-full h-[480px] rounded-3xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${isDragging
                   ? "border-primary bg-primary/5 scale-[1.02]"
                   : "border-border hover:border-primary/30 hover:bg-card"
-              }`}
+                }`}
             >
               <input
                 type="file"
@@ -273,7 +229,7 @@ export default function StudioPage() {
                 onChange={handleFileSelect}
                 className="hidden"
               />
-              
+
               {/* Placeholder images (decorative) */}
               <div className="flex items-center justify-center gap-2 mb-4">
                 <div className="w-14 h-18 rounded-xl bg-gradient-to-br from-orange-200 to-orange-400 shadow-lg -rotate-6" />
@@ -337,7 +293,7 @@ export default function StudioPage() {
                     </button>
                   </motion.div>
                 ))}
-                
+
                 {images.length < 5 && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
@@ -372,11 +328,10 @@ export default function StudioPage() {
               <button
                 key={tool.id}
                 onClick={() => setSelectedTool(tool.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                  selectedTool === tool.id
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${selectedTool === tool.id
                     ? "bg-foreground text-background"
                     : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
-                }`}
+                  }`}
               >
                 {tool.icon}
                 {tool.name}

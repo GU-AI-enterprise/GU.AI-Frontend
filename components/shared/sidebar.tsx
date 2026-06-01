@@ -17,8 +17,11 @@ import {
   Sparkles,
   PanelLeftClose,
   PanelLeftOpen,
+  Coins,
 } from "lucide-react";
 import Logo from "@/components/shared/logo";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { fetchCredit, selectCreditBalance } from "@/features/credit/creditSlice";
 
 const mainNav = [
   { href: "/dashboard", label: "Tổng quan", Icon: LayoutDashboard },
@@ -40,6 +43,13 @@ const bottomNav = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const dispatch = useAppDispatch();
+  const { session } = useAppSelector((s) => s.auth);
+  const credit = useAppSelector(selectCreditBalance);
+
+  useEffect(() => {
+    if (session?.access_token) dispatch(fetchCredit());
+  }, [session?.access_token, dispatch]);
   const [archiveOpen, setArchiveOpen] = useState(pathname.startsWith("/archive"));
   const [archiveFlyoutOpen, setArchiveFlyoutOpen] = useState(false);
   const [archiveFlyoutPos, setArchiveFlyoutPos] = useState<{ top: number; left: number } | null>(null);
@@ -192,6 +202,29 @@ export default function Sidebar() {
             </div>
           </div>
         </nav>
+
+        {/* Credit display */}
+        {credit !== null && (
+          <div className="px-3 pb-2 border-t border-sidebar-border pt-3">
+            {collapsed ? (
+              <div className="flex justify-center py-1" title={`${credit.toLocaleString()} credits`}>
+                <div className="flex items-center justify-center size-9 rounded-xl bg-primary/10 text-primary">
+                  <Coins className="size-4" />
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between rounded-xl bg-primary/8 border border-primary/15 px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <Coins className="size-4 text-primary shrink-0" />
+                  <span className="text-xs font-medium text-muted-foreground">Credits</span>
+                </div>
+                <span className="text-sm font-bold text-foreground tabular-nums">
+                  {credit.toLocaleString()}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Bottom Nav */}
         <div className="px-3 py-4 border-t border-sidebar-border space-y-1">

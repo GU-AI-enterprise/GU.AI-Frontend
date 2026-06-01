@@ -8,8 +8,9 @@ import { supabase } from "@/lib/supabase";
 import Logo from "@/components/shared/logo";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { Button } from "@/components/ui/button";
-import { LogOut, User as UserIcon, LayoutDashboard, History, Settings, ChevronDown } from "lucide-react";
+import { LogOut, User as UserIcon, LayoutDashboard, Settings, ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import NotificationCenter from "@/components/notification/NotificationCenter";
 
 export default function Header() {
   const router = useRouter();
@@ -83,6 +84,8 @@ export default function Header() {
         <div className="flex items-center gap-3">
           {user ? (
             /* Logged In User Profile Dropdown */
+            <>
+            <NotificationCenter variant="header" />
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -159,6 +162,7 @@ export default function Header() {
                 )}
               </AnimatePresence>
             </div>
+            </>
           ) : (
             /* Action buttons for Unauthenticated Users */
             <>
