@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -30,13 +30,13 @@ export async function middleware(request: NextRequest) {
 
   // Protected routes - require authentication
   const protectedPaths = ['/dashboard', '/profile', '/settings']
-  const isProtectedRoute = protectedPaths.some(path => 
+  const isProtectedRoute = protectedPaths.some(path =>
     request.nextUrl.pathname.startsWith(path)
   )
 
   // Auth routes - redirect if already authenticated
   const authPaths = ['/login', '/register', '/forgot-password']
-  const isAuthRoute = authPaths.some(path => 
+  const isAuthRoute = authPaths.some(path =>
     request.nextUrl.pathname.startsWith(path)
   )
 

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
-
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { Toaster } from "@/components/ui/sonner";
 import StoreProvider from "@/store/StoreProvider";
 
@@ -45,8 +45,10 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary">
         <StoreProvider>
           <AuthProvider>
-            {children}
-            <Toaster position="top-center" />
+            <NotificationProvider>
+              {children}
+              <Toaster position="top-center" />
+            </NotificationProvider>
           </AuthProvider>
         </StoreProvider>
       </body>
