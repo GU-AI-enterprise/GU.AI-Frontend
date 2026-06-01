@@ -18,7 +18,7 @@ export interface SyncImagePayload {
   thumbnailUrl: string;
 }
 
-async function parseResponse<T>(res: Response): Promise<T> {
+async function parseResponse<T>(res: { json: () => Promise<any>; ok: boolean; status: number }): Promise<T> {
   const json = await res.json();
   if (!json.success) throw new Error(json.error || 'Request failed');
   return json.data as T;
