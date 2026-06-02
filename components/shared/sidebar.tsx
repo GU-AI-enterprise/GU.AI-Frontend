@@ -31,6 +31,7 @@ import SupportChatWidget from "@/components/support/support-chat-widget";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { fetchCredit, selectCreditBalance } from "@/features/credit/creditSlice";
 import { supabase } from "@/lib/supabase";
+import { useSupportUnread } from "@/contexts/SupportUnreadContext";
 
 const mainNav = [
   { href: "/dashboard", label: "Tổng quan",       Icon: LayoutDashboard },
@@ -50,6 +51,9 @@ export default function Sidebar() {
   const { theme, setTheme } = useTheme();
   const { session, user } = useAppSelector((s) => s.auth);
   const credit    = useAppSelector(selectCreditBalance);
+
+  const { unreadCount, role: userRole, markRead } = useSupportUnread();
+  const isStaff = userRole === "staff" || userRole === "admin";
 
   const [collapsed,       setCollapsed]       = useState(false);
   const [archiveOpen,     setArchiveOpen]     = useState(pathname.startsWith("/archive"));
@@ -237,6 +241,45 @@ export default function Sidebar() {
                 {!collapsed && <span>Lịch sử tác vụ</span>}
               </Link>
             </div>
+
+            {/* Support nav — only for staff/admin */}
+            {isStaff && (
+              <div className="relative" onMouseLeave={() => setTooltip(null)}>
+                <Link
+                  href="/admin/support"
+                  onMouseEnter={(e) => {
+                    if (collapsed) {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setTooltip({ label: "Hỗ trợ khách hàng", top: rect.top + rect.height / 2 });
+                    }
+                  }}
+                  className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${
+                    isActive("/admin/support")
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  }`}
+                >
+                  <span className="relative flex-shrink-0">
+                    <MessageCircle className={`size-[18px] ${isActive("/admin/support") ? "text-primary" : ""}`} />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1.5 flex size-[14px] items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white leading-none">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
+                  </span>
+                  {!collapsed && (
+                    <span className="flex items-center gap-2 flex-1">
+                      Hỗ trợ khách hàng
+                      {unreadCount > 0 && (
+                        <span className="ml-auto flex items-center justify-center rounded-full bg-red-500 px-1.5 min-w-[18px] h-[16px] text-[9px] font-bold text-white leading-none">
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </Link>
+              </div>
+            )}
           </div>
         </nav>
 
@@ -284,6 +327,11 @@ export default function Sidebar() {
                 <div className="size-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground border-2 border-primary/20">
                   {initials}
                 </div>
+              )}
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-sidebar border-0 leading-none">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
               )}
             </div>
 
@@ -403,14 +451,28 @@ export default function Sidebar() {
             <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
               Trợ giúp
             </div>
-            <MenuItem icon={<BookOpen className="size-4" />}   label="Help Center" href="#" onClick={() => setUserMenuOpen(false)} />
-            <button
-              onClick={() => { setUserMenuOpen(false); setChatForceOpen(true); setTimeout(() => setChatForceOpen(false), 200); }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-foreground hover:bg-accent transition-colors"
-            >
-              <span className="text-muted-foreground"><MessageCircle className="size-4" /></span>
-              Chat với chúng tôi
-            </button>
+            <MenuItem icon={<BookOpen className="size-4" />} label="Help Center" href="#" onClick={() => setUserMenuOpen(false)} />
+            {!isStaff && (
+              <button
+                onClick={() => { setUserMenuOpen(false); setChatForceOpen(true); setTimeout(() => setChatForceOpen(false), 200); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-foreground hover:bg-accent transition-colors"
+              >
+                <span className="text-muted-foreground relative shrink-0">
+                  <MessageCircle className="size-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex size-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white leading-none">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </span>
+                Chat với chúng tôi
+                {unreadCount > 0 && (
+                  <span className="ml-auto flex items-center justify-center rounded-full bg-red-500 px-1.5 min-w-[18px] h-[16px] text-[9px] font-bold text-white leading-none">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+            )}
             <MenuItem icon={<HelpCircle className="size-4" />} label="Discord" href="#" onClick={() => setUserMenuOpen(false)} />
           </div>
 

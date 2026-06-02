@@ -12,3 +12,8 @@ export enum SupportStatus {
   RESOLVED = 'resolved',
   CLOSED = 'closed',
 }
+
+export enum MessageType {
+  TEXT = 'text',
+  IMAGE = 'image',
+}
