@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  X, Download, ZoomIn, ZoomOut, Maximize2, RotateCcw,
+  X, Download, ZoomIn, ZoomOut, Maximize2, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
 export interface LightboxAction {
@@ -11,6 +11,12 @@ export interface LightboxAction {
   label: string;
   onClick: () => void;
   variant?: "default" | "destructive";
+}
+
+interface LightboxImage {
+  url: string;
+  filename?: string;
+  createdAt?: string;
 }
 
 interface LightboxProps {
@@ -22,13 +28,19 @@ interface LightboxProps {
   filename?: string;
   /** ISO timestamp — shown in top bar as creation time */
   createdAt?: string;
+  /** Full image list for prev/next navigation */
+  images?: LightboxImage[];
+  /** Index of the currently open image within `images` */
+  currentIndex?: number;
+  /** Called when user navigates to a different image */
+  onNavigate?: (index: number) => void;
 }
 
 const ZOOM_STEPS = [1, 1.5, 2, 3, 4];
 const ZOOM_MIN = ZOOM_STEPS[0];
 const ZOOM_MAX = ZOOM_STEPS[ZOOM_STEPS.length - 1];
 
-export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt }: LightboxProps) {
+export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt, images, currentIndex, onNavigate }: LightboxProps) {
   const [isMounted, setIsMounted] = useState(false);
   const isOpen = !!imageUrl;
 
@@ -39,6 +51,13 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt 
   const dragging  = useRef(false);
   const lastPos   = useRef({ x: 0, y: 0 });
   const imgRef    = useRef<HTMLImageElement>(null);
+
+  const hasNav   = !!images && images.length > 1;
+  const navIndex = currentIndex ?? 0;
+  const activeImg = hasNav ? images![navIndex] : null;
+  const activeUrl      = activeImg?.url      ?? imageUrl ?? undefined;
+  const activeFilename = activeImg?.filename ?? filename;
+  const activeCreatedAt= activeImg?.createdAt ?? createdAt;
 
   // ── Mount guard for portal ─────────────────────────────────────────────────
   useEffect(() => { setIsMounted(true); }, []);
@@ -54,10 +73,12 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt 
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { onClose(); return; }
-      if (e.key === "+" || e.key === "=") { e.preventDefault(); zoomIn(); }
-      if (e.key === "-")                  { e.preventDefault(); zoomOut(); }
-      if (e.key === "0")                  { e.preventDefault(); resetZoom(); }
+      if (e.key === "Escape")                   { onClose(); return; }
+      if (e.key === "+" || e.key === "=")       { e.preventDefault(); zoomIn(); }
+      if (e.key === "-")                        { e.preventDefault(); zoomOut(); }
+      if (e.key === "0")                        { e.preventDefault(); resetZoom(); }
+      if (e.key === "ArrowLeft"  && hasNav)     { e.preventDefault(); goPrev(); }
+      if (e.key === "ArrowRight" && hasNav)     { e.preventDefault(); goNext(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -84,6 +105,17 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt 
     setPanX(0);
     setPanY(0);
   }, []);
+
+  // ── Navigation (defined after resetZoom so it can reference it) ────────────
+  const goTo = useCallback((idx: number) => {
+    if (!images) return;
+    const clamped = (idx + images.length) % images.length;
+    onNavigate?.(clamped);
+    setZoom(1); setPanX(0); setPanY(0);
+  }, [images, onNavigate]);
+
+  const goPrev = useCallback(() => goTo(navIndex - 1), [goTo, navIndex]);
+  const goNext = useCallback(() => goTo(navIndex + 1), [goTo, navIndex]);
 
   // ── Wheel zoom ─────────────────────────────────────────────────────────────
   const onWheel = useCallback((e: React.WheelEvent) => {
@@ -114,10 +146,10 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt 
 
   // ── Download ───────────────────────────────────────────────────────────────
   const handleDownload = () => {
-    if (!imageUrl) return;
+    if (!activeUrl) return;
     const a = document.createElement("a");
-    a.href = imageUrl;
-    a.download = filename ?? `guai_${Date.now()}.png`;
+    a.href = activeUrl;
+    a.download = activeFilename ?? `guai_${Date.now()}.png`;
     a.target = "_blank";
     document.body.appendChild(a);
     a.click();
@@ -139,21 +171,27 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt 
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/8">
         <div className="flex items-center gap-3">
-          {filename && (
-            <span className="text-xs font-medium text-white/60 truncate max-w-[200px]">{filename}</span>
+          {activeFilename && (
+            <span className="text-xs font-medium text-white/60 truncate max-w-[200px]">{activeFilename}</span>
           )}
-          {createdAt && (
+          {activeCreatedAt && (
             <>
-              {filename && <span className="text-white/20">·</span>}
+              {activeFilename && <span className="text-white/20">·</span>}
               <span className="text-[11px] text-white/40 font-mono">
-                {new Date(createdAt).toLocaleString("vi-VN", {
+                {new Date(activeCreatedAt).toLocaleString("vi-VN", {
                   day: "2-digit", month: "2-digit", year: "numeric",
                   hour: "2-digit", minute: "2-digit",
                 })}
               </span>
             </>
           )}
-          {!filename && !createdAt && (
+          {hasNav && (
+            <>
+              {(activeFilename || activeCreatedAt) && <span className="text-white/20">·</span>}
+              <span className="text-[11px] text-white/40 font-mono">{navIndex + 1} / {images!.length}</span>
+            </>
+          )}
+          {!activeFilename && !activeCreatedAt && !hasNav && (
             <span className="text-[11px] text-white/30">Xem ảnh</span>
           )}
         </div>
@@ -179,9 +217,19 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt 
         onClick={(e) => { if (zoom <= 1 && e.target === e.currentTarget) onClose(); }}
         style={{ cursor: zoom > 1 ? (dragging.current ? "grabbing" : "grab") : "default" }}
       >
+        {/* Prev button */}
+        {hasNav && (
+          <button
+            onClick={goPrev}
+            className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center size-10 rounded-full bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm border border-white/10 transition-all z-10"
+          >
+            <ChevronLeft className="size-5" />
+          </button>
+        )}
+
         <img
           ref={imgRef}
-          src={imageUrl ?? undefined}
+          src={activeUrl}
           alt="Phóng to"
           draggable={false}
           onDoubleClick={zoom > 1 ? resetZoom : zoomIn}
@@ -196,6 +244,16 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt 
             cursor: zoom > 1 ? (dragging.current ? "grabbing" : "grab") : "zoom-in",
           }}
         />
+
+        {/* Next button */}
+        {hasNav && (
+          <button
+            onClick={goNext}
+            className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center size-10 rounded-full bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm border border-white/10 transition-all z-10"
+          >
+            <ChevronRight className="size-5" />
+          </button>
+        )}
       </div>
 
       {/* ── Bottom toolbar ──────────────────────────────────────────────────── */}

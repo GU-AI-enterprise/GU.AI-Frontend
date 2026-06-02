@@ -25,8 +25,9 @@ export default function GalleryPage() {
   const [filterType, setFilterType] = useState<"all" | "input" | "output" | "edit">("all");
 
   // Lightbox
-  const [lightboxUrl, setLightboxUrl]         = useState<string | null>(null);
+  const [lightboxUrl, setLightboxUrl]             = useState<string | null>(null);
   const [lightboxCreatedAt, setLightboxCreatedAt] = useState<string | undefined>();
+  const [lightboxIndex, setLightboxIndex]         = useState(0);
 
   // Save to album
   const [saveAssetId, setSaveAssetId] = useState<string | null>(null);
@@ -244,7 +245,12 @@ export default function GalleryPage() {
                           ${isSelected ? "border-primary ring-2 ring-primary/40" : "border-border hover:border-primary/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.1)]"}`}
                         onClick={() => {
                           if (selectMode) toggleSelect(img.id);
-                          else { setLightboxUrl(img.url); setLightboxCreatedAt(img.created_at); }
+                          else {
+                            const idx = filteredAssets.findIndex(a => a.id === img.id);
+                            setLightboxIndex(idx);
+                            setLightboxUrl(img.url);
+                            setLightboxCreatedAt(img.created_at);
+                          }
                         }}
                       >
                         <img
@@ -332,6 +338,12 @@ export default function GalleryPage() {
       <Lightbox
         imageUrl={lightboxUrl}
         createdAt={lightboxCreatedAt}
+        currentIndex={lightboxIndex}
+        images={filteredAssets.map(a => ({ url: a.url, createdAt: a.created_at }))}
+        onNavigate={(idx) => {
+          const img = filteredAssets[idx];
+          if (img) { setLightboxIndex(idx); setLightboxUrl(img.url); setLightboxCreatedAt(img.created_at); }
+        }}
         onClose={() => { setLightboxUrl(null); setLightboxCreatedAt(undefined); }}
       />
 
