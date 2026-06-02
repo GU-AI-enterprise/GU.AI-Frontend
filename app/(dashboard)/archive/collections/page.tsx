@@ -213,7 +213,7 @@ export default function CollectionsPage() {
       {/* Create Modal */}
       <AnimatePresence>
         {isCreateModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div key="create-collection-modal" className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

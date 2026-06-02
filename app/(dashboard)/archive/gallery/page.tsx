@@ -1,17 +1,18 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ImageIcon, Search, Download, Trash2,
-  FolderHeart, Plus, Folder, Check, X, FolderPlus
+  FolderHeart, Plus, CheckSquare, X, Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GuaiLoader from "@/components/shared/guai-loader";
+import { Lightbox } from "@/components/shared/lightbox";
+import { SaveToAlbumModal } from "@/components/shared/save-to-album-modal";
 import { supabase } from "@/lib/supabase";
 import { getImages, deleteImage, type DBAsset } from "@/features/archive/imageService";
-import { getCollections, addItemToCollection, type Collection } from "@/features/archive/collectionService";
 import { toast } from "sonner";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
 
@@ -22,17 +23,23 @@ export default function GalleryPage() {
   const [authLoading, setAuthLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "input" | "output" | "edit">("all");
-  const [deleteImageId, setDeleteImageId] = useState<string | null>(null);
 
-  // Save to album state
+  // Lightbox
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+  // Save to album
   const [saveAssetId, setSaveAssetId] = useState<string | null>(null);
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [collectionsLoading, setCollectionsLoading] = useState(false);
-  const [savingToId, setSavingToId] = useState<string | null>(null);
+
+  // Delete
+  const [deleteImageId, setDeleteImageId] = useState<string | null>(null);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+
+  // Multi-select
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let isMounted = true;
-
     const initAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -44,14 +51,11 @@ export default function GalleryPage() {
         if (isMounted) router.push("/login");
       }
     };
-
     initAuth();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
       if (event === "SIGNED_OUT" || !session?.user) router.push("/login");
     });
-
     return () => { isMounted = false; subscription.unsubscribe(); };
   }, [router]);
 
@@ -63,36 +67,6 @@ export default function GalleryPage() {
       // silent
     } finally {
       setLoading(false);
-    }
-  };
-
-  const openSaveModal = async (assetId: string) => {
-    setSaveAssetId(assetId);
-    setCollectionsLoading(true);
-    try {
-      setCollections(await getCollections());
-    } catch {
-      toast.error("Không thể tải danh sách album.");
-    } finally {
-      setCollectionsLoading(false);
-    }
-  };
-
-  const handleSaveToCollection = async (collectionId: string) => {
-    if (!saveAssetId) return;
-    setSavingToId(collectionId);
-    try {
-      await addItemToCollection(collectionId, saveAssetId);
-      toast.success("Đã lưu ảnh vào album!");
-      setSaveAssetId(null);
-    } catch (err: any) {
-      if (err.message?.includes("đã tồn tại")) {
-        toast.info("Ảnh này đã có trong album rồi.");
-      } else {
-        toast.error(err.message || "Không thể lưu ảnh vào album.");
-      }
-    } finally {
-      setSavingToId(null);
     }
   };
 
@@ -109,12 +83,40 @@ export default function GalleryPage() {
     }
   };
 
+  const executeBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    try {
+      await Promise.all(ids.map(id => deleteImage(id)));
+      setAssets(prev => prev.filter(img => !selectedIds.has(img.id)));
+      setSelectedIds(new Set());
+      setSelectMode(false);
+      toast.success(`Đã xóa ${ids.length} ảnh!`);
+    } catch (err: any) {
+      toast.error(err.message || "Không thể xóa ảnh.");
+    } finally {
+      setBulkDeleteConfirm(false);
+    }
+  };
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
+    if (!bytes) return "";
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
   const filteredAssets = assets.filter(img => {
@@ -149,6 +151,7 @@ export default function GalleryPage() {
   return (
     <div className="w-full min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
+
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
           <div>
@@ -160,12 +163,23 @@ export default function GalleryPage() {
               Quản lý và tổ chức thư viện ảnh của bạn.
             </p>
           </div>
-          <Button
-            onClick={() => router.push("/archive/upload")}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
-          >
-            <Plus className="size-4 mr-2" /> Tải lên ảnh mới
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={selectMode ? exitSelectMode : () => setSelectMode(true)}
+              className="rounded-xl text-xs"
+            >
+              <X className={`size-3.5 mr-1.5 ${selectMode ? "" : "hidden"}`} />
+              <Layers className={`size-3.5 mr-1.5 ${selectMode ? "hidden" : ""}`} />
+              {selectMode ? "Thoát chọn" : "Chọn nhiều"}
+            </Button>
+            <Button
+              onClick={() => router.push("/archive/upload")}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
+            >
+              <Plus className="size-4 mr-2" /> Tải lên ảnh mới
+            </Button>
+          </div>
         </div>
 
         {/* Search & Filter */}
@@ -218,49 +232,66 @@ export default function GalleryPage() {
                   <span className="text-xs text-muted-foreground">{groupedByDate[date].length} ảnh</span>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-                  {groupedByDate[date].map((img) => (
-                    <motion.div
-                      key={img.id}
-                      layoutId={img.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="group relative rounded-2xl overflow-hidden border border-border bg-card aspect-[3/4] transition-all duration-300 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.1)]"
-                    >
-                      <img
-                        src={img.url}
-                        alt="GU.AI Asset"
-                        className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end">
-                        <p className="text-[10px] text-white/60 font-medium">{formatFileSize(img.file_size)}</p>
-                        <div className="flex items-center gap-2 mt-3">
-                          <a
-                            href={img.url}
-                            download
-                            target="_blank"
-                            rel="noreferrer"
-                            className="p-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all text-white"
-                          >
-                            <Download className="size-3.5" />
-                          </a>
-                          <button
-                            onClick={() => openSaveModal(img.id)}
-                            className="flex-1 py-2 rounded-xl bg-primary hover:bg-primary/90 transition-all text-[11px] font-semibold text-center text-primary-foreground flex items-center justify-center gap-1.5"
-                          >
-                            <FolderHeart className="size-3.5" />
-                            Lưu vào Album
-                          </button>
-                          <button
-                            onClick={() => setDeleteImageId(img.id)}
-                            className="p-2 rounded-xl bg-red-500/20 backdrop-blur-md border border-red-500/30 hover:bg-red-500/30 hover:text-red-300 transition-all text-red-400"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
+                  {groupedByDate[date].map((img) => {
+                    const isSelected = selectedIds.has(img.id);
+                    return (
+                      <motion.div
+                        key={img.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`group relative rounded-2xl overflow-hidden border bg-card aspect-[3/4] transition-all duration-300 cursor-pointer
+                          ${isSelected ? "border-primary ring-2 ring-primary/40" : "border-border hover:border-primary/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.1)]"}`}
+                        onClick={() => {
+                          if (selectMode) toggleSelect(img.id);
+                          else setLightboxUrl(img.url);
+                        }}
+                      >
+                        <img
+                          src={img.url}
+                          alt="GU.AI Asset"
+                          className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          loading="lazy"
+                        />
+
+                        {/* Select mode checkbox — always in DOM, CSS only */}
+                        <div className={`absolute top-2 left-2 transition-opacity duration-150 ${selectMode ? "opacity-100" : "opacity-0"}`}>
+                          <div className={`size-5 rounded-md border-2 flex items-center justify-center transition-colors ${isSelected ? "bg-primary border-primary" : "bg-black/40 border-white/60"}`}>
+                            <CheckSquare className={`size-3.5 text-white transition-opacity ${isSelected ? "opacity-100" : "opacity-0"}`} />
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
+
+                        {/* Hover actions — hidden in select mode */}
+                        <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent transition-opacity duration-300 p-4 flex flex-col justify-end ${selectMode ? "opacity-0" : "opacity-0 group-hover:opacity-100"}`}>
+                          <p className="text-[10px] text-white/60 font-medium">{formatFileSize(img.file_size)}</p>
+                          <div className="flex items-center gap-2 mt-3">
+                            <a
+                              href={img.url}
+                              download
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="p-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all text-white"
+                            >
+                              <Download className="size-3.5" />
+                            </a>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSaveAssetId(img.id); }}
+                              className="flex-1 py-2 rounded-xl bg-primary hover:bg-primary/90 transition-all text-[11px] font-semibold text-center text-primary-foreground flex items-center justify-center gap-1.5"
+                            >
+                              <FolderHeart className="size-3.5" />
+                              Lưu vào Album
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDeleteImageId(img.id); }}
+                              className="p-2 rounded-xl bg-red-500/20 backdrop-blur-md border border-red-500/30 hover:bg-red-500/30 hover:text-red-300 transition-all text-red-400"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -268,104 +299,41 @@ export default function GalleryPage() {
         )}
       </div>
 
-      {/* Save to Album Modal */}
-      <AnimatePresence>
-        {saveAssetId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSaveAssetId(null)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-sm rounded-3xl border border-border bg-card p-6 shadow-2xl z-10"
+      {/* ── Multi-select bottom bar ── */}
+      <div className={`fixed bottom-0 left-0 right-0 z-40 transition-all duration-300 ${selectMode && selectedIds.size > 0 ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"}`}>
+        <div className="mx-auto max-w-xl mb-6 px-4">
+          <div className="flex items-center gap-3 bg-card border border-border rounded-2xl shadow-2xl p-3">
+            <span className="text-sm font-semibold text-foreground flex-1">
+              Đã chọn {selectedIds.size} ảnh
+            </span>
+            <button
+              onClick={() => {
+                // For bulk save to album, we only support single asset at a time via SaveToAlbumModal
+                // So show first selected for now — could be extended later
+                const firstId = Array.from(selectedIds)[0];
+                if (firstId) setSaveAssetId(firstId);
+              }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
             >
-              {/* Modal header */}
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="text-sm font-bold flex items-center gap-2 text-foreground">
-                  <FolderHeart className="size-4 text-primary" />
-                  Lưu vào Album
-                </h3>
-                <button
-                  onClick={() => setSaveAssetId(null)}
-                  className="p-1 rounded-lg hover:bg-accent text-muted-foreground transition-colors"
-                >
-                  <X className="size-4" />
-                </button>
-              </div>
-
-              {/* Collections list */}
-              {collectionsLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <GuaiLoader size="sm" text="Đang tải album..." />
-                </div>
-              ) : collections.length === 0 ? (
-                <div className="flex flex-col items-center gap-3 py-8 text-center">
-                  <Folder className="size-10 text-muted-foreground/40" />
-                  <p className="text-sm text-muted-foreground">Chưa có album nào.</p>
-                  <Button
-                    variant="outline"
-                    className="rounded-xl text-xs"
-                    onClick={() => { setSaveAssetId(null); router.push("/archive/collections"); }}
-                  >
-                    <FolderPlus className="size-3.5 mr-1.5" />
-                    Tạo album mới
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                  {collections.map((col) => (
-                    <button
-                      key={col.id}
-                      disabled={savingToId === col.id}
-                      onClick={() => handleSaveToCollection(col.id)}
-                      className="w-full flex items-center gap-3 p-3 rounded-2xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all text-left group disabled:opacity-60"
-                    >
-                      {/* Thumb */}
-                      <div className="size-10 rounded-xl overflow-hidden border border-border bg-accent shrink-0">
-                        {col.cover_asset ? (
-                          <img src={col.cover_asset.thumbnail_url || col.cover_asset.url} alt="" className="size-full object-cover" />
-                        ) : (
-                          <div className="size-full flex items-center justify-center">
-                            <Folder className="size-4 text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-                      <span className="flex-1 text-sm font-medium text-foreground group-hover:text-primary transition-colors truncate">
-                        {col.name}
-                      </span>
-                      {savingToId === col.id ? (
-                        <div className="size-4 rounded-full border-2 border-primary border-t-transparent animate-spin shrink-0" />
-                      ) : (
-                        <Check className="size-4 text-muted-foreground/0 group-hover:text-primary/40 transition-colors shrink-0" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Footer */}
-              {collections.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-border">
-                  <button
-                    onClick={() => { setSaveAssetId(null); router.push("/archive/collections"); }}
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
-                  >
-                    <FolderPlus className="size-3.5" />
-                    Tạo album mới
-                  </button>
-                </div>
-              )}
-            </motion.div>
+              <FolderHeart className="size-3.5" /> Lưu vào Album
+            </button>
+            <button
+              onClick={() => setBulkDeleteConfirm(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-semibold hover:bg-red-500/20 transition-colors"
+            >
+              <Trash2 className="size-3.5" /> Xóa {selectedIds.size} ảnh
+            </button>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      </div>
 
+      {/* ── Lightbox ── */}
+      <Lightbox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />
+
+      {/* ── Save to Album Modal ── */}
+      <SaveToAlbumModal assetId={saveAssetId} onClose={() => setSaveAssetId(null)} />
+
+      {/* ── Delete single ── */}
       <ConfirmModal
         isOpen={deleteImageId !== null}
         onClose={() => setDeleteImageId(null)}
@@ -373,6 +341,17 @@ export default function GalleryPage() {
         title="Xóa ảnh khỏi thư viện"
         description="Bạn có chắc chắn muốn xóa ảnh này? Thao tác này không thể phục hồi."
         confirmText="Xóa ảnh"
+        variant="destructive"
+      />
+
+      {/* ── Bulk delete confirm ── */}
+      <ConfirmModal
+        isOpen={bulkDeleteConfirm}
+        onClose={() => setBulkDeleteConfirm(false)}
+        onConfirm={executeBulkDelete}
+        title={`Xóa ${selectedIds.size} ảnh`}
+        description="Tất cả ảnh đã chọn sẽ bị xóa vĩnh viễn. Thao tác này không thể phục hồi."
+        confirmText={`Xóa ${selectedIds.size} ảnh`}
         variant="destructive"
       />
     </div>

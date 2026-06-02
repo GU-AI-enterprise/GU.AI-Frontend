@@ -88,6 +88,7 @@ export default function NotificationCenter({ variant = "sidebar", collapsed = fa
     <AnimatePresence>
       {open && (
         <motion.div
+          key="notification-panel"
           ref={panelRef}
           initial={{ opacity: 0, scale: 0.96, y: pos.openUp ? 6 : -6 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}

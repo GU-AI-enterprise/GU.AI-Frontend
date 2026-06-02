@@ -41,6 +41,7 @@ export default function RootLayout({
       lang="vi"
       className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} h-full antialiased`}
       style={{ colorScheme: "light" }}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary">
         <StoreProvider>

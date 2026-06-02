@@ -15,6 +15,17 @@ import { NotificationStatus } from "@/constants/notification";
 
 const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/api$/, "");
 
+export interface AIJobUpdatePayload {
+  jobId: string;
+  status: "completed" | "failed";
+  imageUrl?: string;
+  assetId?: string;
+  creditsUsed?: number;
+  error?: string;
+}
+
+type AIJobCallback = (payload: AIJobUpdatePayload) => void;
+
 interface NotificationContextValue {
   unreadCount: number;
   items: AppNotification[];
@@ -22,6 +33,10 @@ interface NotificationContextValue {
   loadItems: () => Promise<void>;
   markRead: (id: string) => Promise<void>;
   markAllRead: () => Promise<void>;
+  /** Subscribe to Socket.IO `ai_job_update` events for a specific jobId. */
+  subscribeAIJob: (jobId: string, cb: AIJobCallback) => void;
+  /** Unsubscribe a previously registered AI job callback. */
+  unsubscribeAIJob: (jobId: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextValue | null>(null);
@@ -41,6 +56,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [items, setItems] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(false);
   const socketRef = useRef<Socket | null>(null);
+
+  // Map of jobId → callback for AI job subscriptions
+  const aiJobCallbacksRef = useRef<Map<string, AIJobCallback>>(new Map());
 
   // Single socket connection for the entire dashboard
   useEffect(() => {
@@ -71,6 +89,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         } as AppNotification,
         ...prev,
       ]);
+    });
+
+    // AI job completion/failure events
+    socket.on("ai_job_update", (payload: AIJobUpdatePayload) => {
+      const cb = aiJobCallbacksRef.current.get(payload.jobId);
+      if (cb) cb(payload);
     });
 
     return () => {
@@ -114,8 +138,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     } catch {}
   }, []);
 
+  const subscribeAIJob = useCallback((jobId: string, cb: AIJobCallback) => {
+    aiJobCallbacksRef.current.set(jobId, cb);
+  }, []);
+
+  const unsubscribeAIJob = useCallback((jobId: string) => {
+    aiJobCallbacksRef.current.delete(jobId);
+  }, []);
+
   return (
-    <NotificationContext.Provider value={{ unreadCount, items, loading, loadItems, markRead, markAllRead }}>
+    <NotificationContext.Provider value={{
+      unreadCount, items, loading,
+      loadItems, markRead, markAllRead,
+      subscribeAIJob, unsubscribeAIJob,
+    }}>
       {children}
     </NotificationContext.Provider>
   );
