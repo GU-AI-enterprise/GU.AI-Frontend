@@ -9,29 +9,27 @@ const POLL_INTERVAL_MS = 4_000;
 export type AIJobState = "idle" | "processing" | "completed" | "failed";
 
 export interface UseAIJobReturn {
-  /** Current state of the tracked job */
   state: AIJobState;
   /** Output image URL — set when state === 'completed' */
   imageUrl: string | null;
+  /** Asset ID saved in our DB — set when state === 'completed' (backend auto-saves output) */
+  assetId: string | null;
   /** Error message — set when state === 'failed' */
   error: string | null;
-  /** true while Fashn is still processing */
   isProcessing: boolean;
-  /** Reset back to idle (clear result) */
   reset: () => void;
 }
 
 /**
  * Tracks an async AI job by subscribing to Socket.IO `ai_job_update` events
  * and falling back to polling GET /api/ai/jobs/:jobId every 4 seconds.
- *
- * Pass `null` to keep the hook idle.
  */
 export function useAIJob(jobId: string | null): UseAIJobReturn {
   const { subscribeAIJob, unsubscribeAIJob } = useNotifications();
 
   const [state, setState] = useState<AIJobState>("idle");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [assetId, setAssetId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -48,6 +46,7 @@ export function useAIJob(jobId: string | null): UseAIJobReturn {
       if (payload.status === "completed") {
         setState("completed");
         setImageUrl(payload.imageUrl ?? null);
+        setAssetId(payload.assetId ?? null);
       } else {
         setState("failed");
         setError(payload.error ?? "Tác vụ AI thất bại.");
@@ -60,6 +59,7 @@ export function useAIJob(jobId: string | null): UseAIJobReturn {
     stopPolling();
     setState("idle");
     setImageUrl(null);
+    setAssetId(null);
     setError(null);
   }, [stopPolling]);
 
@@ -71,12 +71,12 @@ export function useAIJob(jobId: string | null): UseAIJobReturn {
 
     setState("processing");
     setImageUrl(null);
+    setAssetId(null);
     setError(null);
 
-    // Primary: Socket.IO push
     subscribeAIJob(jobId, handleUpdate);
 
-    // Fallback: poll every 4 seconds
+    // Fallback polling
     intervalRef.current = setInterval(async () => {
       try {
         const result = await getJobStatus(jobId);
@@ -98,11 +98,5 @@ export function useAIJob(jobId: string | null): UseAIJobReturn {
     };
   }, [jobId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return {
-    state,
-    imageUrl,
-    error,
-    isProcessing: state === "processing",
-    reset,
-  };
+  return { state, imageUrl, assetId, error, isProcessing: state === "processing", reset };
 }

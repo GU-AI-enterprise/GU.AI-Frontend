@@ -28,14 +28,13 @@ import {
   RefreshCw,
   AlertCircle,
   FolderHeart,
-  ImageIcon as SaveIcon,
 } from "lucide-react";
 import GuaiLoader from "@/components/shared/guai-loader";
 import AiGenerateTest from "@/components/ai-generate-test";
 import { Lightbox } from "@/components/shared/lightbox";
 import { SaveToAlbumModal } from "@/components/shared/save-to-album-modal";
 import { supabase } from "@/lib/supabase";
-import { getImages, syncImage } from "@/features/archive/imageService";
+import { getImages } from "@/features/archive/imageService";
 import { AIToolType, CREDIT_COST } from "@/constants/ai";
 import { toast } from "sonner";
 import { tryOn, type TryOnCategory } from "@/features/studio/studioService";
@@ -88,13 +87,11 @@ export default function StudioPage() {
 
   // AI job tracking
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const { state: jobState, imageUrl: resultUrl, error: jobError, isProcessing, reset: resetJob } = useAIJob(activeJobId);
+  const { state: jobState, imageUrl: resultUrl, assetId: resultAssetId, error: jobError, isProcessing, reset: resetJob } = useAIJob(activeJobId);
 
   // Result actions
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [saveAlbumAssetId, setSaveAlbumAssetId] = useState<string | null>(null);
-  const [resultAssetId, setResultAssetId] = useState<string | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => { setIsMounted(true); }, []);
@@ -237,32 +234,6 @@ export default function StudioPage() {
   const handleNewJob = () => {
     resetJob();
     setActiveJobId(null);
-    setResultAssetId(null);
-  };
-
-  const handleSaveToArchive = async () => {
-    if (!resultUrl || isSyncing) return;
-    if (resultAssetId) {
-      // already synced — open album picker directly
-      setSaveAlbumAssetId(resultAssetId);
-      return;
-    }
-    setIsSyncing(true);
-    try {
-      const asset = await syncImage({
-        fileUrl: resultUrl,
-        fileSize: 0,
-        type: "output",
-        category: "try-on",
-        thumbnailUrl: resultUrl,
-      });
-      setResultAssetId(asset.id);
-      toast.success("Đã lưu vào thư viện!");
-    } catch {
-      toast.error("Không thể lưu ảnh vào thư viện.");
-    } finally {
-      setIsSyncing(false);
-    }
   };
 
   const selectedToolData = TOOLS.find(t => t.id === selectedTool);
@@ -426,12 +397,14 @@ export default function StudioPage() {
                     <button onClick={() => resultUrl && setLightboxUrl(resultUrl)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
                       <Maximize2 className="size-3.5" /> Phóng to
                     </button>
-                    <button onClick={handleSaveToArchive} disabled={isSyncing} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors disabled:opacity-50">
-                      {isSyncing ? <Loader2 className="size-3.5 animate-spin" /> : <SaveIcon className="size-3.5" />}
-                      {resultAssetId ? "Đã lưu" : "Lưu"}
-                    </button>
-                    <button onClick={() => resultAssetId && setSaveAlbumAssetId(resultAssetId)} disabled={!resultAssetId} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                      <FolderHeart className="size-3.5" /> Album
+                    <button
+                      onClick={() => resultAssetId && setSaveAlbumAssetId(resultAssetId)}
+                      disabled={!resultAssetId}
+                      title={resultAssetId ? "Lưu vào album" : "Đang lưu vào thư viện..."}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <FolderHeart className="size-3.5" />
+                      {resultAssetId ? "Lưu vào Album" : "Đang lưu..."}
                     </button>
                     <button onClick={handleNewJob} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors ml-auto">
                       <RefreshCw className="size-3.5" /> Thử lại
