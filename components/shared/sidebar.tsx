@@ -1,16 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import {
   Image as ImageIcon,
   FolderOpen,
   History,
-  Settings,
-  LogOut,
   LayoutDashboard,
-  User,
   ChevronRight,
   UploadCloud,
   FolderHeart,
@@ -18,56 +16,111 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Coins,
+  LogOut,
+  Settings,
+  User,
+  Sun,
+  Moon,
+  HelpCircle,
+  MessageCircle,
+  BookOpen,
+  ChevronUp,
 } from "lucide-react";
 import Logo from "@/components/shared/logo";
+import SupportChatWidget from "@/components/support/support-chat-widget";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { fetchCredit, selectCreditBalance } from "@/features/credit/creditSlice";
+import { supabase } from "@/lib/supabase";
 
 const mainNav = [
-  { href: "/dashboard", label: "Tổng quan", Icon: LayoutDashboard },
-  { href: "/studio", label: "Studio", Icon: Sparkles },
+  { href: "/dashboard", label: "Tổng quan",       Icon: LayoutDashboard },
+  { href: "/studio",    label: "Studio",           Icon: Sparkles },
 ];
 
 const archiveNav = [
-  { href: "/archive/gallery", label: "Tất cả ảnh", Icon: ImageIcon },
-  { href: "/archive/collections", label: "Bộ sưu tập", Icon: FolderHeart },
-  { href: "/archive/upload", label: "Upload hàng loạt", Icon: UploadCloud },
-];
-
-const bottomNav = [
-  { href: "/profile", label: "Hồ sơ", Icon: User },
-  { href: "/settings", label: "Cài đặt", Icon: Settings },
-  { href: "/logout", label: "Đăng xuất", Icon: LogOut },
+  { href: "/archive/gallery",     label: "Tất cả ảnh",      Icon: ImageIcon },
+  { href: "/archive/collections", label: "Bộ sưu tập",      Icon: FolderHeart },
+  { href: "/archive/upload",      label: "Upload hàng loạt", Icon: UploadCloud },
 ];
 
 export default function Sidebar() {
-  const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
-  const dispatch = useAppDispatch();
-  const { session } = useAppSelector((s) => s.auth);
-  const credit = useAppSelector(selectCreditBalance);
+  const pathname  = usePathname();
+  const router    = useRouter();
+  const dispatch  = useAppDispatch();
+  const { theme, setTheme } = useTheme();
+  const { session, user } = useAppSelector((s) => s.auth);
+  const credit    = useAppSelector(selectCreditBalance);
 
-  useEffect(() => {
-    if (session?.access_token) dispatch(fetchCredit());
-  }, [session?.access_token, dispatch]);
-  const [archiveOpen, setArchiveOpen] = useState(pathname.startsWith("/archive"));
-  const [archiveFlyoutOpen, setArchiveFlyoutOpen] = useState(false);
+  const [collapsed,       setCollapsed]       = useState(false);
+  const [archiveOpen,     setArchiveOpen]     = useState(pathname.startsWith("/archive"));
+  const [archiveFlyout,   setArchiveFlyout]   = useState(false);
   const [archiveFlyoutPos, setArchiveFlyoutPos] = useState<{ top: number; left: number } | null>(null);
-  const [tooltip, setTooltip] = useState<{ label: string; top: number } | null>(null);
-  const archiveFlyoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [tooltip,         setTooltip]         = useState<{ label: string; top: number } | null>(null);
+  const [userMenuOpen,    setUserMenuOpen]     = useState(false);
+  const [userMenuPos,     setUserMenuPos]      = useState<{ bottom: number; left: number } | null>(null);
+  const [chatForceOpen,   setChatForceOpen]    = useState(false);
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const archiveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userBtnRef     = useRef<HTMLButtonElement>(null);
+  const menuRef        = useRef<HTMLDivElement>(null);
 
+  // ── Init ────────────────────────────────────────────────────────────────────
   useEffect(() => {
     const saved = localStorage.getItem("sidebar-collapsed");
     if (saved) setCollapsed(saved === "true");
   }, []);
 
+  useEffect(() => {
+    if (session?.access_token) dispatch(fetchCredit());
+  }, [session?.access_token, dispatch]);
+
+  // ── Close user menu on outside click ────────────────────────────────────────
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const insideBtn  = userBtnRef.current?.contains(target);
+      const insideMenu = menuRef.current?.contains(target);
+      if (!insideBtn && !insideMenu) setUserMenuOpen(false);
+    };
+    // Use capture phase so we run BEFORE the click propagates
+    document.addEventListener("mousedown", onDown, true);
+    return () => document.removeEventListener("mousedown", onDown, true);
+  }, [userMenuOpen]);
+
   const toggle = () => {
     const next = !collapsed;
     setCollapsed(next);
     localStorage.setItem("sidebar-collapsed", String(next));
+    setUserMenuOpen(false);
   };
+
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/");
+  };
+
+  const openUserMenu = () => {
+    if (!userBtnRef.current) return;
+    const rect = userBtnRef.current.getBoundingClientRect();
+    // Position menu to the RIGHT of the sidebar, aligned to button bottom
+    setUserMenuPos({
+      bottom: window.innerHeight - rect.bottom,
+      left: rect.right + 8,
+    });
+    setUserMenuOpen(v => !v);
+  };
+
+  // ── User info ────────────────────────────────────────────────────────────────
+  const displayName = user?.user_metadata?.full_name
+    || user?.user_metadata?.name
+    || user?.email?.split("@")[0]
+    || "Người dùng";
+  const email     = user?.email ?? "";
+  const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+  const initials  = displayName.charAt(0).toUpperCase();
 
   return (
     <>
@@ -76,16 +129,15 @@ export default function Sidebar() {
           collapsed ? "w-[70px]" : "w-[260px]"
         }`}
       >
-        {/* Header */}
+        {/* ── Logo ── */}
         <div className="flex h-16 items-center px-4 border-b border-sidebar-border">
           <div className="flex-1">
             <Logo iconOnly={collapsed} />
           </div>
         </div>
 
-        {/* Main Nav */}
+        {/* ── Main Nav ── */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
-          {/* Workspace */}
           <div className="space-y-1">
             {!collapsed && (
               <div className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
@@ -118,24 +170,19 @@ export default function Sidebar() {
               );
             })}
 
-            {/* Archive Dropdown */}
+            {/* Archive dropdown */}
             <div
               className="relative"
               onMouseEnter={(e) => {
                 if (collapsed) {
-                  if (archiveFlyoutTimeoutRef.current) {
-                    clearTimeout(archiveFlyoutTimeoutRef.current);
-                    archiveFlyoutTimeoutRef.current = null;
-                  }
+                  if (archiveTimeout.current) { clearTimeout(archiveTimeout.current); archiveTimeout.current = null; }
                   const rect = e.currentTarget.getBoundingClientRect();
                   setArchiveFlyoutPos({ top: rect.top, left: rect.right + 8 });
-                  setArchiveFlyoutOpen(true);
+                  setArchiveFlyout(true);
                 }
               }}
               onMouseLeave={() => {
-                archiveFlyoutTimeoutRef.current = setTimeout(() => {
-                  setArchiveFlyoutOpen(false);
-                }, 200);
+                archiveTimeout.current = setTimeout(() => setArchiveFlyout(false), 200);
               }}
             >
               <button
@@ -151,26 +198,17 @@ export default function Sidebar() {
                   <FolderOpen className={`size-[18px] flex-shrink-0 ${isActive("/archive") ? "text-primary" : ""}`} />
                   {!collapsed && <span>Kho lưu trữ</span>}
                 </div>
-                {!collapsed && (
-                  <ChevronRight className={`size-4 transition-transform ${archiveOpen ? "rotate-90" : ""}`} />
-                )}
+                {!collapsed && <ChevronRight className={`size-4 transition-transform ${archiveOpen ? "rotate-90" : ""}`} />}
               </button>
 
-              {/* Expanded submenu */}
               {!collapsed && archiveOpen && (
                 <div className="ml-6 mt-1 space-y-1 border-l border-sidebar-border pl-3">
                   {archiveNav.map(({ href, label, Icon }) => {
                     const active = isActive(href);
                     return (
-                      <Link
-                        key={href}
-                        href={href}
-                        className={`flex items-center gap-3 h-9 rounded-md px-2 text-sm transition-all ${
-                          active
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                            : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                        }`}
-                      >
+                      <Link key={href} href={href} className={`flex items-center gap-3 h-9 rounded-md px-2 text-sm transition-all ${
+                        active ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      }`}>
                         <Icon className={`size-4 ${active ? "text-primary" : ""}`} />
                         <span className="text-xs">{label}</span>
                       </Link>
@@ -178,7 +216,6 @@ export default function Sidebar() {
                   })}
                 </div>
               )}
-
             </div>
 
             <div className="relative" onMouseLeave={() => setTooltip(null)}>
@@ -203,7 +240,7 @@ export default function Sidebar() {
           </div>
         </nav>
 
-        {/* Credit display */}
+        {/* ── Credit ── */}
         {credit !== null && (
           <div className="px-3 pb-2 border-t border-sidebar-border pt-3">
             {collapsed ? (
@@ -218,44 +255,53 @@ export default function Sidebar() {
                   <Coins className="size-4 text-primary shrink-0" />
                   <span className="text-xs font-medium text-muted-foreground">Credits</span>
                 </div>
-                <span className="text-sm font-bold text-foreground tabular-nums">
-                  {credit.toLocaleString()}
-                </span>
+                <span className="text-sm font-bold text-foreground tabular-nums">{credit.toLocaleString()}</span>
               </div>
             )}
           </div>
         )}
 
-        {/* Bottom Nav */}
-        <div className="px-3 py-4 border-t border-sidebar-border space-y-1">
-          {bottomNav.map(({ href, label, Icon }) => {
-            const active = isActive(href);
-            return (
-              <div key={href} className="relative" onMouseLeave={() => setTooltip(null)}>
-                <Link
-                  href={href}
-                  onMouseEnter={(e) => {
-                    if (collapsed) {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      setTooltip({ label, top: rect.top + rect.height / 2 });
-                    }
-                  }}
-                  className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${
-                    active
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  }`}
-                >
-                  <Icon className={`size-[18px] flex-shrink-0 ${active ? "text-primary" : ""}`} />
-                  {!collapsed && <span>{label}</span>}
-                </Link>
-              </div>
-            );
-          })}
+        {/* ── User card (bottom) ── */}
+        <div className="px-3 py-3 border-t border-sidebar-border">
+          <button
+            ref={userBtnRef}
+            onClick={openUserMenu}
+            onMouseEnter={(e) => {
+              if (collapsed) {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setTooltip({ label: displayName, top: rect.top + rect.height / 2 });
+              }
+            }}
+            onMouseLeave={() => setTooltip(null)}
+            className={`w-full flex items-center ${collapsed ? "justify-center" : "gap-3 px-2"} h-11 rounded-xl hover:bg-sidebar-accent transition-colors group`}
+          >
+            {/* Avatar */}
+            <div className="shrink-0 relative">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={displayName} referrerPolicy="no-referrer"
+                  className="size-8 rounded-full object-cover border-2 border-border/60" />
+              ) : (
+                <div className="size-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground border-2 border-primary/20">
+                  {initials}
+                </div>
+              )}
+            </div>
+
+            {/* Name + email */}
+            {!collapsed && (
+              <>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">{displayName}</p>
+                  <p className="text-[11px] text-sidebar-foreground/50 truncate leading-tight">{email}</p>
+                </div>
+                <ChevronUp className="size-3.5 text-sidebar-foreground/40 group-hover:text-sidebar-foreground/70 transition-colors shrink-0" />
+              </>
+            )}
+          </button>
         </div>
       </aside>
 
-      {/* Toggle button (outside aside to avoid overflow clipping) */}
+      {/* ── Toggle button ── */}
       <button
         onClick={toggle}
         className="fixed z-50 p-1.5 rounded-md bg-background border border-border shadow-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
@@ -264,8 +310,8 @@ export default function Sidebar() {
         {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
       </button>
 
-      {/* Tooltip */}
-      {collapsed && tooltip && !archiveFlyoutOpen && (
+      {/* ── Tooltip ── */}
+      {collapsed && tooltip && !archiveFlyout && !userMenuOpen && (
         <div
           className="fixed z-50 px-2.5 py-1.5 rounded-md bg-popover text-popover-foreground text-xs font-medium shadow-md border border-border pointer-events-none"
           style={{ left: "78px", top: tooltip.top, transform: "translateY(-50%)" }}
@@ -274,47 +320,134 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* Archive flyout (fixed to escape overflow container) */}
-      {collapsed && archiveFlyoutOpen && archiveFlyoutPos && (
+      {/* ── Archive flyout ── */}
+      {collapsed && archiveFlyout && archiveFlyoutPos && (
         <div
           className="fixed z-50 min-w-[180px] rounded-lg bg-popover border border-border shadow-lg p-1.5"
           style={{ left: archiveFlyoutPos.left, top: archiveFlyoutPos.top }}
-          onMouseEnter={() => {
-            if (archiveFlyoutTimeoutRef.current) {
-              clearTimeout(archiveFlyoutTimeoutRef.current);
-              archiveFlyoutTimeoutRef.current = null;
-            }
-            setArchiveFlyoutOpen(true);
-          }}
-          onMouseLeave={() => {
-            archiveFlyoutTimeoutRef.current = setTimeout(() => {
-              setArchiveFlyoutOpen(false);
-            }, 200);
-          }}
+          onMouseEnter={() => { if (archiveTimeout.current) { clearTimeout(archiveTimeout.current); archiveTimeout.current = null; } setArchiveFlyout(true); }}
+          onMouseLeave={() => { archiveTimeout.current = setTimeout(() => setArchiveFlyout(false), 200); }}
         >
-          <div className="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-1">
-            Kho lưu trữ
-          </div>
+          <div className="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-1">Kho lưu trữ</div>
           {archiveNav.map(({ href, label, Icon }) => {
             const active = isActive(href);
             return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-2.5 h-9 rounded-md px-2.5 text-sm transition-all ${
-                  active
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                }`}
-              >
-                <Icon className={`size-4 ${active ? "text-primary" : ""}`} />
-                <span className="text-xs">{label}</span>
+              <Link key={href} href={href} className={`flex items-center gap-2.5 h-9 rounded-md px-2.5 text-sm transition-all ${
+                active ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              }`}>
+                <Icon className="size-4" />
+                {label}
               </Link>
             );
           })}
         </div>
       )}
+
+      {/* ── User menu popup (fixed, escapes overflow) ── */}
+      {userMenuOpen && userMenuPos && (
+        <div
+          ref={menuRef}
+          className="fixed z-50 w-64 rounded-2xl border border-border bg-popover shadow-xl overflow-hidden"
+          style={{ bottom: userMenuPos.bottom, left: userMenuPos.left }}
+        >
+          {/* User info header */}
+          <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={displayName} referrerPolicy="no-referrer"
+                className="size-9 rounded-full object-cover border border-border/60 shrink-0" />
+            ) : (
+              <div className="size-9 rounded-full bg-primary flex items-center justify-center text-sm font-bold text-primary-foreground shrink-0">
+                {initials}
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
+              <p className="text-xs text-muted-foreground truncate">{email}</p>
+            </div>
+          </div>
+
+          {/* Account links */}
+          <div className="p-1.5">
+            <MenuItem icon={<User className="size-4" />}    label="Hồ sơ"    href="/profile"   onClick={() => setUserMenuOpen(false)} />
+            <MenuItem icon={<Settings className="size-4" />} label="Cài đặt"  href="/settings"  onClick={() => setUserMenuOpen(false)} />
+          </div>
+
+          <div className="border-t border-border/60 p-1.5">
+            {/* Theme toggle */}
+            <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl">
+              <Sun  className="size-4 text-muted-foreground shrink-0" />
+              <span className="flex-1 text-sm text-foreground">Giao diện</span>
+              <div className="flex items-center gap-0.5 bg-muted rounded-lg p-0.5">
+                <button
+                  onClick={() => setTheme("light")}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${
+                    theme === "light" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Sun className="size-3" /> Sáng
+                </button>
+                <button
+                  onClick={() => setTheme("dark")}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${
+                    theme === "dark" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Moon className="size-3" /> Tối
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Help & Support */}
+          <div className="border-t border-border/60 p-1.5">
+            <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+              Trợ giúp
+            </div>
+            <MenuItem icon={<BookOpen className="size-4" />}   label="Help Center" href="#" onClick={() => setUserMenuOpen(false)} />
+            <button
+              onClick={() => { setUserMenuOpen(false); setChatForceOpen(true); setTimeout(() => setChatForceOpen(false), 200); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-foreground hover:bg-accent transition-colors"
+            >
+              <span className="text-muted-foreground"><MessageCircle className="size-4" /></span>
+              Chat với chúng tôi
+            </button>
+            <MenuItem icon={<HelpCircle className="size-4" />} label="Discord" href="#" onClick={() => setUserMenuOpen(false)} />
+          </div>
+
+          {/* Logout */}
+          <div className="border-t border-border/60 p-1.5">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+            >
+              <LogOut className="size-4" />
+              Đăng xuất
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Support chat widget (triggered from menu, no float button) ── */}
+      <SupportChatWidget forceOpen={chatForceOpen} hideFloatButton />
     </>
   );
 }
 
+// ── MenuItem ────────────────────────────────────────────────────────────────────
+function MenuItem({ icon, label, href, onClick }: {
+  icon: React.ReactNode;
+  label: string;
+  href: string;
+  onClick?: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-foreground hover:bg-accent transition-colors"
+    >
+      <span className="text-muted-foreground">{icon}</span>
+      {label}
+    </Link>
+  );
+}

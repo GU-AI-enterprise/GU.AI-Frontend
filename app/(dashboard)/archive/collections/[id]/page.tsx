@@ -4,10 +4,11 @@ import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft, Folder, ImageIcon, Trash2, Download, X
+  ArrowLeft, Folder, ImageIcon, Trash2, Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GuaiLoader from "@/components/shared/guai-loader";
+import { Lightbox } from "@/components/shared/lightbox";
 import { supabase } from "@/lib/supabase";
 import { getCollection, getCollectionItems, removeItemFromCollection, type Collection } from "@/features/archive/collectionService";
 import { type DBAsset as Asset } from "@/features/archive/imageService";
@@ -179,44 +180,21 @@ export default function CollectionDetailPage() {
         )}
       </div>
 
-      {/* Lightbox */}
-      {selectedAsset && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
-          onClick={() => setSelectedAsset(null)}
-        >
-          <button
-            onClick={() => setSelectedAsset(null)}
-            className="absolute top-4 right-4 flex items-center justify-center size-9 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-          >
-            <X className="size-5" />
-          </button>
-          <img
-            src={selectedAsset.url}
-            alt=""
-            onClick={(e) => e.stopPropagation()}
-            className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
-          />
-          <div className="absolute bottom-6 flex items-center gap-3">
-            <Button
-              onClick={(e) => { e.stopPropagation(); handleDownload(selectedAsset); }}
-              variant="secondary"
-              className="rounded-xl bg-white/10 hover:bg-white/20 text-white border-white/10"
-            >
-              <Download className="size-4" />
-              Tải xuống
-            </Button>
-            <Button
-              onClick={(e) => { e.stopPropagation(); setRemoveTargetId(selectedAsset.id); setSelectedAsset(null); }}
-              variant="destructive"
-              className="rounded-xl"
-            >
-              <Trash2 className="size-4" />
-              Xóa khỏi album
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Lightbox — shared component */}
+      <Lightbox
+        imageUrl={selectedAsset?.url ?? null}
+        filename={selectedAsset ? `guai-${selectedAsset.id.slice(0, 8)}.jpg` : undefined}
+        createdAt={selectedAsset?.created_at}
+        onClose={() => setSelectedAsset(null)}
+        actions={selectedAsset ? [
+          {
+            icon: <Trash2 className="size-3.5" />,
+            label: "Xóa khỏi album",
+            onClick: () => { setRemoveTargetId(selectedAsset.id); setSelectedAsset(null); },
+            variant: "destructive",
+          },
+        ] : []}
+      />
 
       {/* Confirm remove */}
       <ConfirmModal

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { Toaster } from "@/components/ui/sonner";
@@ -40,18 +41,19 @@ export default function RootLayout({
     <html
       lang="vi"
       className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} h-full antialiased`}
-      style={{ colorScheme: "light" }}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary">
-        <StoreProvider>
-          <AuthProvider>
-            <NotificationProvider>
-              {children}
-              <Toaster position="top-center" />
-            </NotificationProvider>
-          </AuthProvider>
-        </StoreProvider>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <StoreProvider>
+            <AuthProvider>
+              <NotificationProvider>
+                {children}
+                <Toaster position="top-center" />
+              </NotificationProvider>
+            </AuthProvider>
+          </StoreProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

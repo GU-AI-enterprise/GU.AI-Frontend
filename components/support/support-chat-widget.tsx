@@ -7,9 +7,20 @@ import { useAppSelector } from "@/store/hooks";
 import { getSupportConversation, sendSupportMessage, type SupportMessage, type SupportConversation } from "@/features/support/supportService";
 import { io, Socket } from "socket.io-client";
 
-export default function SupportChatWidget() {
+interface SupportChatWidgetProps {
+  /** When this flips to true from outside, open the widget */
+  forceOpen?: boolean;
+  /** Hide the default floating "Hỗ trợ" button (use when triggered externally) */
+  hideFloatButton?: boolean;
+}
+
+export default function SupportChatWidget({ forceOpen, hideFloatButton }: SupportChatWidgetProps = {}) {
   const { session, loading } = useAppSelector((state) => state.auth);
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (forceOpen) setOpen(true);
+  }, [forceOpen]);
   const [conversation, setConversation] = useState<SupportConversation | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [message, setMessage] = useState("");
@@ -116,7 +127,7 @@ export default function SupportChatWidget() {
 
   return (
     <>
-      {!open && (
+      {!open && !hideFloatButton && (
         <button
           onClick={() => setOpen(true)}
           className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-xl hover:bg-primary/90 transition-all"

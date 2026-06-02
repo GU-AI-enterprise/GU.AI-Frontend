@@ -25,7 +25,8 @@ export default function GalleryPage() {
   const [filterType, setFilterType] = useState<"all" | "input" | "output" | "edit">("all");
 
   // Lightbox
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxUrl, setLightboxUrl]         = useState<string | null>(null);
+  const [lightboxCreatedAt, setLightboxCreatedAt] = useState<string | undefined>();
 
   // Save to album
   const [saveAssetId, setSaveAssetId] = useState<string | null>(null);
@@ -243,7 +244,7 @@ export default function GalleryPage() {
                           ${isSelected ? "border-primary ring-2 ring-primary/40" : "border-border hover:border-primary/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.1)]"}`}
                         onClick={() => {
                           if (selectMode) toggleSelect(img.id);
-                          else setLightboxUrl(img.url);
+                          else { setLightboxUrl(img.url); setLightboxCreatedAt(img.created_at); }
                         }}
                       >
                         <img
@@ -328,7 +329,11 @@ export default function GalleryPage() {
       </div>
 
       {/* ── Lightbox ── */}
-      <Lightbox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />
+      <Lightbox
+        imageUrl={lightboxUrl}
+        createdAt={lightboxCreatedAt}
+        onClose={() => { setLightboxUrl(null); setLightboxCreatedAt(undefined); }}
+      />
 
       {/* ── Save to Album Modal ── */}
       <SaveToAlbumModal assetId={saveAssetId} onClose={() => setSaveAssetId(null)} />

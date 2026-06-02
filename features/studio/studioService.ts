@@ -118,6 +118,33 @@ export async function tryOn(payload: TryOnPayload): Promise<AIJobStartResult> {
   return startJob('/api/ai/try-on', fd);
 }
 
+export interface TryOnMaxPayload {
+  modelImage: File | string;
+  /** garment / product image */
+  garmentImage: File | string;
+  resolution?: '1k' | '2k' | '4k';
+  generationMode?: 'balanced' | 'quality';
+  numImages?: number;
+}
+
+export async function tryOnMax(payload: TryOnMaxPayload): Promise<AIJobStartResult> {
+  const fd = new FormData();
+  if (payload.modelImage instanceof File) {
+    fd.append('modelImage', payload.modelImage);
+  } else {
+    fd.append('modelImageUrl', payload.modelImage);
+  }
+  if (payload.garmentImage instanceof File) {
+    fd.append('productImage', payload.garmentImage);
+  } else {
+    fd.append('productImageUrl', payload.garmentImage);
+  }
+  if (payload.resolution) fd.append('resolution', payload.resolution);
+  if (payload.generationMode) fd.append('generationMode', payload.generationMode);
+  if (payload.numImages) fd.append('numImages', String(payload.numImages));
+  return startJob('/api/ai/try-on-max', fd);
+}
+
 export async function removeBackground(image: File | string): Promise<AIJobStartResult> {
   const fd = toFormData(
     image instanceof File ? { image } : { imageUrl: image }

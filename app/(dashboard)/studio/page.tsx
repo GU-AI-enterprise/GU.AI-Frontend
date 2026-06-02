@@ -37,7 +37,7 @@ import { supabase } from "@/lib/supabase";
 import { getImages } from "@/features/archive/imageService";
 import { AIToolType, CREDIT_COST } from "@/constants/ai";
 import { toast } from "sonner";
-import { tryOn, type TryOnCategory } from "@/features/studio/studioService";
+import { tryOn, tryOnMax, type TryOnCategory } from "@/features/studio/studioService";
 import { useAIJob } from "@/hooks/useAIJob";
 
 interface StudioImage {
@@ -65,6 +65,54 @@ const TRY_ON_CATEGORIES: { value: TryOnCategory; label: string }[] = [
   { value: "one-pieces", label: "Liền thân" },
 ];
 
+type TryOnModel = "v1.6" | "max";
+type TryOnResolution = "1k" | "2k" | "4k";
+
+const TRY_ON_MODELS: {
+  id: TryOnModel;
+  name: string;
+  tagline: string;
+  speed: string;
+  quality: string;
+  bestFor: string;
+  creditLabel: string;
+}[] = [
+  {
+    id: "v1.6",
+    name: "Try-On v1.6",
+    tagline: "Nhanh · Ổn định",
+    speed: "~5–17 giây",
+    quality: "Tốt cho e-commerce thông thường",
+    bestFor: "Áo/quần, realtime, chi phí thấp",
+    creditLabel: "1 credit",
+  },
+  {
+    id: "max",
+    name: "Try-On Max",
+    tagline: "Chất lượng cao",
+    speed: "~20–60 giây",
+    quality: "Studio-grade, hỗ trợ 4K",
+    bestFor: "Catalog, portfolio, chất lượng cao",
+    creditLabel: "2–5 credits",
+  },
+];
+
+const TRY_ON_RESOLUTIONS: { value: TryOnResolution; label: string }[] = [
+  { value: "1k", label: "1K" },
+  { value: "2k", label: "2K" },
+  { value: "4k", label: "4K" },
+];
+
+function computeTryOnCost(model: TryOnModel, mode: string, resolution: TryOnResolution): number {
+  if (model === "v1.6") return 1;
+  const table: Record<string, Record<TryOnResolution, number>> = {
+    balanced: { "1k": 2, "2k": 3, "4k": 4 },
+    quality:  { "1k": 3, "2k": 4, "4k": 5 },
+    speed:    { "1k": 2, "2k": 3, "4k": 4 },
+  };
+  return table[mode]?.[resolution] ?? 2;
+}
+
 export default function StudioPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -76,6 +124,9 @@ export default function StudioPage() {
   const [modelImage, setModelImage] = useState<StudioImage | null>(null);
   const [garmentImage, setGarmentImage] = useState<StudioImage | null>(null);
   const [tryOnCategory, setTryOnCategory] = useState<TryOnCategory>("auto");
+  const [tryOnModel, setTryOnModel] = useState<TryOnModel>("v1.6");
+  const [tryOnResolution, setTryOnResolution] = useState<TryOnResolution>("1k");
+  const [hoveredModel, setHoveredModel] = useState<TryOnModel | null>(null);
 
   // Generic image upload (other tools)
   const [images, setImages] = useState<StudioImage[]>([]);
@@ -192,34 +243,50 @@ export default function StudioPage() {
   // ── Submit ────────────────────────────────────────────────────────────────
 
   const handleRun = async () => {
-    const tool = TOOLS.find(t => t.id === selectedTool)!;
-
-    if (creditBalance !== null && creditBalance < tool.credit) {
-      toast.warning(`Bạn cần ${tool.credit} credits để sử dụng công cụ này.`);
-      return;
-    }
-
     if (selectedTool === AIToolType.TRY_ON) {
       if (!modelImage) { toast.warning("Vui lòng thêm ảnh người mẫu."); return; }
       if (!garmentImage) { toast.warning("Vui lòng thêm ảnh trang phục."); return; }
 
+      const cost = computeTryOnCost(tryOnModel, tryOnCategory, tryOnResolution);
+      if (creditBalance !== null && creditBalance < cost) {
+        toast.warning(`Bạn cần ${cost} credits để chạy ${tryOnModel === "max" ? "Try-On Max" : "Try-On v1.6"}.`);
+        return;
+      }
+
       try {
         resetJob();
-        const { jobId } = await tryOn({
-          modelImage: modelImage.file ?? modelImage.url,
-          garmentImage: garmentImage.file ?? garmentImage.url,
-          category: tryOnCategory,
-          mode: "balanced",
-        });
+        let jobId: string;
+        if (tryOnModel === "max") {
+          const result = await tryOnMax({
+            modelImage: modelImage.file ?? modelImage.url,
+            garmentImage: garmentImage.file ?? garmentImage.url,
+            resolution: tryOnResolution,
+            generationMode: tryOnCategory === "auto" ? "balanced" : "balanced",
+          });
+          jobId = result.jobId;
+        } else {
+          const result = await tryOn({
+            modelImage: modelImage.file ?? modelImage.url,
+            garmentImage: garmentImage.file ?? garmentImage.url,
+            category: tryOnCategory,
+            mode: "balanced",
+          });
+          jobId = result.jobId;
+        }
         setActiveJobId(jobId);
-        dispatch(setBalance((creditBalance ?? 0) - tool.credit));
+        dispatch(setBalance((creditBalance ?? 0) - cost));
       } catch (err: any) {
         toast.error(err.message ?? "Không thể bắt đầu try-on.");
       }
       return;
     }
 
-    // Other tools — currently not wired up
+    // Other tools
+    const tool = TOOLS.find(t => t.id === selectedTool)!;
+    if (creditBalance !== null && creditBalance < tool.credit) {
+      toast.warning(`Bạn cần ${tool.credit} credits.`);
+      return;
+    }
     toast.info(`${tool.name} sẽ sớm được cập nhật!`);
   };
 
@@ -239,6 +306,8 @@ export default function StudioPage() {
   const selectedToolData = TOOLS.find(t => t.id === selectedTool);
   const isTryOn = selectedTool === AIToolType.TRY_ON;
   const showPanel = isProcessing || jobState === "completed" || jobState === "failed";
+  const currentCost = isTryOn ? computeTryOnCost(tryOnModel, tryOnCategory, tryOnResolution) : (selectedToolData?.credit ?? 0);
+  const displayModel = hoveredModel ?? tryOnModel;
   const canRun = isTryOn
     ? !!modelImage && !!garmentImage && !isProcessing && jobState !== "completed"
     : images.length > 0 && !isProcessing;
@@ -290,22 +359,83 @@ export default function StudioPage() {
                     fileRef={garmentFileRef}
                   />
                 </div>
-                {/* Category selector — fixed size at bottom */}
-                <div className="flex items-center gap-2 flex-wrap shrink-0">
-                  <span className="text-xs text-muted-foreground">Loại:</span>
-                  {TRY_ON_CATEGORIES.map(c => (
-                    <button
-                      key={c.value}
-                      onClick={() => setTryOnCategory(c.value)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        tryOnCategory === c.value
-                          ? "bg-foreground text-background"
-                          : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
-                      }`}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
+                {/* Bottom controls */}
+                <div className="flex flex-col gap-2 shrink-0">
+                  {/* Category */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground w-9">Loại:</span>
+                    {TRY_ON_CATEGORIES.map(c => (
+                      <button
+                        key={c.value}
+                        onClick={() => setTryOnCategory(c.value)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          tryOnCategory === c.value
+                            ? "bg-foreground text-background"
+                            : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
+                        }`}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Model selector */}
+                  <div className="flex items-start gap-2">
+                    <span className="text-xs text-muted-foreground w-9 pt-1.5 shrink-0">AI:</span>
+                    <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                      <div className="flex gap-1.5 flex-wrap">
+                        {TRY_ON_MODELS.map(m => (
+                          <button
+                            key={m.id}
+                            onClick={() => setTryOnModel(m.id)}
+                            onMouseEnter={() => setHoveredModel(m.id)}
+                            onMouseLeave={() => setHoveredModel(null)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                              tryOnModel === m.id
+                                ? "bg-foreground text-background"
+                                : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
+                            }`}
+                          >
+                            {m.name}
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
+                              tryOnModel === m.id
+                                ? "bg-background/15 text-background/80"
+                                : "bg-primary/10 text-primary"
+                            }`}>
+                              {m.id === "v1.6" ? "1 cr" : `${computeTryOnCost("max", "balanced", tryOnResolution)} cr`}
+                            </span>
+                          </button>
+                        ))}
+                        {/* Resolution — only for Max */}
+                        {tryOnModel === "max" && TRY_ON_RESOLUTIONS.map(r => (
+                          <button
+                            key={r.value}
+                            onClick={() => setTryOnResolution(r.value)}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                              tryOnResolution === r.value
+                                ? "bg-foreground text-background"
+                                : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
+                            }`}
+                          >
+                            {r.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Hover/selected model info */}
+                      {(() => {
+                        const info = TRY_ON_MODELS.find(m => m.id === displayModel);
+                        if (!info) return null;
+                        return (
+                          <div className="text-[10px] text-muted-foreground leading-relaxed">
+                            <span className="text-foreground font-medium">{info.tagline}</span>
+                            {" · "}{info.speed}
+                            {" · "}{info.bestFor}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -459,10 +589,10 @@ export default function StudioPage() {
             <div className="hidden sm:flex items-center gap-2 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Sparkles className="size-3 text-primary" />
-                {selectedToolData?.name}
+                {isTryOn ? (tryOnModel === "max" ? "Try-On Max" : "Try-On v1.6") : selectedToolData?.name}
               </span>
               <span className="text-border">|</span>
-              <span>{selectedToolData?.credit} credits</span>
+              <span className="font-semibold text-foreground">{currentCost} credit{currentCost > 1 ? "s" : ""}</span>
             </div>
 
             {/* Run button */}

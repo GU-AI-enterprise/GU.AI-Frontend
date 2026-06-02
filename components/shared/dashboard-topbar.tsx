@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
-import { useAppSelector } from "@/store/hooks";
 import NotificationCenter from "@/components/notification/NotificationCenter";
 
 const ROUTE_MAP: Record<string, [string, string]> = {
@@ -20,7 +19,6 @@ const ROUTE_MAP: Record<string, [string, string]> = {
 
 function getRoute(pathname: string): [string, string] {
   if (ROUTE_MAP[pathname]) return ROUTE_MAP[pathname];
-  // match prefix (e.g. /archive/collections/[id])
   for (const key of Object.keys(ROUTE_MAP).sort((a, b) => b.length - a.length)) {
     if (pathname.startsWith(key)) return ROUTE_MAP[key];
   }
@@ -29,16 +27,7 @@ function getRoute(pathname: string): [string, string] {
 
 export default function DashboardTopBar() {
   const pathname = usePathname();
-  const { user } = useAppSelector((s) => s.auth);
   const [section, title] = getRoute(pathname);
-
-  const displayName = user?.user_metadata?.full_name
-    || user?.user_metadata?.name
-    || user?.email?.split("@")[0]
-    || "Người dùng";
-
-  const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
-  const initials = displayName.charAt(0).toUpperCase();
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/60 bg-background/80 px-6 backdrop-blur-xl">
@@ -49,26 +38,8 @@ export default function DashboardTopBar() {
         <span className="font-semibold text-foreground">{title}</span>
       </div>
 
-      {/* Right: notification + user */}
-      <div className="flex items-center gap-3">
-        <NotificationCenter variant="header" />
-
-        <div className="flex items-center gap-2.5">
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={displayName}
-              className="size-8 rounded-full object-cover border border-border/60"
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <div className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-              {initials}
-            </div>
-          )}
-          <span className="hidden sm:block text-sm font-medium text-foreground">{displayName}</span>
-        </div>
-      </div>
+      {/* Notification only */}
+      <NotificationCenter variant="header" />
     </header>
   );
 }
