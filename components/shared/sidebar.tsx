@@ -32,6 +32,7 @@ import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { fetchCredit, selectCreditBalance } from "@/features/credit/creditSlice";
 import { supabase } from "@/lib/supabase";
 import { useSupportUnread } from "@/contexts/SupportUnreadContext";
+import { useSidebar } from "@/contexts/SidebarContext";
 
 const mainNav = [
   { href: "/dashboard", label: "Tổng quan",       Icon: LayoutDashboard },
@@ -55,6 +56,9 @@ export default function Sidebar() {
   const { unreadCount, role: userRole, markRead } = useSupportUnread();
   const isStaff = userRole === "staff" || userRole === "admin";
 
+  // Mobile drawer state comes from context; desktop collapsed is local
+  const { isMobile, drawerOpen, close: closeDrawer } = useSidebar();
+
   const [collapsed,       setCollapsed]       = useState(false);
   const [archiveOpen,     setArchiveOpen]     = useState(pathname.startsWith("/archive"));
   const [archiveFlyout,   setArchiveFlyout]   = useState(false);
@@ -68,11 +72,20 @@ export default function Sidebar() {
   const userBtnRef     = useRef<HTMLButtonElement>(null);
   const menuRef        = useRef<HTMLDivElement>(null);
 
-  // ── Init ────────────────────────────────────────────────────────────────────
+  // "icon-only" mode: only on desktop when collapsed
+  const isCollapsed = !isMobile && collapsed;
+
+  // ── Desktop: restore collapsed from localStorage ───────────────────────────
   useEffect(() => {
+    if (isMobile) return;
     const saved = localStorage.getItem("sidebar-collapsed");
-    if (saved) setCollapsed(saved === "true");
-  }, []);
+    setCollapsed(saved === "true");
+  }, [isMobile]);
+
+  // ── Auto-close mobile drawer on navigation ────────────────────────────────
+  useEffect(() => {
+    if (isMobile) closeDrawer();
+  }, [pathname]); // eslint-disable-line
 
   useEffect(() => {
     if (session?.access_token) dispatch(fetchCredit());
@@ -87,7 +100,6 @@ export default function Sidebar() {
       const insideMenu = menuRef.current?.contains(target);
       if (!insideBtn && !insideMenu) setUserMenuOpen(false);
     };
-    // Use capture phase so we run BEFORE the click propagates
     document.addEventListener("mousedown", onDown, true);
     return () => document.removeEventListener("mousedown", onDown, true);
   }, [userMenuOpen]);
@@ -109,7 +121,6 @@ export default function Sidebar() {
   const openUserMenu = () => {
     if (!userBtnRef.current) return;
     const rect = userBtnRef.current.getBoundingClientRect();
-    // Position menu to the RIGHT of the sidebar, aligned to button bottom
     setUserMenuPos({
       bottom: window.innerHeight - rect.bottom,
       left: rect.right + 8,
@@ -128,22 +139,32 @@ export default function Sidebar() {
 
   return (
     <>
+      {/* ── Backdrop for mobile drawer ── */}
+      {isMobile && drawerOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+          onClick={closeDrawer}
+        />
+      )}
+
       <aside
-        className={`border-r border-border bg-sidebar h-screen sticky top-0 flex flex-col transition-[width] duration-300 ${
-          collapsed ? "w-[70px]" : "w-[260px]"
-        }`}
+        className={
+          isMobile
+            ? `fixed left-0 top-0 h-screen z-50 bg-sidebar border-r border-border flex flex-col w-[280px] shadow-2xl transition-transform duration-300 ease-in-out ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`
+            : `border-r border-border bg-sidebar h-screen sticky top-0 flex flex-col transition-[width] duration-300 ${isCollapsed ? "w-[70px]" : "w-[260px]"}`
+        }
       >
         {/* ── Logo ── */}
         <div className="flex h-16 items-center px-4 border-b border-sidebar-border">
           <div className="flex-1">
-            <Logo iconOnly={collapsed} />
+            <Logo iconOnly={isCollapsed} />
           </div>
         </div>
 
         {/* ── Main Nav ── */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
           <div className="space-y-1">
-            {!collapsed && (
+            {!isCollapsed && (
               <div className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
                 Workspace
               </div>
@@ -156,19 +177,19 @@ export default function Sidebar() {
                   <Link
                     href={href}
                     onMouseEnter={(e) => {
-                      if (collapsed) {
+                      if (isCollapsed) {
                         const rect = e.currentTarget.getBoundingClientRect();
                         setTooltip({ label, top: rect.top + rect.height / 2 });
                       }
                     }}
-                    className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${
+                    className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${
                       active
                         ? "bg-sidebar-accent text-sidebar-accent-foreground"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     }`}
                   >
                     <Icon className={`size-[18px] flex-shrink-0 ${active ? "text-primary" : ""}`} />
-                    {!collapsed && <span>{label}</span>}
+                    {!isCollapsed && <span>{label}</span>}
                   </Link>
                 </div>
               );
@@ -178,7 +199,7 @@ export default function Sidebar() {
             <div
               className="relative"
               onMouseEnter={(e) => {
-                if (collapsed) {
+                if (isCollapsed) {
                   if (archiveTimeout.current) { clearTimeout(archiveTimeout.current); archiveTimeout.current = null; }
                   const rect = e.currentTarget.getBoundingClientRect();
                   setArchiveFlyoutPos({ top: rect.top, left: rect.right + 8 });
@@ -190,9 +211,9 @@ export default function Sidebar() {
               }}
             >
               <button
-                onClick={() => !collapsed && setArchiveOpen(!archiveOpen)}
+                onClick={() => !isCollapsed && setArchiveOpen(!archiveOpen)}
                 onMouseLeave={() => setTooltip(null)}
-                className={`w-full flex items-center ${collapsed ? "justify-center" : "justify-between px-3"} h-10 rounded-lg text-sm font-medium transition-all ${
+                className={`w-full flex items-center ${isCollapsed ? "justify-center" : "justify-between px-3"} h-10 rounded-lg text-sm font-medium transition-all ${
                   isActive("/archive")
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
@@ -200,12 +221,12 @@ export default function Sidebar() {
               >
                 <div className="flex items-center gap-3">
                   <FolderOpen className={`size-[18px] flex-shrink-0 ${isActive("/archive") ? "text-primary" : ""}`} />
-                  {!collapsed && <span>Kho lưu trữ</span>}
+                  {!isCollapsed && <span>Kho lưu trữ</span>}
                 </div>
-                {!collapsed && <ChevronRight className={`size-4 transition-transform ${archiveOpen ? "rotate-90" : ""}`} />}
+                {!isCollapsed && <ChevronRight className={`size-4 transition-transform ${archiveOpen ? "rotate-90" : ""}`} />}
               </button>
 
-              {!collapsed && archiveOpen && (
+              {!isCollapsed && archiveOpen && (
                 <div className="ml-6 mt-1 space-y-1 border-l border-sidebar-border pl-3">
                   {archiveNav.map(({ href, label, Icon }) => {
                     const active = isActive(href);
@@ -226,19 +247,19 @@ export default function Sidebar() {
               <Link
                 href="/history"
                 onMouseEnter={(e) => {
-                  if (collapsed) {
+                  if (isCollapsed) {
                     const rect = e.currentTarget.getBoundingClientRect();
                     setTooltip({ label: "Lịch sử tác vụ", top: rect.top + rect.height / 2 });
                   }
                 }}
-                className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${
+                className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${
                   isActive("/history")
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 }`}
               >
                 <History className={`size-[18px] flex-shrink-0 ${isActive("/history") ? "text-primary" : ""}`} />
-                {!collapsed && <span>Lịch sử tác vụ</span>}
+                {!isCollapsed && <span>Lịch sử tác vụ</span>}
               </Link>
             </div>
 
@@ -248,12 +269,12 @@ export default function Sidebar() {
                 <Link
                   href="/admin/support"
                   onMouseEnter={(e) => {
-                    if (collapsed) {
+                    if (isCollapsed) {
                       const rect = e.currentTarget.getBoundingClientRect();
                       setTooltip({ label: "Hỗ trợ khách hàng", top: rect.top + rect.height / 2 });
                     }
                   }}
-                  className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${
                     isActive("/admin/support")
                       ? "bg-sidebar-accent text-sidebar-accent-foreground"
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
@@ -267,7 +288,7 @@ export default function Sidebar() {
                       </span>
                     )}
                   </span>
-                  {!collapsed && (
+                  {!isCollapsed && (
                     <span className="flex items-center gap-2 flex-1">
                       Hỗ trợ khách hàng
                       {unreadCount > 0 && (
@@ -286,7 +307,7 @@ export default function Sidebar() {
         {/* ── Credit ── */}
         {credit !== null && (
           <div className="px-3 pb-2 border-t border-sidebar-border pt-3">
-            {collapsed ? (
+            {isCollapsed ? (
               <div className="flex justify-center py-1" title={`${credit.toLocaleString()} credits`}>
                 <div className="flex items-center justify-center size-9 rounded-xl bg-primary/10 text-primary">
                   <Coins className="size-4" />
@@ -310,13 +331,13 @@ export default function Sidebar() {
             ref={userBtnRef}
             onClick={openUserMenu}
             onMouseEnter={(e) => {
-              if (collapsed) {
+              if (isCollapsed) {
                 const rect = e.currentTarget.getBoundingClientRect();
                 setTooltip({ label: displayName, top: rect.top + rect.height / 2 });
               }
             }}
             onMouseLeave={() => setTooltip(null)}
-            className={`w-full flex items-center ${collapsed ? "justify-center" : "gap-3 px-2"} h-11 rounded-xl hover:bg-sidebar-accent transition-colors group`}
+            className={`w-full flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-2"} h-11 rounded-xl hover:bg-sidebar-accent transition-colors group`}
           >
             {/* Avatar */}
             <div className="shrink-0 relative">
@@ -336,7 +357,7 @@ export default function Sidebar() {
             </div>
 
             {/* Name + email */}
-            {!collapsed && (
+            {!isCollapsed && (
               <>
                 <div className="flex-1 min-w-0 text-left">
                   <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">{displayName}</p>
@@ -349,17 +370,19 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {/* ── Toggle button ── */}
-      <button
-        onClick={toggle}
-        className="fixed z-50 p-1.5 rounded-md bg-background border border-border shadow-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-        style={{ left: collapsed ? "62px" : "252px", top: "20px" }}
-      >
-        {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
-      </button>
+      {/* ── Desktop toggle button (hidden on mobile — topbar has the hamburger) ── */}
+      {!isMobile && (
+        <button
+          onClick={toggle}
+          className="fixed z-50 p-1.5 rounded-md bg-background border border-border shadow-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          style={{ left: isCollapsed ? "62px" : "252px", top: "20px" }}
+        >
+          {isCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+        </button>
+      )}
 
       {/* ── Tooltip ── */}
-      {collapsed && tooltip && !archiveFlyout && !userMenuOpen && (
+      {isCollapsed && tooltip && !archiveFlyout && !userMenuOpen && (
         <div
           className="fixed z-50 px-2.5 py-1.5 rounded-md bg-popover text-popover-foreground text-xs font-medium shadow-md border border-border pointer-events-none"
           style={{ left: "78px", top: tooltip.top, transform: "translateY(-50%)" }}
@@ -369,7 +392,7 @@ export default function Sidebar() {
       )}
 
       {/* ── Archive flyout ── */}
-      {collapsed && archiveFlyout && archiveFlyoutPos && (
+      {isCollapsed && archiveFlyout && archiveFlyoutPos && (
         <div
           className="fixed z-50 min-w-[180px] rounded-lg bg-popover border border-border shadow-lg p-1.5"
           style={{ left: archiveFlyoutPos.left, top: archiveFlyoutPos.top }}

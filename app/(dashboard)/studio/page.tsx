@@ -20,6 +20,7 @@ import {
   Video,
   Maximize2,
   ChevronRight,
+  ChevronLeft,
   Wand2,
   X,
   Check,
@@ -145,7 +146,14 @@ export default function StudioPage() {
   const [saveAlbumAssetId, setSaveAlbumAssetId] = useState<string | null>(null);
 
   const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => { setIsMounted(true); }, []);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const modelFileRef = useRef<HTMLInputElement>(null);
   const garmentFileRef = useRef<HTMLInputElement>(null);
@@ -320,19 +328,23 @@ export default function StudioPage() {
     );
   }
 
+  // On mobile, result takes full width; on desktop, 50/50 split
+  const leftW  = showPanel ? (isMobile ? "0%"   : "50%") : "100%";
+  const rightW = showPanel ? (isMobile ? "100%" : "50%") : "0%";
+
   return (
     <div className="w-full h-[100%] bg-background text-foreground flex flex-col overflow-hidden">
-      {/* Content area: fixed height, no scroll — everything lives inside this box */}
-      <div className="flex-1 min-h-0 flex items-center justify-center px-6 py-4">
+      {/* Content area */}
+      <div className="flex-1 min-h-0 flex items-center justify-center px-3 py-3 sm:px-6 sm:py-4">
         <div className="w-full max-w-5xl h-full flex min-h-0">
 
-          {/* LEFT — Input, animates to 50% width when result is active */}
+          {/* LEFT — Input */}
           <motion.div
             initial={false}
-            animate={{ width: showPanel ? "50%" : "100%" }}
+            animate={{ width: leftW }}
             transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
             className="shrink-0 h-full flex flex-col min-h-0 overflow-hidden"
-            style={{ paddingRight: showPanel ? 12 : 0 }}
+            style={{ paddingRight: showPanel && !isMobile ? 12 : 0 }}
           >
             {isTryOn ? (
               <div className="flex flex-col gap-3 h-full min-h-0">
@@ -488,13 +500,13 @@ export default function StudioPage() {
             )}
           </motion.div>
 
-          {/* RIGHT — Result, always in DOM, animates in */}
+          {/* RIGHT — Result */}
           <motion.div
             initial={false}
             animate={{
-              width: showPanel ? "50%" : "0%",
+              width: rightW,
               opacity: showPanel ? 1 : 0,
-              paddingLeft: showPanel ? 12 : 0,
+              paddingLeft: showPanel && !isMobile ? 12 : 0,
             }}
             transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
             className="shrink-0 h-full flex flex-col min-h-0 overflow-hidden"
@@ -521,6 +533,11 @@ export default function StudioPage() {
                     {resultUrl && <img src={resultUrl} alt="Kết quả AI" className="w-full h-full object-contain" />}
                   </div>
                   <div className="flex items-center gap-2 p-3 border-t border-border shrink-0 flex-wrap">
+                    {isMobile && (
+                      <button onClick={handleNewJob} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
+                        <ChevronLeft className="size-3.5" /> Nhập ảnh
+                      </button>
+                    )}
                     <button onClick={handleDownload} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-foreground text-background text-xs font-medium hover:opacity-90 transition-opacity">
                       <Download className="size-3.5" /> Tải xuống
                     </button>
@@ -536,9 +553,11 @@ export default function StudioPage() {
                       <FolderHeart className="size-3.5" />
                       {resultAssetId ? "Lưu vào Album" : "Đang lưu..."}
                     </button>
-                    <button onClick={handleNewJob} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors ml-auto">
-                      <RefreshCw className="size-3.5" /> Thử lại
-                    </button>
+                    {!isMobile && (
+                      <button onClick={handleNewJob} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors ml-auto">
+                        <RefreshCw className="size-3.5" /> Thử lại
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -562,7 +581,7 @@ export default function StudioPage() {
       </div>
 
       {/* ── Bottom Tool Bar ── */}
-      <div className="shrink-0 border-t border-border/40 bg-background/80 backdrop-blur-xl px-6 py-3 pb-4">
+      <div className="shrink-0 border-t border-border/40 bg-background/80 backdrop-blur-xl px-3 py-2.5 sm:px-6 sm:py-3 sm:pb-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
             {TOOLS.map((tool) => (

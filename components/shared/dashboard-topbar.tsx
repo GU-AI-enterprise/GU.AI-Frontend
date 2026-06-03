@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Menu } from "lucide-react";
 import NotificationCenter from "@/components/notification/NotificationCenter";
+import { useSidebar } from "@/contexts/SidebarContext";
 
 const ROUTE_MAP: Record<string, [string, string]> = {
   "/dashboard":            ["Studio", "Tổng quan"],
@@ -28,11 +29,21 @@ function getRoute(pathname: string): [string, string] {
 export default function DashboardTopBar() {
   const pathname = usePathname();
   const [section, title] = getRoute(pathname);
+  const { isMobile, toggle } = useSidebar();
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/60 bg-background/80 px-6 backdrop-blur-xl">
+    <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/60 bg-background/80 px-4 lg:px-6 backdrop-blur-xl">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        {isMobile && (
+          <button
+            onClick={toggle}
+            className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors mr-1"
+            aria-label="Mở menu"
+          >
+            <Menu className="size-5" />
+          </button>
+        )}
         <span>{section}</span>
         <ChevronRight className="size-3.5" />
         <span className="font-semibold text-foreground">{title}</span>
