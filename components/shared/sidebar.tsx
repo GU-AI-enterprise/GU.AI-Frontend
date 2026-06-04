@@ -42,6 +42,7 @@ const mainNav = [
 
 const archiveNav = [
   { href: "/archive/gallery",     label: "Tất cả ảnh",      Icon: ImageIcon },
+  { href: "/archive/models",      label: "Người mẫu",        Icon: FolderOpen },
   { href: "/archive/collections", label: "Bộ sưu tập",      Icon: FolderHeart },
   { href: "/archive/upload",      label: "Upload hàng loạt", Icon: UploadCloud },
   { href: "/archive/trash",       label: "Archive",           Icon: Archive },

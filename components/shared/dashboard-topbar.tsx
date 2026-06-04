@@ -9,6 +9,7 @@ const ROUTE_MAP: Record<string, [string, string]> = {
   "/dashboard":            ["Studio", "Tổng quan"],
   "/studio":               ["Studio", "AI Studio"],
   "/archive/gallery":      ["Kho lưu trữ", "Tất cả ảnh"],
+  "/archive/models":       ["Kho lưu trữ", "Người mẫu"],
   "/archive/collections":  ["Kho lưu trữ", "Bộ sưu tập"],
   "/archive/upload":       ["Kho lưu trữ", "Upload hàng loạt"],
   "/archive/trash":        ["Kho lưu trữ", "Archive"],

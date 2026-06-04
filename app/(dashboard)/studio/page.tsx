@@ -3,120 +3,47 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { selectCreditBalance, setBalance } from "@/features/credit/creditSlice";
 import {
-  Sparkles,
-  Upload,
-  ImageIcon,
-  ClipboardPaste,
-  GalleryHorizontal,
-  Shirt,
-  UserCircle2,
-  Smile,
-  Pencil,
-  UserPlus,
-  Video,
-  Maximize2,
-  ChevronRight,
-  ChevronLeft,
-  Wand2,
-  X,
-  Check,
-  Loader2,
-  Download,
-  RefreshCw,
-  AlertCircle,
-  FolderHeart,
+  Sparkles, ImageIcon, GalleryHorizontal,
+  ChevronRight, ChevronLeft, Loader2,
+  Download, RefreshCw, AlertCircle, FolderHeart,
+  BookOpen, Check, X, Maximize2,
 } from "lucide-react";
+import { ToolGuideModal } from "@/components/shared/tool-guide-modal";
+import { TOOL_GUIDES } from "@/constants/toolGuides";
 import GuaiLoader from "@/components/shared/guai-loader";
 import AiGenerateTest from "@/components/ai-generate-test";
 import { Lightbox } from "@/components/shared/lightbox";
 import { SaveToAlbumModal } from "@/components/shared/save-to-album-modal";
 import { supabase } from "@/lib/supabase";
 import { getImages } from "@/features/archive/imageService";
-import { AIToolType, CREDIT_COST } from "@/constants/ai";
+import { AIToolType } from "@/constants/ai";
 import { toast } from "sonner";
 import {
-  tryOn, tryOnMax, productToModel, editImage, faceToModel,
-  modelCreate, modelSwap, imageToVideo,
+  tryOn, tryOnMax, productToModel, editImage,
+  modelSwap, modelCreate, imageToVideo,
   type TryOnCategory,
 } from "@/features/studio/studioService";
 import { useAIJob } from "@/hooks/useAIJob";
 
-interface StudioImage {
-  id: string;
-  url: string;
-  file?: File;
-  label?: string;
-}
+import { TOOLS } from "./constants";
+import { computeTryOnCost } from "./helpers";
+import type {
+  StudioImage, TryOnModel, TryOnResolution,
+  GenResolution, GenMode, FaceRefMode, VideoDuration, VideoResolution,
+} from "./types";
 
-const TOOLS = [
-  { id: AIToolType.PRODUCT_TO_MODEL, name: "Product to Model", icon: <Wand2 className="size-4" />, credit: CREDIT_COST[AIToolType.PRODUCT_TO_MODEL] },
-  { id: AIToolType.TRY_ON, name: "Try-On", icon: <Shirt className="size-4" />, credit: CREDIT_COST[AIToolType.TRY_ON] },
-  { id: AIToolType.MODEL_SWAP, name: "Model Swap", icon: <UserCircle2 className="size-4" />, credit: CREDIT_COST[AIToolType.MODEL_SWAP] },
-  { id: AIToolType.FACE_SWAP, name: "Face Swap", icon: <Smile className="size-4" />, credit: CREDIT_COST[AIToolType.FACE_SWAP] },
-  { id: AIToolType.EDIT, name: "Edit", icon: <Pencil className="size-4" />, credit: CREDIT_COST[AIToolType.EDIT] },
-  { id: AIToolType.CREATE_MODEL, name: "Create Model", icon: <UserPlus className="size-4" />, credit: CREDIT_COST[AIToolType.CREATE_MODEL] },
-  { id: AIToolType.IMAGE_TO_VIDEO, name: "Image to Video", icon: <Video className="size-4" />, credit: CREDIT_COST[AIToolType.IMAGE_TO_VIDEO] },
-  { id: AIToolType.UPSCALE, name: "Image Upscale", icon: <Maximize2 className="size-4" />, credit: CREDIT_COST[AIToolType.UPSCALE] },
-];
+import { ProcessingPanel } from "./components/ProcessingPanel";
+import { TryOnPanel } from "./components/TryOnPanel";
+import { ProductToModelPanel } from "./components/ProductToModelPanel";
+import { ModelSwapPanel } from "./components/ModelSwapPanel";
+import { FaceSwapPanel } from "./components/FaceSwapPanel";
+import { GenericPanel } from "./components/GenericPanel";
 
-const TRY_ON_CATEGORIES: { value: TryOnCategory; label: string }[] = [
-  { value: "auto", label: "Tự động" },
-  { value: "tops", label: "Áo / Tops" },
-  { value: "bottoms", label: "Quần / Bottoms" },
-  { value: "one-pieces", label: "Liền thân" },
-];
-
-type TryOnModel = "v1.6" | "max";
-type TryOnResolution = "1k" | "2k" | "4k";
-
-const TRY_ON_MODELS: {
-  id: TryOnModel;
-  name: string;
-  tagline: string;
-  speed: string;
-  quality: string;
-  bestFor: string;
-  creditLabel: string;
-}[] = [
-  {
-    id: "v1.6",
-    name: "Try-On v1.6",
-    tagline: "Nhanh · Ổn định",
-    speed: "~5–17 giây",
-    quality: "Tốt cho e-commerce thông thường",
-    bestFor: "Áo/quần, realtime, chi phí thấp",
-    creditLabel: "1 credit",
-  },
-  {
-    id: "max",
-    name: "Try-On Max",
-    tagline: "Chất lượng cao",
-    speed: "~20–60 giây",
-    quality: "Studio-grade, hỗ trợ 4K",
-    bestFor: "Catalog, portfolio, chất lượng cao",
-    creditLabel: "2–5 credits",
-  },
-];
-
-const TRY_ON_RESOLUTIONS: { value: TryOnResolution; label: string }[] = [
-  { value: "1k", label: "1K" },
-  { value: "2k", label: "2K" },
-  { value: "4k", label: "4K" },
-];
-
-function computeTryOnCost(model: TryOnModel, mode: string, resolution: TryOnResolution): number {
-  if (model === "v1.6") return 1;
-  const table: Record<string, Record<TryOnResolution, number>> = {
-    balanced: { "1k": 2, "2k": 3, "4k": 4 },
-    quality:  { "1k": 3, "2k": 4, "4k": 5 },
-    speed:    { "1k": 2, "2k": 3, "4k": 4 },
-  };
-  return table[mode]?.[resolution] ?? 2;
-}
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function StudioPage() {
   const router = useRouter();
@@ -125,38 +52,90 @@ export default function StudioPage() {
   const [authLoading, setAuthLoading] = useState(true);
   const [selectedTool, setSelectedTool] = useState<AIToolType>(AIToolType.TRY_ON);
 
-  // Try-On specific state
-  const [modelImage, setModelImage] = useState<StudioImage | null>(null);
-  const [garmentImage, setGarmentImage] = useState<StudioImage | null>(null);
-  const [tryOnCategory, setTryOnCategory] = useState<TryOnCategory>("auto");
-  const [tryOnModel, setTryOnModel] = useState<TryOnModel>("v1.6");
-  const [tryOnResolution, setTryOnResolution] = useState<TryOnResolution>("1k");
-  const [hoveredModel, setHoveredModel] = useState<TryOnModel | null>(null);
+  // ── Try-On state ──────────────────────────────────────────────────────────
+  const [toModelImage,  setToModelImage]  = useState<StudioImage | null>(null);
+  const [toGarment,     setToGarment]     = useState<StudioImage | null>(null);
+  const [toCategory,    setToCategory]    = useState<TryOnCategory>("auto");
+  const [toModel,       setToModel]       = useState<TryOnModel>("v1.6");
+  const [toResolution,  setToResolution]  = useState<TryOnResolution>("1k");
+  const [toHovered,     setToHovered]     = useState<TryOnModel | null>(null);
 
-  // Generic image upload (other tools)
-  const [images, setImages] = useState<StudioImage[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
+  // ── Product to Model state ────────────────────────────────────────────────
+  const [p2mProduct,    setP2mProduct]    = useState<StudioImage | null>(null);
+  const [p2mPromptImg,  setP2mPromptImg]  = useState<StudioImage | null>(null);
+  const [p2mFaceRef,    setP2mFaceRef]    = useState<StudioImage | null>(null);
+  const [p2mBgRef,      setP2mBgRef]      = useState<StudioImage | null>(null);
+  const [p2mPrompt,     setP2mPrompt]     = useState("");
+  const [p2mAspect,     setP2mAspect]     = useState("3:4");
+  const [p2mRes,        setP2mRes]        = useState<GenResolution>("1k");
+  const [p2mGenMode,    setP2mGenMode]    = useState<GenMode>("balanced");
+  const [p2mFaceMode,   setP2mFaceMode]   = useState<FaceRefMode>("match_reference");
 
-  // Extra inputs for specific tools
+  // ── Model Swap state ──────────────────────────────────────────────────────
+  const [msImage,       setMsImage]       = useState<StudioImage | null>(null);
+  const [msFaceRef,     setMsFaceRef]     = useState<StudioImage | null>(null);
+  const [msPrompt,      setMsPrompt]      = useState("");
+  const [msRes,         setMsRes]         = useState<GenResolution>("1k");
+  const [msGenMode,     setMsGenMode]     = useState<GenMode>("balanced");
+  const [msFaceMode,    setMsFaceMode]    = useState<FaceRefMode>("match_reference");
+
+  // ── Face Swap state (fixed: dùng model-swap API, 2 ảnh bắt buộc) ─────────
+  const [fsModelImage,  setFsModelImage]  = useState<StudioImage | null>(null);
+  const [fsFaceRef,     setFsFaceRef]     = useState<StudioImage | null>(null);
+  const [fsRes,         setFsRes]         = useState<GenResolution>("1k");
+  const [fsFaceMode,    setFsFaceMode]    = useState<FaceRefMode>("match_reference");
+
+  // ── Generic state (Edit / Create Model / Image to Video / Upscale) ────────
+  const [images,        setImages]        = useState<StudioImage[]>([]);
   const [genericPrompt, setGenericPrompt] = useState("");
-  const [reframeAspect, setReframeAspect] = useState("9:16");
-  const [videoDuration, setVideoDuration] = useState<5 | 10>(5);
-  const [videoResolution, setVideoResolution] = useState<"480p" | "720p" | "1080p">("720p");
+  const [videoDuration, setVideoDuration] = useState<VideoDuration>(5);
+  const [videoRes,      setVideoRes]      = useState<VideoResolution>("720p");
 
-  const [showGalleryPicker, setShowGalleryPicker] = useState(false);
-  const [galleryTarget, setGalleryTarget] = useState<"model" | "garment" | "generic">("generic");
-  const [galleryImages, setGalleryImages] = useState<{ id: string; url: string }[]>([]);
+  // ── UI state ──────────────────────────────────────────────────────────────
+  const [guideToolId,       setGuideToolId]       = useState<string | null>(null);
+  const [showGallery,       setShowGallery]        = useState(false);
+  const [galleryImages,     setGalleryImages]      = useState<{ id: string; url: string }[]>([]);
+  const [lightboxUrl,       setLightboxUrl]        = useState<string | null>(null);
+  const [saveAlbumAssetId,  setSaveAlbumAssetId]   = useState<string | null>(null);
+  const [isMounted,         setIsMounted]          = useState(false);
+  const [isMobile,          setIsMobile]           = useState(false);
+  const [canScrollLeft,     setCanScrollLeft]      = useState(false);
+  const [canScrollRight,    setCanScrollRight]     = useState(false);
 
-  // AI job tracking
+  // Gallery callback ref (avoids treating fn as state updater)
+  const galleryCallbackRef = useRef<((url: string) => void) | null>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  // ── AI job ────────────────────────────────────────────────────────────────
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const { state: jobState, imageUrl: resultUrl, assetId: resultAssetId, error: jobError, isProcessing, reset: resetJob } = useAIJob(activeJobId);
+  const {
+    state: jobState, imageUrl: resultUrl, assetId: resultAssetId,
+    error: jobError, isProcessing, reset: resetJob,
+  } = useAIJob(activeJobId);
 
-  // Result actions
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-  const [saveAlbumAssetId, setSaveAlbumAssetId] = useState<string | null>(null);
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    let alive = true;
+    const init = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (!alive) return;
+        if (error || !session?.user) { router.push("/login"); return; }
+        setAuthLoading(false);
+        fetchGallery();
+      } catch {
+        if (alive) router.push("/login");
+      }
+    };
+    init();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!alive) return;
+      if (event === "SIGNED_OUT" || !session?.user) router.push("/login");
+    });
+    return () => { alive = false; subscription.unsubscribe(); };
+  }, [router]);
 
-  const [isMounted, setIsMounted] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  // ── Mount / mobile ────────────────────────────────────────────────────────
   useEffect(() => {
     setIsMounted(true);
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -165,78 +144,72 @@ export default function StudioPage() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  const modelFileRef = useRef<HTMLInputElement>(null);
-  const garmentFileRef = useRef<HTMLInputElement>(null);
-  const genericFileRef = useRef<HTMLInputElement>(null);
+  // ── Toolbar scroll ────────────────────────────────────────────────────────
+  const checkScroll = useCallback(() => {
+    const el = toolbarRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
 
-  // Auth init
   useEffect(() => {
-    let isMounted = true;
-    const initAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (!isMounted) return;
-        if (error || !session?.user) { router.push("/login"); return; }
-        setAuthLoading(false);
-        fetchGalleryImages();
-      } catch {
-        if (isMounted) router.push("/login");
-      }
-    };
-    initAuth();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!isMounted) return;
-      if (event === "SIGNED_OUT" || !session?.user) router.push("/login");
-    });
-    return () => { isMounted = false; subscription.unsubscribe(); };
-  }, [router]);
+    checkScroll();
+    const el = toolbarRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(checkScroll);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [checkScroll]);
 
-  // Reset job + inputs when switching tool
+  const scrollToolbar = (dir: "left" | "right") => {
+    toolbarRef.current?.scrollBy({ left: dir === "left" ? -160 : 160, behavior: "smooth" });
+    setTimeout(checkScroll, 320);
+  };
+
+  // ── Reset state on tool switch ────────────────────────────────────────────
   useEffect(() => {
     resetJob();
     setActiveJobId(null);
-    setModelImage(null);
-    setGarmentImage(null);
-    setImages([]);
-    setGenericPrompt("");
+    setToModelImage(null); setToGarment(null);
+    setP2mProduct(null); setP2mPromptImg(null); setP2mFaceRef(null); setP2mBgRef(null); setP2mPrompt("");
+    setMsImage(null); setMsFaceRef(null); setMsPrompt("");
+    setFsModelImage(null); setFsFaceRef(null);
+    setImages([]); setGenericPrompt("");
   }, [selectedTool]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync credit after job completes (backend deducts, socket balance update may come via notification)
+  // ── Job status feedback ───────────────────────────────────────────────────
   useEffect(() => {
-    if (jobState === "completed") {
-      toast.success("Xử lý thành công!");
-    } else if (jobState === "failed" && jobError) {
-      toast.error(jobError);
-    }
+    if (jobState === "completed") toast.success("Xử lý thành công!");
+    else if (jobState === "failed" && jobError) toast.error(jobError);
   }, [jobState, jobError]);
 
-  const fetchGalleryImages = async () => {
+  // ── Gallery ───────────────────────────────────────────────────────────────
+  const fetchGallery = async () => {
     try {
       const imgs = await getImages();
-      setGalleryImages(imgs.map(img => ({ id: img.id, url: img.url })));
+      setGalleryImages(imgs.map(i => ({ id: i.id, url: i.url })));
     } catch {}
   };
 
-  // ── Image helpers ─────────────────────────────────────────────────────────
+  const openGallery = useCallback((cb: (url: string) => void) => {
+    galleryCallbackRef.current = cb;
+    setShowGallery(true);
+  }, []);
 
-  const fileToStudioImage = (file: File): StudioImage => ({
-    id: Math.random().toString(36).substr(2, 9),
-    url: URL.createObjectURL(file),
-    file,
-  });
+  const handleGallerySelect = (url: string) => {
+    galleryCallbackRef.current?.(url);
+    setShowGallery(false);
+  };
 
-  const handlePaste = useCallback(async (target: "model" | "garment" | "generic") => {
+  // ── Paste ─────────────────────────────────────────────────────────────────
+  const handlePaste = useCallback(async (onImage: (file: File) => void) => {
     try {
       const items = await navigator.clipboard.read();
       for (const item of items) {
         const imageType = item.types.find(t => t.startsWith("image/"));
         if (imageType) {
           const blob = await item.getType(imageType);
-          const file = new File([blob], `pasted-${Date.now()}.png`, { type: imageType });
-          const img = fileToStudioImage(file);
-          if (target === "model") setModelImage(img);
-          else if (target === "garment") setGarmentImage(img);
-          else setImages(prev => [...prev, img].slice(0, 5));
+          onImage(new File([blob], `pasted-${Date.now()}.png`, { type: imageType }));
           return;
         }
       }
@@ -246,51 +219,26 @@ export default function StudioPage() {
     }
   }, []);
 
-  const openGallery = (target: "model" | "garment" | "generic") => {
-    setGalleryTarget(target);
-    setShowGalleryPicker(true);
-  };
-
-  const handleGallerySelect = (url: string) => {
-    const img: StudioImage = { id: Math.random().toString(36).substr(2, 9), url };
-    if (galleryTarget === "model") setModelImage(img);
-    else if (galleryTarget === "garment") setGarmentImage(img);
-    else setImages(prev => [...prev, img].slice(0, 5));
-    setShowGalleryPicker(false);
-  };
-
   // ── Submit ────────────────────────────────────────────────────────────────
-
   const handleRun = async () => {
+    // Try-On
     if (selectedTool === AIToolType.TRY_ON) {
-      if (!modelImage) { toast.warning("Vui lòng thêm ảnh người mẫu."); return; }
-      if (!garmentImage) { toast.warning("Vui lòng thêm ảnh trang phục."); return; }
-
-      const cost = computeTryOnCost(tryOnModel, tryOnCategory, tryOnResolution);
+      if (!toModelImage)  { toast.warning("Vui lòng thêm ảnh người mẫu."); return; }
+      if (!toGarment)     { toast.warning("Vui lòng thêm ảnh trang phục."); return; }
+      const cost = computeTryOnCost(toModel, toCategory, toResolution);
       if (creditBalance !== null && creditBalance < cost) {
-        toast.warning(`Bạn cần ${cost} credits để chạy ${tryOnModel === "max" ? "Try-On Max" : "Try-On v1.6"}.`);
+        toast.warning(`Bạn cần ${cost} credits để chạy ${toModel === "max" ? "Try-On Max" : "Try-On v1.6"}.`);
         return;
       }
-
+      resetJob();
       try {
-        resetJob();
         let jobId: string;
-        if (tryOnModel === "max") {
-          const result = await tryOnMax({
-            modelImage: modelImage.file ?? modelImage.url,
-            garmentImage: garmentImage.file ?? garmentImage.url,
-            resolution: tryOnResolution,
-            generationMode: tryOnCategory === "auto" ? "balanced" : "balanced",
-          });
-          jobId = result.jobId;
+        if (toModel === "max") {
+          const r = await tryOnMax({ modelImage: toModelImage.file ?? toModelImage.url, garmentImage: toGarment.file ?? toGarment.url, resolution: toResolution, generationMode: "balanced" });
+          jobId = r.jobId;
         } else {
-          const result = await tryOn({
-            modelImage: modelImage.file ?? modelImage.url,
-            garmentImage: garmentImage.file ?? garmentImage.url,
-            category: tryOnCategory,
-            mode: "balanced",
-          });
-          jobId = result.jobId;
+          const r = await tryOn({ modelImage: toModelImage.file ?? toModelImage.url, garmentImage: toGarment.file ?? toGarment.url, category: toCategory, mode: "balanced" });
+          jobId = r.jobId;
         }
         setActiveJobId(jobId);
         dispatch(setBalance((creditBalance ?? 0) - cost));
@@ -300,79 +248,109 @@ export default function StudioPage() {
       return;
     }
 
-    // ── Other tools ───────────────────────────────────────────────────────────
+    // Credit check for other tools
     const tool = TOOLS.find(t => t.id === selectedTool)!;
     if (creditBalance !== null && creditBalance < tool.credit) {
       toast.warning(`Bạn cần ${tool.credit} credits.`); return;
     }
 
-    const startOtherJob = async (jobPromise: Promise<{ jobId: string }>) => {
+    const submit = async (jobPromise: Promise<{ jobId: string }>) => {
       resetJob();
       try {
-        const result = await jobPromise;
-        setActiveJobId(result.jobId);
+        const { jobId } = await jobPromise;
+        setActiveJobId(jobId);
         dispatch(setBalance((creditBalance ?? 0) - tool.credit));
       } catch (err: any) {
         toast.error(err.message ?? "Không thể bắt đầu xử lý.");
       }
     };
 
-    const img0 = images[0];
+    // Product to Model
+    if (selectedTool === AIToolType.PRODUCT_TO_MODEL) {
+      if (!p2mProduct) { toast.warning("Vui lòng thêm ảnh sản phẩm."); return; }
+      return submit(productToModel({
+        productImage:        p2mProduct.file     ?? p2mProduct.url,
+        imagePrompt:         p2mPromptImg ? (p2mPromptImg.file ?? p2mPromptImg.url) : undefined,
+        faceReference:       p2mFaceRef   ? (p2mFaceRef.file   ?? p2mFaceRef.url)   : undefined,
+        faceReferenceMode:   p2mFaceRef ? p2mFaceMode : undefined,
+        backgroundReference: p2mBgRef     ? (p2mBgRef.file     ?? p2mBgRef.url)     : undefined,
+        prompt: p2mPrompt || undefined, aspectRatio: p2mAspect,
+        resolution: p2mRes, generationMode: p2mGenMode,
+      }));
+    }
+
+    // Model Swap (full controls, faceRef optional)
+    if (selectedTool === AIToolType.MODEL_SWAP) {
+      if (!msImage) { toast.warning("Vui lòng thêm ảnh thời trang."); return; }
+      return submit(modelSwap({
+        modelImage:       msImage.file    ?? msImage.url,
+        faceReference:    msFaceRef ? (msFaceRef.file ?? msFaceRef.url) : undefined,
+        faceReferenceMode: msFaceRef ? msFaceMode : undefined,
+        prompt:     msPrompt || undefined,
+        resolution: msRes,
+        generationMode: msGenMode,
+      }));
+    }
+
+    // Face Swap (fixed: dùng model-swap với faceReference bắt buộc)
+    if (selectedTool === AIToolType.FACE_SWAP) {
+      if (!fsModelImage) { toast.warning("Vui lòng thêm ảnh thời trang."); return; }
+      if (!fsFaceRef)    { toast.warning("Vui lòng thêm ảnh khuôn mặt cần swap."); return; }
+      return submit(modelSwap({
+        modelImage:        fsModelImage.file ?? fsModelImage.url,
+        faceReference:     fsFaceRef.file    ?? fsFaceRef.url,
+        faceReferenceMode: fsFaceMode,
+        resolution:        fsRes,
+      }));
+    }
+
+    const img0   = images[0];
     const imgSrc = img0?.file ?? img0?.url ?? "";
 
-    if (selectedTool === AIToolType.PRODUCT_TO_MODEL) {
-      if (!imgSrc) { toast.warning("Vui lòng thêm ảnh sản phẩm."); return; }
-      return startOtherJob(productToModel({ productImage: img0.file ?? img0.url, prompt: genericPrompt || undefined, resolution: "1k" }));
-    }
-    if (selectedTool === AIToolType.FACE_SWAP) {
-      if (!imgSrc) { toast.warning("Vui lòng thêm ảnh khuôn mặt."); return; }
-      return startOtherJob(faceToModel({ faceImage: img0.file ?? img0.url, prompt: genericPrompt || undefined, resolution: "1k" }));
-    }
-    if (selectedTool === AIToolType.MODEL_SWAP) {
-      if (!imgSrc) { toast.warning("Vui lòng thêm ảnh thời trang."); return; }
-      return startOtherJob(modelSwap({ modelImage: img0.file ?? img0.url, prompt: genericPrompt || undefined, resolution: "1k" }));
-    }
     if (selectedTool === AIToolType.EDIT) {
-      if (!imgSrc) { toast.warning("Vui lòng thêm ảnh cần chỉnh sửa."); return; }
-      if (!genericPrompt.trim()) { toast.warning("Vui lòng nhập mô tả thay đổi."); return; }
-      return startOtherJob(editImage({ image: img0.file ?? img0.url, prompt: genericPrompt, resolution: "1k" }));
+      if (!imgSrc)                    { toast.warning("Vui lòng thêm ảnh cần chỉnh sửa."); return; }
+      if (!genericPrompt.trim())      { toast.warning("Vui lòng nhập mô tả thay đổi."); return; }
+      return submit(editImage({ image: img0.file ?? img0.url, prompt: genericPrompt, resolution: "1k" }));
     }
+
     if (selectedTool === AIToolType.CREATE_MODEL) {
       if (!genericPrompt.trim()) { toast.warning("Vui lòng nhập mô tả model muốn tạo."); return; }
-      return startOtherJob(modelCreate({ prompt: genericPrompt, imageReference: imgSrc || undefined, resolution: "1k" }));
+      return submit(modelCreate({ prompt: genericPrompt, imageReference: imgSrc || undefined, resolution: "1k" }));
     }
+
     if (selectedTool === AIToolType.IMAGE_TO_VIDEO) {
       if (!imgSrc) { toast.warning("Vui lòng thêm ảnh nguồn."); return; }
-      return startOtherJob(imageToVideo({ image: img0.file ?? img0.url, prompt: genericPrompt || undefined, duration: videoDuration, resolution: videoResolution }));
+      return submit(imageToVideo({ image: img0.file ?? img0.url, prompt: genericPrompt || undefined, duration: videoDuration, resolution: videoRes }));
     }
 
     toast.info(`${tool.name} sẽ sớm được cập nhật!`);
   };
 
-  const handleDownload = () => {
-    if (!resultUrl) return;
-    const a = document.createElement("a");
-    a.href = resultUrl;
-    a.download = `guai_result_${Date.now()}.png`;
-    a.click();
-  };
-
-  const handleNewJob = () => {
-    resetJob();
-    setActiveJobId(null);
-  };
-
-  const selectedToolData = TOOLS.find(t => t.id === selectedTool);
+  // ── Derived ───────────────────────────────────────────────────────────────
   const isTryOn = selectedTool === AIToolType.TRY_ON;
-  const showPanel = isProcessing || jobState === "completed" || jobState === "failed";
-  const currentCost = isTryOn ? computeTryOnCost(tryOnModel, tryOnCategory, tryOnResolution) : (selectedToolData?.credit ?? 0);
-  const displayModel = hoveredModel ?? tryOnModel;
+  const isP2M   = selectedTool === AIToolType.PRODUCT_TO_MODEL;
+  const isMS    = selectedTool === AIToolType.MODEL_SWAP;
+  const isFS    = selectedTool === AIToolType.FACE_SWAP;
+
+  const showPanel  = isProcessing || jobState === "completed" || jobState === "failed";
+  const toolData   = TOOLS.find(t => t.id === selectedTool);
+  const currentCost = isTryOn
+    ? computeTryOnCost(toModel, toCategory, toResolution)
+    : (toolData?.credit ?? 0);
+
   const canRun = isProcessing ? false
-    : isTryOn ? (!!modelImage && !!garmentImage)
+    : isTryOn ? (!!toModelImage && !!toGarment)
+    : isP2M   ? !!p2mProduct
+    : isMS    ? !!msImage
+    : isFS    ? (!!fsModelImage && !!fsFaceRef)
     : selectedTool === AIToolType.CREATE_MODEL ? !!genericPrompt.trim()
-    : selectedTool === AIToolType.EDIT ? (images.length > 0 && !!genericPrompt.trim())
+    : selectedTool === AIToolType.EDIT         ? (images.length > 0 && !!genericPrompt.trim())
     : images.length > 0;
 
+  const leftW  = showPanel ? (isMobile ? "0%"   : "50%") : "100%";
+  const rightW = showPanel ? (isMobile ? "100%" : "50%") : "0%";
+
+  // ── Loading screen ────────────────────────────────────────────────────────
   if (authLoading) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
@@ -381,13 +359,11 @@ export default function StudioPage() {
     );
   }
 
-  // On mobile, result takes full width; on desktop, 50/50 split
-  const leftW  = showPanel ? (isMobile ? "0%"   : "50%") : "100%";
-  const rightW = showPanel ? (isMobile ? "100%" : "50%") : "0%";
-
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="w-full h-[100%] bg-background text-foreground flex flex-col overflow-hidden">
-      {/* Content area */}
+
+      {/* ── Content area ── */}
       <div className="flex-1 min-h-0 flex items-center justify-center px-3 py-3 sm:px-6 sm:py-4">
         <div className="w-full max-w-5xl h-full flex min-h-0">
 
@@ -400,228 +376,65 @@ export default function StudioPage() {
             style={{ paddingRight: showPanel && !isMobile ? 12 : 0 }}
           >
             {isTryOn ? (
-              <div className="flex flex-col gap-3 h-full min-h-0">
-                {/* Image grid fills all remaining height */}
-                <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
-                  <ImageSlot
-                    label="Ảnh người mẫu"
-                    sublabel="Người đứng thẳng"
-                    image={modelImage}
-                    onClear={() => setModelImage(null)}
-                    onFileChange={(file) => setModelImage(fileToStudioImage(file))}
-                    onPaste={() => handlePaste("model")}
-                    onGallery={() => openGallery("model")}
-                    fileRef={modelFileRef}
-                  />
-                  <ImageSlot
-                    label="Ảnh trang phục"
-                    sublabel="Sản phẩm rõ nét"
-                    image={garmentImage}
-                    onClear={() => setGarmentImage(null)}
-                    onFileChange={(file) => setGarmentImage(fileToStudioImage(file))}
-                    onPaste={() => handlePaste("garment")}
-                    onGallery={() => openGallery("garment")}
-                    fileRef={garmentFileRef}
-                  />
-                </div>
-                {/* Bottom controls */}
-                <div className="flex flex-col gap-2 shrink-0">
-                  {/* Category */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground w-9">Loại:</span>
-                    {TRY_ON_CATEGORIES.map(c => (
-                      <button
-                        key={c.value}
-                        onClick={() => setTryOnCategory(c.value)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                          tryOnCategory === c.value
-                            ? "bg-foreground text-background"
-                            : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
-                        }`}
-                      >
-                        {c.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Model selector */}
-                  <div className="flex items-start gap-2">
-                    <span className="text-xs text-muted-foreground w-9 pt-1.5 shrink-0">AI:</span>
-                    <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                      <div className="flex gap-1.5 flex-wrap">
-                        {TRY_ON_MODELS.map(m => (
-                          <button
-                            key={m.id}
-                            onClick={() => setTryOnModel(m.id)}
-                            onMouseEnter={() => setHoveredModel(m.id)}
-                            onMouseLeave={() => setHoveredModel(null)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                              tryOnModel === m.id
-                                ? "bg-foreground text-background"
-                                : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
-                            }`}
-                          >
-                            {m.name}
-                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
-                              tryOnModel === m.id
-                                ? "bg-background/15 text-background/80"
-                                : "bg-primary/10 text-primary"
-                            }`}>
-                              {m.id === "v1.6" ? "1 cr" : `${computeTryOnCost("max", "balanced", tryOnResolution)} cr`}
-                            </span>
-                          </button>
-                        ))}
-                        {/* Resolution — only for Max */}
-                        {tryOnModel === "max" && TRY_ON_RESOLUTIONS.map(r => (
-                          <button
-                            key={r.value}
-                            onClick={() => setTryOnResolution(r.value)}
-                            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                              tryOnResolution === r.value
-                                ? "bg-foreground text-background"
-                                : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
-                            }`}
-                          >
-                            {r.label}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Hover/selected model info */}
-                      {(() => {
-                        const info = TRY_ON_MODELS.find(m => m.id === displayModel);
-                        if (!info) return null;
-                        return (
-                          <div className="text-[10px] text-muted-foreground leading-relaxed">
-                            <span className="text-foreground font-medium">{info.tagline}</span>
-                            {" · "}{info.speed}
-                            {" · "}{info.bestFor}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <TryOnPanel
+                modelImage={toModelImage} garmentImage={toGarment}
+                category={toCategory} tryOnModel={toModel}
+                resolution={toResolution} hoveredModel={toHovered}
+                onModelImageChange={setToModelImage} onGarmentImageChange={setToGarment}
+                onCategoryChange={setToCategory} onTryOnModelChange={setToModel}
+                onResolutionChange={setToResolution} onHoveredModelChange={setToHovered}
+                onPaste={handlePaste} openGallery={openGallery}
+              />
+            ) : isP2M ? (
+              <ProductToModelPanel
+                product={p2mProduct} imagePrompt={p2mPromptImg}
+                faceRef={p2mFaceRef} bgRef={p2mBgRef}
+                prompt={p2mPrompt} aspectRatio={p2mAspect}
+                resolution={p2mRes} genMode={p2mGenMode} faceRefMode={p2mFaceMode}
+                onProductChange={setP2mProduct} onImagePromptChange={setP2mPromptImg}
+                onFaceRefChange={setP2mFaceRef} onBgRefChange={setP2mBgRef}
+                onPromptChange={setP2mPrompt} onAspectRatioChange={setP2mAspect}
+                onResolutionChange={setP2mRes} onGenModeChange={setP2mGenMode}
+                onFaceRefModeChange={setP2mFaceMode}
+                onPaste={handlePaste} openGallery={openGallery}
+              />
+            ) : isMS ? (
+              <ModelSwapPanel
+                modelImage={msImage} faceRef={msFaceRef}
+                prompt={msPrompt} resolution={msRes}
+                genMode={msGenMode} faceRefMode={msFaceMode}
+                onModelImageChange={setMsImage} onFaceRefChange={setMsFaceRef}
+                onPromptChange={setMsPrompt} onResolutionChange={setMsRes}
+                onGenModeChange={setMsGenMode} onFaceRefModeChange={setMsFaceMode}
+                onPaste={handlePaste} openGallery={openGallery}
+              />
+            ) : isFS ? (
+              <FaceSwapPanel
+                modelImage={fsModelImage} faceRef={fsFaceRef}
+                resolution={fsRes} faceRefMode={fsFaceMode}
+                onModelImageChange={setFsModelImage} onFaceRefChange={setFsFaceRef}
+                onResolutionChange={setFsRes} onFaceRefModeChange={setFsFaceMode}
+                onPaste={handlePaste} openGallery={openGallery}
+              />
             ) : (
-              <div
-                className="h-full flex flex-col min-h-0"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
-                  setImages(prev => [...prev, ...files.map(fileToStudioImage)].slice(0, 5));
-                }}
-              >
-                {images.length === 0 ? (
-                  <div
-                    onClick={() => genericFileRef.current?.click()}
-                    className="flex-1 min-h-0 rounded-3xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 hover:bg-card transition-all"
-                  >
-                    <input type="file" multiple accept="image/*" ref={genericFileRef} onChange={(e) => { if (e.target.files) { const files = Array.from(e.target.files).filter(f => f.type.startsWith("image/")); setImages(prev => [...prev, ...files.map(fileToStudioImage)].slice(0, 5)); } }} className="hidden" />
-                    <div className="flex items-center justify-center gap-2 mb-4">
-                      <div className="w-14 h-18 rounded-xl bg-gradient-to-br from-orange-200 to-orange-400 shadow-lg -rotate-6" />
-                      <div className="w-14 h-18 rounded-xl bg-gradient-to-br from-sky-200 to-sky-400 shadow-lg z-10" />
-                      <div className="w-14 h-18 rounded-xl bg-gradient-to-br from-amber-200 to-amber-400 shadow-lg rotate-6" />
-                    </div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <button onClick={(e) => { e.stopPropagation(); handlePaste("generic"); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border text-xs font-medium hover:bg-secondary transition-colors"><ClipboardPaste className="size-3.5" /> Paste</button>
-                      <button onClick={(e) => { e.stopPropagation(); genericFileRef.current?.click(); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border text-xs font-medium hover:bg-secondary transition-colors"><Upload className="size-3.5" /> Upload</button>
-                      <button onClick={(e) => { e.stopPropagation(); openGallery("generic"); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border text-xs font-medium hover:bg-secondary transition-colors"><GalleryHorizontal className="size-3.5" /> Gallery</button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">or drop an image here</p>
-                  </div>
-                ) : (
-                  <div className="flex-1 min-h-0 flex items-center justify-center gap-3 flex-wrap overflow-hidden">
-                    {images.map((img, index) => (
-                      <motion.div key={img.id} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.05 }} className="relative group">
-                        <div className="w-28 h-36 rounded-2xl overflow-hidden border border-border bg-card shadow-md">
-                          <img src={img.url} alt="Input" className="w-full h-full object-cover" />
-                        </div>
-                        <button onClick={() => setImages(prev => prev.filter(i => i.id !== img.id))} className="absolute -top-2 -right-2 p-1 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"><X className="size-3" /></button>
-                      </motion.div>
-                    ))}
-                    {images.length < 5 && (
-                      <button onClick={() => genericFileRef.current?.click()} className="w-28 h-36 rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary/30 hover:text-foreground transition-all">
-                        <Upload className="size-5 mb-1" /><span className="text-[10px]">Thêm ảnh</span>
-                      </button>
-                    )}
-                    <input type="file" multiple accept="image/*" ref={genericFileRef} onChange={(e) => { if (e.target.files) { const files = Array.from(e.target.files).filter(f => f.type.startsWith("image/")); setImages(prev => [...prev, ...files.map(fileToStudioImage)].slice(0, 5)); } }} className="hidden" />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── Extra controls for specific tools ── */}
-            {!isTryOn && (
-              <div className="shrink-0 flex flex-col gap-2 mt-3">
-                {/* Prompt input */}
-                {(selectedTool === AIToolType.EDIT ||
-                  selectedTool === AIToolType.CREATE_MODEL ||
-                  selectedTool === AIToolType.PRODUCT_TO_MODEL ||
-                  selectedTool === AIToolType.MODEL_SWAP ||
-                  selectedTool === AIToolType.FACE_SWAP ||
-                  selectedTool === AIToolType.IMAGE_TO_VIDEO) && (
-                  <textarea
-                    rows={2}
-                    value={genericPrompt}
-                    onChange={(e) => setGenericPrompt(e.target.value)}
-                    placeholder={
-                      selectedTool === AIToolType.CREATE_MODEL
-                        ? "Mô tả model muốn tạo (vd: Full body shot, woman wearing a white t-shirt...)"
-                        : selectedTool === AIToolType.EDIT
-                        ? "Mô tả thay đổi muốn thực hiện (vd: add a black leather bag, change background to white...)"
-                        : selectedTool === AIToolType.IMAGE_TO_VIDEO
-                        ? "Mô tả chuyển động (tuỳ chọn — để trống để AI tự quyết)"
-                        : "Prompt / mô tả thêm (tuỳ chọn)"
-                    }
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none resize-none transition-all"
-                  />
-                )}
-
-                {/* Image to Video settings */}
-                {selectedTool === AIToolType.IMAGE_TO_VIDEO && (
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Thời lượng:</span>
-                      {([5, 10] as const).map(d => (
-                        <button key={d} onClick={() => setVideoDuration(d)}
-                          className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${videoDuration === d ? "bg-foreground text-background" : "bg-secondary/40 text-muted-foreground hover:bg-secondary"}`}>
-                          {d}s
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Chất lượng:</span>
-                      {(["480p", "720p", "1080p"] as const).map(r => (
-                        <button key={r} onClick={() => setVideoResolution(r)}
-                          className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${videoResolution === r ? "bg-foreground text-background" : "bg-secondary/40 text-muted-foreground hover:bg-secondary"}`}>
-                          {r}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <GenericPanel
+                selectedTool={selectedTool}
+                images={images} prompt={genericPrompt}
+                videoDuration={videoDuration} videoResolution={videoRes}
+                onImagesChange={setImages} onPromptChange={setGenericPrompt}
+                onVideoDurationChange={setVideoDuration} onVideoResolutionChange={setVideoRes}
+                onPaste={handlePaste} openGallery={openGallery}
+              />
             )}
           </motion.div>
 
           {/* RIGHT — Result */}
           <motion.div
             initial={false}
-            animate={{
-              width: rightW,
-              opacity: showPanel ? 1 : 0,
-              paddingLeft: showPanel && !isMobile ? 12 : 0,
-            }}
+            animate={{ width: rightW, opacity: showPanel ? 1 : 0, paddingLeft: showPanel && !isMobile ? 12 : 0 }}
             transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
             className="shrink-0 h-full flex flex-col min-h-0 overflow-hidden"
           >
-            {/*
-              ALL three panels stay in the DOM at all times — no mount/unmount ever.
-              Shown/hidden via opacity + pointer-events only, stacked via absolute.
-              This eliminates insertBefore entirely (no DOM insertion on state change).
-            */}
             <div className="relative flex-1 min-h-0 w-full">
 
               {/* Processing */}
@@ -640,11 +453,14 @@ export default function StudioPage() {
                   </div>
                   <div className="flex items-center gap-2 p-3 border-t border-border shrink-0 flex-wrap">
                     {isMobile && (
-                      <button onClick={handleNewJob} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
+                      <button onClick={() => { resetJob(); setActiveJobId(null); }} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
                         <ChevronLeft className="size-3.5" /> Nhập ảnh
                       </button>
                     )}
-                    <button onClick={handleDownload} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-foreground text-background text-xs font-medium hover:opacity-90 transition-opacity">
+                    <button
+                      onClick={() => { if (!resultUrl) return; const a = document.createElement("a"); a.href = resultUrl; a.download = `guai_result_${Date.now()}.png`; a.click(); }}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-foreground text-background text-xs font-medium hover:opacity-90 transition-opacity"
+                    >
                       <Download className="size-3.5" /> Tải xuống
                     </button>
                     <button onClick={() => resultUrl && setLightboxUrl(resultUrl)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
@@ -660,7 +476,7 @@ export default function StudioPage() {
                       {resultAssetId ? "Lưu vào Album" : "Đang lưu..."}
                     </button>
                     {!isMobile && (
-                      <button onClick={handleNewJob} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors ml-auto">
+                      <button onClick={() => { resetJob(); setActiveJobId(null); }} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors ml-auto">
                         <RefreshCw className="size-3.5" /> Thử lại
                       </button>
                     )}
@@ -676,7 +492,7 @@ export default function StudioPage() {
                     <p className="text-sm font-medium text-destructive">Xử lý thất bại</p>
                     <p className="text-xs text-muted-foreground truncate">{jobError}</p>
                   </div>
-                  <button onClick={handleNewJob} className="text-xs underline text-muted-foreground hover:text-foreground">Thử lại</button>
+                  <button onClick={() => { resetJob(); setActiveJobId(null); }} className="text-xs underline text-muted-foreground hover:text-foreground">Thử lại</button>
                 </div>
               </div>
 
@@ -689,7 +505,20 @@ export default function StudioPage() {
       {/* ── Bottom Tool Bar ── */}
       <div className="shrink-0 border-t border-border/40 bg-background/80 backdrop-blur-xl px-3 py-2.5 sm:px-6 sm:py-3 sm:pb-4">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+
+          <button
+            onClick={() => scrollToolbar("left")}
+            className={`shrink-0 flex items-center justify-center size-7 rounded-lg bg-secondary text-muted-foreground hover:text-foreground transition-all ${canScrollLeft ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+          >
+            <ChevronLeft className="size-3.5" />
+          </button>
+
+          <div
+            ref={toolbarRef}
+            onScroll={checkScroll}
+            className="flex-1 flex items-center gap-1 overflow-x-auto"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
+          >
             {TOOLS.map((tool) => (
               <button
                 key={tool.id}
@@ -700,27 +529,37 @@ export default function StudioPage() {
                     : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
                 }`}
               >
-                {tool.icon}
+                <tool.Icon className="size-4" />
                 {tool.name}
               </button>
             ))}
-            <button className="flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
-              <ChevronRight className="size-4" />
-            </button>
           </div>
 
+          <button
+            onClick={() => scrollToolbar("right")}
+            className={`shrink-0 flex items-center justify-center size-7 rounded-lg bg-secondary text-muted-foreground hover:text-foreground transition-all ${canScrollRight ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+          >
+            <ChevronRight className="size-3.5" />
+          </button>
+
           <div className="flex items-center gap-3 shrink-0">
-            {/* Info pills */}
             <div className="hidden sm:flex items-center gap-2 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Sparkles className="size-3 text-primary" />
-                {isTryOn ? (tryOnModel === "max" ? "Try-On Max" : "Try-On v1.6") : selectedToolData?.name}
+                {isTryOn ? (toModel === "max" ? "Try-On Max" : "Try-On v1.6") : toolData?.name}
               </span>
               <span className="text-border">|</span>
               <span className="font-semibold text-foreground">{currentCost} credit{currentCost > 1 ? "s" : ""}</span>
             </div>
 
-            {/* Run button */}
+            <button
+              onClick={() => setGuideToolId(selectedTool)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary/60 text-muted-foreground text-xs font-medium hover:text-foreground hover:bg-secondary transition-colors"
+              title="Xem hướng dẫn"
+            >
+              <BookOpen className="size-3.5" /> Hướng dẫn
+            </button>
+
             <button
               onClick={handleRun}
               disabled={!canRun}
@@ -733,25 +572,36 @@ export default function StudioPage() {
           </div>
         </div>
 
-        {/* AI Test Generate Panel */}
         <div className="mt-2 pt-2 border-t border-border/30 w-full">
           <AiGenerateTest />
         </div>
       </div>
 
-      {/* ── Lightbox ── */}
+      {/* ── Modals & overlays ── */}
       <Lightbox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />
-
-      {/* ── Save to Album Modal ── */}
       <SaveToAlbumModal assetId={saveAlbumAssetId} onClose={() => setSaveAlbumAssetId(null)} />
+      <ToolGuideModal
+        guide={guideToolId ? (TOOL_GUIDES[guideToolId] ?? null) : null}
+        onClose={() => setGuideToolId(null)}
+      />
 
-      {/* ── Gallery Picker Modal — rendered via portal to avoid insertBefore conflicts ── */}
-      {isMounted && showGalleryPicker && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md" onClick={() => setShowGalleryPicker(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-2xl max-h-[70vh] rounded-3xl border border-border bg-card p-6 shadow-2xl overflow-hidden flex flex-col">
+      {/* Gallery picker portal */}
+      {isMounted && showGallery && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+          onClick={() => setShowGallery(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-2xl max-h-[70vh] rounded-3xl border border-border bg-card p-6 shadow-2xl overflow-hidden flex flex-col"
+          >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold flex items-center gap-2"><GalleryHorizontal className="size-4 text-primary" /> Chọn ảnh từ thư viện</h3>
-              <button onClick={() => setShowGalleryPicker(false)} className="p-1 rounded-lg hover:bg-secondary text-muted-foreground"><X className="size-4" /></button>
+              <h3 className="text-sm font-bold flex items-center gap-2">
+                <GalleryHorizontal className="size-4 text-primary" /> Chọn ảnh từ thư viện
+              </h3>
+              <button onClick={() => setShowGallery(false)} className="p-1 rounded-lg hover:bg-secondary text-muted-foreground">
+                <X className="size-4" />
+              </button>
             </div>
             <div className="flex-1 overflow-y-auto">
               {galleryImages.length === 0 ? (
@@ -762,7 +612,11 @@ export default function StudioPage() {
               ) : (
                 <div className="grid grid-cols-4 gap-3">
                   {galleryImages.map((img) => (
-                    <button key={img.id} onClick={() => handleGallerySelect(img.url)} className="relative aspect-square rounded-xl overflow-hidden border border-border hover:border-primary/50 transition-all group">
+                    <button
+                      key={img.id}
+                      onClick={() => handleGallerySelect(img.url)}
+                      className="relative aspect-square rounded-xl overflow-hidden border border-border hover:border-primary/50 transition-all group"
+                    >
                       <img src={img.url} alt="Gallery" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/20 transition-colors flex items-center justify-center">
                         <Check className="size-6 text-white opacity-0 group-hover:opacity-100" />
@@ -776,120 +630,6 @@ export default function StudioPage() {
         </div>,
         document.body
       )}
-    </div>
-  );
-}
-
-// ─── ProcessingPanel component ───────────────────────────────────────────────
-
-// 5 messages, đổi tại giây 5 / 10 / 20 / 30
-const LOADING_MESSAGES = [
-  "Đang tải ảnh lên máy chủ...",
-  "Fashn AI đang phân tích trang phục... 🧐",
-  "AI đang cật lực render từng pixel một 💪",
-  "Xử lý lâu hơn bình thường, nhưng sẽ xứng đáng! ✨",
-  "Vẫn đang làm, không bỏ cuộc đâu nhé! Chờ tí... 🙏",
-];
-const TIMING_MS = [5_000, 10_000, 20_000, 30_000];
-
-function ProcessingPanel({ active }: { active: boolean }) {
-  const [msgIndex, setMsgIndex] = useState(0);
-
-  useEffect(() => {
-    if (!active) {
-      setMsgIndex(0);
-      return;
-    }
-    const timers = TIMING_MS.map((delay, i) =>
-      setTimeout(() => setMsgIndex(i + 1), delay)
-    );
-    return () => timers.forEach(clearTimeout);
-  }, [active]);
-
-  return (
-    <div className="flex flex-col items-center justify-center gap-6 rounded-3xl border border-border bg-card h-full min-h-0">
-      <GuaiLoader size="lg" />
-      {/* Roll-down ticker: old text exits downward, new text enters from above */}
-      <div className="overflow-hidden" style={{ height: "1.4rem" }}>
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={msgIndex}
-            initial={{ y: "-100%", opacity: 0 }}
-            animate={{ y: "0%", opacity: 1 }}
-            exit={{ y: "100%", opacity: 0 }}
-            transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
-            className="text-sm font-medium text-center whitespace-nowrap px-6"
-          >
-            {LOADING_MESSAGES[msgIndex]}
-          </motion.p>
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-}
-
-// ─── ImageSlot component ──────────────────────────────────────────────────────
-
-interface ImageSlotProps {
-  label: string;
-  sublabel: string;
-  image: StudioImage | null;
-  onClear: () => void;
-  onFileChange: (file: File) => void;
-  onPaste: () => void;
-  onGallery: () => void;
-  fileRef: React.RefObject<HTMLInputElement | null>;
-}
-
-function ImageSlot({ label, sublabel, image, onClear, onFileChange, onPaste, onGallery, fileRef }: ImageSlotProps) {
-  return (
-    <div className="flex flex-col gap-2 min-h-0 h-full">
-      <div className="flex items-center justify-between shrink-0">
-        <span className="text-xs font-semibold">{label}</span>
-        <span className="text-[10px] text-muted-foreground">{sublabel}</span>
-      </div>
-
-      {/* Both panels always in DOM — toggled via opacity/pointer-events, never mounted/unmounted */}
-      <div className="relative flex-1 min-h-0 group">
-
-        {/* Image display — border hugs the image's natural aspect ratio */}
-        <div className={`absolute inset-0 flex items-center justify-center p-2 transition-opacity duration-150 ${image ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
-          <img
-            src={image?.url ?? undefined}
-            alt={label}
-            className="max-w-full max-h-full rounded-2xl border border-border shadow-md"
-          />
-          <button
-            onClick={onClear}
-            className="absolute top-3 right-3 p-1.5 rounded-full bg-background/80 backdrop-blur-sm text-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow"
-          >
-            <X className="size-3.5" />
-          </button>
-        </div>
-
-        {/* Upload area */}
-        <div
-          onClick={() => fileRef.current?.click()}
-          className={`absolute inset-0 rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 hover:bg-card transition-all gap-2 ${image ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto"}`}
-        >
-          <input
-            type="file" accept="image/*"
-            ref={fileRef}
-            onChange={(e) => { if (e.target.files?.[0]) onFileChange(e.target.files[0]); }}
-            className="hidden"
-          />
-          <Upload className="size-5 text-muted-foreground" />
-          <div className="flex items-center gap-1.5">
-            <button onClick={(e) => { e.stopPropagation(); onPaste(); }} className="px-2 py-1 rounded-md bg-background border border-border text-[10px] hover:bg-secondary transition-colors">
-              <ClipboardPaste className="size-3 inline mr-1" />Paste
-            </button>
-            <button onClick={(e) => { e.stopPropagation(); onGallery(); }} className="px-2 py-1 rounded-md bg-background border border-border text-[10px] hover:bg-secondary transition-colors">
-              <GalleryHorizontal className="size-3 inline mr-1" />Gallery
-            </button>
-          </div>
-        </div>
-
-      </div>
     </div>
   );
 }

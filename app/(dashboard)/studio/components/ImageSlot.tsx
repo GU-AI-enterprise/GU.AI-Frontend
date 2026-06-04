@@ -1,0 +1,78 @@
+"use client";
+
+import { useRef } from "react";
+import { Upload, X, ClipboardPaste, GalleryHorizontal } from "lucide-react";
+import type { StudioImage } from "../types";
+
+interface Props {
+  label: string;
+  sublabel?: string;
+  image: StudioImage | null;
+  onClear: () => void;
+  onFileChange: (file: File) => void;
+  onPaste: () => void;
+  onGallery: () => void;
+  required?: boolean;
+}
+
+export function ImageSlot({ label, sublabel, image, onClear, onFileChange, onPaste, onGallery, required }: Props) {
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="flex flex-col gap-2 min-h-0 h-full">
+      <div className="flex items-center justify-between shrink-0">
+        <span className="text-xs font-semibold">
+          {label}
+          {required && <span className="text-destructive ml-0.5">*</span>}
+        </span>
+        {sublabel && <span className="text-[10px] text-muted-foreground">{sublabel}</span>}
+      </div>
+
+      <div className="relative flex-1 min-h-0 group">
+        {/* Image display */}
+        <div className={`absolute inset-0 flex items-center justify-center p-2 transition-opacity duration-150 ${image ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
+          <img
+            src={image?.url ?? undefined}
+            alt={label}
+            className="max-w-full max-h-full rounded-2xl border border-border shadow-md"
+          />
+          <button
+            onClick={onClear}
+            className="absolute top-3 right-3 p-1.5 rounded-full bg-background/80 backdrop-blur-sm text-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow"
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
+
+        {/* Upload area */}
+        <div
+          onClick={() => fileRef.current?.click()}
+          className={`absolute inset-0 rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 hover:bg-card transition-all gap-2 ${image ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto"}`}
+        >
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileRef}
+            onChange={(e) => { if (e.target.files?.[0]) onFileChange(e.target.files[0]); }}
+            className="hidden"
+          />
+          <Upload className="size-5 text-muted-foreground" />
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={(e) => { e.stopPropagation(); onPaste(); }}
+              className="px-2 py-1 rounded-md bg-background border border-border text-[10px] hover:bg-secondary transition-colors"
+            >
+              <ClipboardPaste className="size-3 inline mr-1" />Paste
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onGallery(); }}
+              className="px-2 py-1 rounded-md bg-background border border-border text-[10px] hover:bg-secondary transition-colors"
+            >
+              <GalleryHorizontal className="size-3 inline mr-1" />Gallery
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

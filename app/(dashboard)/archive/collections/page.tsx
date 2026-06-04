@@ -173,7 +173,7 @@ export default function CollectionsPage() {
                 className="group relative rounded-2xl overflow-hidden border border-border bg-card p-4 transition-all duration-300 hover:border-primary/40 cursor-pointer"
               >
                 <div className="aspect-[4/3] rounded-xl overflow-hidden bg-muted border border-border relative">
-                  {col.cover_asset && col.cover_asset.status !== 'archived' ? (
+                  {col.cover_asset ? (
                     <img
                       src={col.cover_asset.thumbnail_url || col.cover_asset.url}
                       alt={col.name}

@@ -154,23 +154,36 @@ export async function removeBackground(image: File | string): Promise<AIJobStart
 
 export async function productToModel(options: {
   productImage: File | string;
+  imagePrompt?: File | string;
+  faceReference?: File | string;
+  faceReferenceMode?: 'match_base' | 'match_reference';
+  backgroundReference?: File | string;
   prompt?: string;
   aspectRatio?: string;
   resolution?: '1k' | '2k' | '4k';
   generationMode?: 'fast' | 'balanced' | 'quality';
-  faceReferenceUrl?: string;
+  numImages?: number;
+  seed?: number;
 }): Promise<AIJobStartResult> {
   const fd = new FormData();
-  if (options.productImage instanceof File) {
-    fd.append('productImage', options.productImage);
-  } else {
-    fd.append('productImageUrl', options.productImage);
-  }
-  if (options.prompt) fd.append('prompt', options.prompt);
-  if (options.aspectRatio) fd.append('aspectRatio', options.aspectRatio);
-  if (options.resolution) fd.append('resolution', options.resolution);
-  if (options.generationMode) fd.append('generationMode', options.generationMode);
-  if (options.faceReferenceUrl) fd.append('faceReferenceUrl', options.faceReferenceUrl);
+
+  const appendImg = (key: string, val: File | string | undefined, urlKey: string) => {
+    if (!val) return;
+    if (val instanceof File) fd.append(key, val); else fd.append(urlKey, val);
+  };
+
+  appendImg('productImage',        options.productImage,        'productImageUrl');
+  appendImg('imagePrompt',         options.imagePrompt,         'imagePromptUrl');
+  appendImg('faceReference',       options.faceReference,       'faceReferenceUrl');
+  appendImg('backgroundReference', options.backgroundReference, 'backgroundReferenceUrl');
+
+  if (options.prompt)              fd.append('prompt',              options.prompt);
+  if (options.faceReferenceMode)   fd.append('faceReferenceMode',   options.faceReferenceMode);
+  if (options.aspectRatio)         fd.append('aspectRatio',         options.aspectRatio);
+  if (options.resolution)          fd.append('resolution',          options.resolution);
+  if (options.generationMode)      fd.append('generationMode',      options.generationMode);
+  if (options.numImages)           fd.append('numImages',           String(options.numImages));
+  if (options.seed !== undefined)  fd.append('seed',                String(options.seed));
 
   return startJob('/api/ai/product-to-model', fd);
 }
@@ -261,19 +274,27 @@ export async function modelCreate(options: {
 
 export async function modelSwap(options: {
   modelImage: File | string;
+  faceReference?: File | string;
+  faceReferenceMode?: 'match_base' | 'match_reference';
   prompt?: string;
   resolution?: '1k' | '2k' | '4k';
   generationMode?: 'fast' | 'balanced' | 'quality';
+  numImages?: number;
+  seed?: number;
 }): Promise<AIJobStartResult> {
   const fd = new FormData();
-  if (options.modelImage instanceof File) {
-    fd.append('modelImage', options.modelImage);
-  } else {
-    fd.append('modelImageUrl', options.modelImage);
+  if (options.modelImage instanceof File) fd.append('modelImage', options.modelImage);
+  else fd.append('modelImageUrl', options.modelImage);
+  if (options.faceReference) {
+    if (options.faceReference instanceof File) fd.append('faceReference', options.faceReference);
+    else fd.append('faceReferenceUrl', options.faceReference);
   }
-  if (options.prompt) fd.append('prompt', options.prompt);
-  if (options.resolution) fd.append('resolution', options.resolution);
+  if (options.faceReferenceMode) fd.append('faceReferenceMode', options.faceReferenceMode);
+  if (options.prompt)       fd.append('prompt',         options.prompt);
+  if (options.resolution)   fd.append('resolution',     options.resolution);
   if (options.generationMode) fd.append('generationMode', options.generationMode);
+  if (options.numImages)    fd.append('numImages',      String(options.numImages));
+  if (options.seed !== undefined) fd.append('seed',     String(options.seed));
   return startJob('/api/ai/model-swap', fd);
 }
 

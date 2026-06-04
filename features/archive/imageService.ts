@@ -30,8 +30,9 @@ async function parseResponse<T>(res: { json: () => Promise<any>; ok: boolean; st
 
 // ── Gallery (active) ──────────────────────────────────────────────────────────
 
-export async function getImages(): Promise<DBAsset[]> {
-  return parseResponse<DBAsset[]>(await apiFetch('/api/images'));
+export async function getImages(category?: string): Promise<DBAsset[]> {
+  const url = category ? `/api/images?category=${encodeURIComponent(category)}` : '/api/images';
+  return parseResponse<DBAsset[]>(await apiFetch(url));
 }
 
 export async function syncImage(payload: SyncImagePayload): Promise<DBAsset> {
