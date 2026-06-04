@@ -26,6 +26,7 @@ import {
   BookOpen,
   ChevronUp,
   Archive,
+  Plus,
 } from "lucide-react";
 import Logo from "@/components/shared/logo";
 import SupportChatWidget from "@/components/support/support-chat-widget";
@@ -311,10 +312,14 @@ export default function Sidebar() {
         {credit !== null && (
           <div className="px-3 pb-2 border-t border-sidebar-border pt-3">
             {isCollapsed ? (
-              <div className="flex justify-center py-1" title={`${credit.toLocaleString()} credits`}>
-                <div className="flex items-center justify-center size-9 rounded-xl bg-primary/10 text-primary">
+              <div className="flex flex-col items-center gap-1 py-1">
+                <Link
+                  href="/topup"
+                  title={`${credit.toLocaleString()} credits — Nạp thêm`}
+                  className="flex items-center justify-center size-9 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                >
                   <Coins className="size-4" />
-                </div>
+                </Link>
               </div>
             ) : (
               <div className="flex items-center justify-between rounded-xl bg-primary/8 border border-primary/15 px-3 py-2.5">
@@ -322,7 +327,16 @@ export default function Sidebar() {
                   <Coins className="size-4 text-primary shrink-0" />
                   <span className="text-xs font-medium text-muted-foreground">Credits</span>
                 </div>
-                <span className="text-sm font-bold text-foreground tabular-nums">{credit.toLocaleString()}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-foreground tabular-nums">{credit.toLocaleString()}</span>
+                  <Link
+                    href="/topup"
+                    title="Nạp credits"
+                    className="flex items-center justify-center size-5 rounded-md bg-primary/15 text-primary hover:bg-primary/25 transition-colors"
+                  >
+                    <Plus className="size-3" />
+                  </Link>
+                </div>
               </div>
             )}
           </div>
