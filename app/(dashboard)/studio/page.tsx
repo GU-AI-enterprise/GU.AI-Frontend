@@ -153,12 +153,15 @@ export default function StudioPage() {
   }, []);
 
   useEffect(() => {
-    checkScroll();
+    const rafId = requestAnimationFrame(checkScroll);
     const el = toolbarRef.current;
     if (!el) return;
     const ro = new ResizeObserver(checkScroll);
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      cancelAnimationFrame(rafId);
+      ro.disconnect();
+    };
   }, [checkScroll]);
 
   const scrollToolbar = (dir: "left" | "right") => {

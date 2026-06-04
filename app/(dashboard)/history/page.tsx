@@ -64,17 +64,21 @@ function formatInputParams(params?: Record<string, unknown>): [string, string][]
 function JobCard({ job }: { job: AIJob }) {
   const [expanded, setExpanded] = useState(false);
 
-  const statusIcon = {
+  const statusIcon = ({
     completed: <CheckCircle2 className="size-3.5 text-green-400" />,
     failed: <XCircle className="size-3.5 text-red-400" />,
     processing: <RefreshCw className="size-3.5 text-primary animate-spin" />,
-  }[job.status] ?? <Clock className="size-3.5 text-muted-foreground" />;
+    cancelled: <X className="size-3.5 text-muted-foreground" />,
+    queued: <Clock className="size-3.5 text-muted-foreground" />,
+  } as Record<string, React.ReactElement>)[job.status] ?? <Clock className="size-3.5 text-muted-foreground" />;
 
-  const statusClass = {
+  const statusClass = ({
     completed: "bg-green-500/10 text-green-400 border-green-500/20",
     failed: "bg-red-500/10 text-red-400 border-red-500/20",
     processing: "bg-primary/10 text-primary border-primary/20",
-  }[job.status] ?? "bg-zinc-800 text-muted-foreground border-transparent";
+    cancelled: "bg-zinc-800 text-muted-foreground border-transparent",
+    queued: "bg-zinc-800 text-muted-foreground border-transparent",
+  } as Record<string, string>)[job.status] ?? "bg-zinc-800 text-muted-foreground border-transparent";
 
   const inputRows = formatInputParams(job.input_params);
   const duration = formatDuration(job.started_at, job.completed_at);
