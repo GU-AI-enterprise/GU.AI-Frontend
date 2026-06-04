@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Coins, ArrowRight, Home, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -10,7 +10,7 @@ import { apiFetch } from "@/lib/apiFetch";
 
 type State = "processing" | "success" | "already" | "error";
 
-export default function PaymentSuccessPage() {
+function SuccessContent() {
   const searchParams = useSearchParams();
   const dispatch     = useAppDispatch();
   const orderCode    = searchParams.get("orderCode");
@@ -149,5 +149,13 @@ export default function PaymentSuccessPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense>
+      <SuccessContent />
+    </Suspense>
   );
 }

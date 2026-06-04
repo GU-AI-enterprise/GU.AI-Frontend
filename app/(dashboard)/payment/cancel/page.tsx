@@ -1,11 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { XCircle, RotateCcw, Home } from "lucide-react";
 import Link from "next/link";
 
-export default function PaymentCancelPage() {
+function CancelContent() {
   const searchParams = useSearchParams();
   const orderCode = searchParams.get("orderCode");
 
@@ -13,7 +13,6 @@ export default function PaymentCancelPage() {
     <div className="flex h-full items-center justify-center px-4">
       <div className="w-full max-w-sm text-center">
 
-        {/* Icon */}
         <div className="flex items-center justify-center mb-6">
           <div className="flex items-center justify-center size-20 rounded-full bg-muted border-2 border-border">
             <XCircle className="size-10 text-muted-foreground" />
@@ -46,5 +45,13 @@ export default function PaymentCancelPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentCancelPage() {
+  return (
+    <Suspense>
+      <CancelContent />
+    </Suspense>
   );
 }
