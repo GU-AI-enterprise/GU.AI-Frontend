@@ -218,3 +218,79 @@ export async function editImage(options: {
 
   return startJob('/api/ai/edit', fd);
 }
+
+export async function faceToModel(options: {
+  faceImage: File | string;
+  prompt?: string;
+  aspectRatio?: string;
+  resolution?: '1k' | '2k' | '4k';
+}): Promise<AIJobStartResult> {
+  const fd = new FormData();
+  if (options.faceImage instanceof File) {
+    fd.append('faceImage', options.faceImage);
+  } else {
+    fd.append('faceImageUrl', options.faceImage);
+  }
+  if (options.prompt) fd.append('prompt', options.prompt);
+  if (options.aspectRatio) fd.append('aspectRatio', options.aspectRatio);
+  if (options.resolution) fd.append('resolution', options.resolution);
+  return startJob('/api/ai/face-to-model', fd);
+}
+
+export async function modelCreate(options: {
+  prompt: string;
+  imageReference?: File | string;
+  aspectRatio?: string;
+  resolution?: '1k' | '2k' | '4k';
+  generationMode?: 'fast' | 'balanced' | 'quality';
+}): Promise<AIJobStartResult> {
+  const fd = new FormData();
+  fd.append('prompt', options.prompt);
+  if (options.imageReference) {
+    if (options.imageReference instanceof File) {
+      fd.append('imageReference', options.imageReference);
+    } else {
+      fd.append('imageReferenceUrl', options.imageReference);
+    }
+  }
+  if (options.aspectRatio) fd.append('aspectRatio', options.aspectRatio);
+  if (options.resolution) fd.append('resolution', options.resolution);
+  if (options.generationMode) fd.append('generationMode', options.generationMode);
+  return startJob('/api/ai/model-create', fd);
+}
+
+export async function modelSwap(options: {
+  modelImage: File | string;
+  prompt?: string;
+  resolution?: '1k' | '2k' | '4k';
+  generationMode?: 'fast' | 'balanced' | 'quality';
+}): Promise<AIJobStartResult> {
+  const fd = new FormData();
+  if (options.modelImage instanceof File) {
+    fd.append('modelImage', options.modelImage);
+  } else {
+    fd.append('modelImageUrl', options.modelImage);
+  }
+  if (options.prompt) fd.append('prompt', options.prompt);
+  if (options.resolution) fd.append('resolution', options.resolution);
+  if (options.generationMode) fd.append('generationMode', options.generationMode);
+  return startJob('/api/ai/model-swap', fd);
+}
+
+export async function imageToVideo(options: {
+  image: File | string;
+  prompt?: string;
+  duration?: 5 | 10;
+  resolution?: '480p' | '720p' | '1080p';
+}): Promise<AIJobStartResult> {
+  const fd = new FormData();
+  if (options.image instanceof File) {
+    fd.append('image', options.image);
+  } else {
+    fd.append('imageUrl', options.image);
+  }
+  if (options.prompt) fd.append('prompt', options.prompt);
+  if (options.duration) fd.append('duration', String(options.duration));
+  if (options.resolution) fd.append('resolution', options.resolution);
+  return startJob('/api/ai/image-to-video', fd);
+}

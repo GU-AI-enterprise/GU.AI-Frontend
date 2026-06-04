@@ -11,6 +11,7 @@ const ROUTE_MAP: Record<string, [string, string]> = {
   "/archive/gallery":      ["Kho lưu trữ", "Tất cả ảnh"],
   "/archive/collections":  ["Kho lưu trữ", "Bộ sưu tập"],
   "/archive/upload":       ["Kho lưu trữ", "Upload hàng loạt"],
+  "/archive/trash":        ["Kho lưu trữ", "Archive"],
   "/history":              ["Studio", "Lịch sử tác vụ"],
   "/profile":              ["Tài khoản", "Hồ sơ"],
   "/profile/edit":         ["Tài khoản", "Chỉnh sửa hồ sơ"],

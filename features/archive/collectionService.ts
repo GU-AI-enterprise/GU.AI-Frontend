@@ -7,7 +7,7 @@ export interface Collection {
   cover_asset_id?: string | null;
   created_at: string;
   description?: string | null;
-  cover_asset?: { url: string; thumbnail_url: string } | null;
+  cover_asset?: { url: string; thumbnail_url: string; status?: string } | null;
 }
 
 async function parseResponse<T>(res: { json: () => Promise<any>; ok: boolean; status: number }): Promise<T> {

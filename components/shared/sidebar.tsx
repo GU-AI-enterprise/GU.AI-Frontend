@@ -25,6 +25,7 @@ import {
   MessageCircle,
   BookOpen,
   ChevronUp,
+  Archive,
 } from "lucide-react";
 import Logo from "@/components/shared/logo";
 import SupportChatWidget from "@/components/support/support-chat-widget";
@@ -43,6 +44,7 @@ const archiveNav = [
   { href: "/archive/gallery",     label: "Tất cả ảnh",      Icon: ImageIcon },
   { href: "/archive/collections", label: "Bộ sưu tập",      Icon: FolderHeart },
   { href: "/archive/upload",      label: "Upload hàng loạt", Icon: UploadCloud },
+  { href: "/archive/trash",       label: "Archive",           Icon: Archive },
 ];
 
 export default function Sidebar() {

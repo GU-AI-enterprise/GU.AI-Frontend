@@ -38,7 +38,11 @@ import { supabase } from "@/lib/supabase";
 import { getImages } from "@/features/archive/imageService";
 import { AIToolType, CREDIT_COST } from "@/constants/ai";
 import { toast } from "sonner";
-import { tryOn, tryOnMax, type TryOnCategory } from "@/features/studio/studioService";
+import {
+  tryOn, tryOnMax, productToModel, editImage, faceToModel,
+  modelCreate, modelSwap, imageToVideo,
+  type TryOnCategory,
+} from "@/features/studio/studioService";
 import { useAIJob } from "@/hooks/useAIJob";
 
 interface StudioImage {
@@ -133,6 +137,12 @@ export default function StudioPage() {
   const [images, setImages] = useState<StudioImage[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Extra inputs for specific tools
+  const [genericPrompt, setGenericPrompt] = useState("");
+  const [reframeAspect, setReframeAspect] = useState("9:16");
+  const [videoDuration, setVideoDuration] = useState<5 | 10>(5);
+  const [videoResolution, setVideoResolution] = useState<"480p" | "720p" | "1080p">("720p");
+
   const [showGalleryPicker, setShowGalleryPicker] = useState(false);
   const [galleryTarget, setGalleryTarget] = useState<"model" | "garment" | "generic">("generic");
   const [galleryImages, setGalleryImages] = useState<{ id: string; url: string }[]>([]);
@@ -188,6 +198,7 @@ export default function StudioPage() {
     setModelImage(null);
     setGarmentImage(null);
     setImages([]);
+    setGenericPrompt("");
   }, [selectedTool]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync credit after job completes (backend deducts, socket balance update may come via notification)
@@ -289,12 +300,52 @@ export default function StudioPage() {
       return;
     }
 
-    // Other tools
+    // ── Other tools ───────────────────────────────────────────────────────────
     const tool = TOOLS.find(t => t.id === selectedTool)!;
     if (creditBalance !== null && creditBalance < tool.credit) {
-      toast.warning(`Bạn cần ${tool.credit} credits.`);
-      return;
+      toast.warning(`Bạn cần ${tool.credit} credits.`); return;
     }
+
+    const startOtherJob = async (jobPromise: Promise<{ jobId: string }>) => {
+      resetJob();
+      try {
+        const result = await jobPromise;
+        setActiveJobId(result.jobId);
+        dispatch(setBalance((creditBalance ?? 0) - tool.credit));
+      } catch (err: any) {
+        toast.error(err.message ?? "Không thể bắt đầu xử lý.");
+      }
+    };
+
+    const img0 = images[0];
+    const imgSrc = img0?.file ?? img0?.url ?? "";
+
+    if (selectedTool === AIToolType.PRODUCT_TO_MODEL) {
+      if (!imgSrc) { toast.warning("Vui lòng thêm ảnh sản phẩm."); return; }
+      return startOtherJob(productToModel({ productImage: img0.file ?? img0.url, prompt: genericPrompt || undefined, resolution: "1k" }));
+    }
+    if (selectedTool === AIToolType.FACE_SWAP) {
+      if (!imgSrc) { toast.warning("Vui lòng thêm ảnh khuôn mặt."); return; }
+      return startOtherJob(faceToModel({ faceImage: img0.file ?? img0.url, prompt: genericPrompt || undefined, resolution: "1k" }));
+    }
+    if (selectedTool === AIToolType.MODEL_SWAP) {
+      if (!imgSrc) { toast.warning("Vui lòng thêm ảnh thời trang."); return; }
+      return startOtherJob(modelSwap({ modelImage: img0.file ?? img0.url, prompt: genericPrompt || undefined, resolution: "1k" }));
+    }
+    if (selectedTool === AIToolType.EDIT) {
+      if (!imgSrc) { toast.warning("Vui lòng thêm ảnh cần chỉnh sửa."); return; }
+      if (!genericPrompt.trim()) { toast.warning("Vui lòng nhập mô tả thay đổi."); return; }
+      return startOtherJob(editImage({ image: img0.file ?? img0.url, prompt: genericPrompt, resolution: "1k" }));
+    }
+    if (selectedTool === AIToolType.CREATE_MODEL) {
+      if (!genericPrompt.trim()) { toast.warning("Vui lòng nhập mô tả model muốn tạo."); return; }
+      return startOtherJob(modelCreate({ prompt: genericPrompt, imageReference: imgSrc || undefined, resolution: "1k" }));
+    }
+    if (selectedTool === AIToolType.IMAGE_TO_VIDEO) {
+      if (!imgSrc) { toast.warning("Vui lòng thêm ảnh nguồn."); return; }
+      return startOtherJob(imageToVideo({ image: img0.file ?? img0.url, prompt: genericPrompt || undefined, duration: videoDuration, resolution: videoResolution }));
+    }
+
     toast.info(`${tool.name} sẽ sớm được cập nhật!`);
   };
 
@@ -316,9 +367,11 @@ export default function StudioPage() {
   const showPanel = isProcessing || jobState === "completed" || jobState === "failed";
   const currentCost = isTryOn ? computeTryOnCost(tryOnModel, tryOnCategory, tryOnResolution) : (selectedToolData?.credit ?? 0);
   const displayModel = hoveredModel ?? tryOnModel;
-  const canRun = isTryOn
-    ? !!modelImage && !!garmentImage && !isProcessing && jobState !== "completed"
-    : images.length > 0 && !isProcessing;
+  const canRun = isProcessing ? false
+    : isTryOn ? (!!modelImage && !!garmentImage)
+    : selectedTool === AIToolType.CREATE_MODEL ? !!genericPrompt.trim()
+    : selectedTool === AIToolType.EDIT ? (images.length > 0 && !!genericPrompt.trim())
+    : images.length > 0;
 
   if (authLoading) {
     return (
@@ -494,6 +547,59 @@ export default function StudioPage() {
                       </button>
                     )}
                     <input type="file" multiple accept="image/*" ref={genericFileRef} onChange={(e) => { if (e.target.files) { const files = Array.from(e.target.files).filter(f => f.type.startsWith("image/")); setImages(prev => [...prev, ...files.map(fileToStudioImage)].slice(0, 5)); } }} className="hidden" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Extra controls for specific tools ── */}
+            {!isTryOn && (
+              <div className="shrink-0 flex flex-col gap-2 mt-3">
+                {/* Prompt input */}
+                {(selectedTool === AIToolType.EDIT ||
+                  selectedTool === AIToolType.CREATE_MODEL ||
+                  selectedTool === AIToolType.PRODUCT_TO_MODEL ||
+                  selectedTool === AIToolType.MODEL_SWAP ||
+                  selectedTool === AIToolType.FACE_SWAP ||
+                  selectedTool === AIToolType.IMAGE_TO_VIDEO) && (
+                  <textarea
+                    rows={2}
+                    value={genericPrompt}
+                    onChange={(e) => setGenericPrompt(e.target.value)}
+                    placeholder={
+                      selectedTool === AIToolType.CREATE_MODEL
+                        ? "Mô tả model muốn tạo (vd: Full body shot, woman wearing a white t-shirt...)"
+                        : selectedTool === AIToolType.EDIT
+                        ? "Mô tả thay đổi muốn thực hiện (vd: add a black leather bag, change background to white...)"
+                        : selectedTool === AIToolType.IMAGE_TO_VIDEO
+                        ? "Mô tả chuyển động (tuỳ chọn — để trống để AI tự quyết)"
+                        : "Prompt / mô tả thêm (tuỳ chọn)"
+                    }
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none resize-none transition-all"
+                  />
+                )}
+
+                {/* Image to Video settings */}
+                {selectedTool === AIToolType.IMAGE_TO_VIDEO && (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Thời lượng:</span>
+                      {([5, 10] as const).map(d => (
+                        <button key={d} onClick={() => setVideoDuration(d)}
+                          className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${videoDuration === d ? "bg-foreground text-background" : "bg-secondary/40 text-muted-foreground hover:bg-secondary"}`}>
+                          {d}s
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Chất lượng:</span>
+                      {(["480p", "720p", "1080p"] as const).map(r => (
+                        <button key={r} onClick={() => setVideoResolution(r)}
+                          className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${videoResolution === r ? "bg-foreground text-background" : "bg-secondary/40 text-muted-foreground hover:bg-secondary"}`}>
+                          {r}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
