@@ -3,40 +3,19 @@
 import { useRef } from "react";
 import { motion } from "framer-motion";
 import { Upload, X, ClipboardPaste, GalleryHorizontal } from "lucide-react";
-import { AIToolType } from "@/constants/ai";
-import type { StudioImage, VideoDuration, VideoResolution } from "../types";
+import type { StudioImage } from "../types";
 import { fileToStudioImage } from "../helpers";
 
 interface Props {
-  selectedTool: AIToolType;
   images: StudioImage[];
-  prompt: string;
-  videoDuration: VideoDuration;
-  videoResolution: VideoResolution;
   onImagesChange: (imgs: StudioImage[]) => void;
-  onPromptChange: (v: string) => void;
-  onVideoDurationChange: (v: VideoDuration) => void;
-  onVideoResolutionChange: (v: VideoResolution) => void;
   onPaste: (onImage: (file: File) => void) => Promise<void>;
   openGallery: (cb: (url: string) => void) => void;
 }
 
-const TOOLS_WITH_PROMPT = [
-  AIToolType.EDIT,
-  AIToolType.CREATE_MODEL,
-  AIToolType.MODEL_SWAP,
-  AIToolType.IMAGE_TO_VIDEO,
-];
-
-const PROMPT_PLACEHOLDERS: Partial<Record<AIToolType, string>> = {
-  [AIToolType.CREATE_MODEL]:   "Mô tả model muốn tạo (vd: Full body shot, woman wearing a white t-shirt...)",
-  [AIToolType.EDIT]:           "Mô tả thay đổi muốn thực hiện (vd: add a black leather bag, change background to white...)",
-  [AIToolType.IMAGE_TO_VIDEO]: "Mô tả chuyển động (tuỳ chọn — để trống để AI tự quyết)",
-};
-
 export function GenericPanel({
-  selectedTool, images, prompt, videoDuration, videoResolution,
-  onImagesChange, onPromptChange, onVideoDurationChange, onVideoResolutionChange,
+  images,
+  onImagesChange,
   onPaste, openGallery,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -45,9 +24,6 @@ export function GenericPanel({
     const imgs = files.filter(f => f.type.startsWith("image/")).map(fileToStudioImage);
     onImagesChange([...images, ...imgs].slice(0, 5));
   };
-
-  const showPrompt = TOOLS_WITH_PROMPT.includes(selectedTool);
-  const placeholderText = PROMPT_PLACEHOLDERS[selectedTool] ?? "Prompt / mô tả thêm (tuỳ chọn)";
 
   return (
     <div
@@ -137,40 +113,6 @@ export function GenericPanel({
         </div>
       )}
 
-      {/* Extra controls */}
-      {showPrompt && (
-        <div className="shrink-0 flex flex-col gap-2 mt-3">
-          <textarea
-            rows={2} value={prompt}
-            onChange={(e) => onPromptChange(e.target.value)}
-            placeholder={placeholderText}
-            className="w-full px-3 py-2 text-xs rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none resize-none transition-all"
-          />
-
-          {selectedTool === AIToolType.IMAGE_TO_VIDEO && (
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Thời lượng:</span>
-                {([5, 10] as const).map(d => (
-                  <button key={d} onClick={() => onVideoDurationChange(d)}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${videoDuration === d ? "bg-foreground text-background" : "bg-secondary/40 text-muted-foreground hover:bg-secondary"}`}>
-                    {d}s
-                  </button>
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Chất lượng:</span>
-                {(["480p", "720p", "1080p"] as const).map(r => (
-                  <button key={r} onClick={() => onVideoResolutionChange(r)}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${videoResolution === r ? "bg-foreground text-background" : "bg-secondary/40 text-muted-foreground hover:bg-secondary"}`}>
-                    {r}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

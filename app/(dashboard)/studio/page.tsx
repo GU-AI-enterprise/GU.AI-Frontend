@@ -15,7 +15,7 @@ import {
 import { ToolGuideModal } from "@/components/shared/tool-guide-modal";
 import { TOOL_GUIDES } from "@/constants/toolGuides";
 import GuaiLoader from "@/components/shared/guai-loader";
-import AiGenerateTest from "@/components/ai-generate-test";
+import { ToolContextBar } from "./components/ToolContextBar";
 import { Lightbox } from "@/components/shared/lightbox";
 import { SaveToAlbumModal } from "@/components/shared/save-to-album-modal";
 import { supabase } from "@/lib/supabase";
@@ -381,51 +381,33 @@ export default function StudioPage() {
             {isTryOn ? (
               <TryOnPanel
                 modelImage={toModelImage} garmentImage={toGarment}
-                category={toCategory} tryOnModel={toModel}
-                resolution={toResolution} hoveredModel={toHovered}
                 onModelImageChange={setToModelImage} onGarmentImageChange={setToGarment}
-                onCategoryChange={setToCategory} onTryOnModelChange={setToModel}
-                onResolutionChange={setToResolution} onHoveredModelChange={setToHovered}
                 onPaste={handlePaste} openGallery={openGallery}
               />
             ) : isP2M ? (
               <ProductToModelPanel
                 product={p2mProduct} imagePrompt={p2mPromptImg}
                 faceRef={p2mFaceRef} bgRef={p2mBgRef}
-                prompt={p2mPrompt} aspectRatio={p2mAspect}
-                resolution={p2mRes} genMode={p2mGenMode} faceRefMode={p2mFaceMode}
                 onProductChange={setP2mProduct} onImagePromptChange={setP2mPromptImg}
                 onFaceRefChange={setP2mFaceRef} onBgRefChange={setP2mBgRef}
-                onPromptChange={setP2mPrompt} onAspectRatioChange={setP2mAspect}
-                onResolutionChange={setP2mRes} onGenModeChange={setP2mGenMode}
-                onFaceRefModeChange={setP2mFaceMode}
                 onPaste={handlePaste} openGallery={openGallery}
               />
             ) : isMS ? (
               <ModelSwapPanel
                 modelImage={msImage} faceRef={msFaceRef}
-                prompt={msPrompt} resolution={msRes}
-                genMode={msGenMode} faceRefMode={msFaceMode}
                 onModelImageChange={setMsImage} onFaceRefChange={setMsFaceRef}
-                onPromptChange={setMsPrompt} onResolutionChange={setMsRes}
-                onGenModeChange={setMsGenMode} onFaceRefModeChange={setMsFaceMode}
                 onPaste={handlePaste} openGallery={openGallery}
               />
             ) : isFS ? (
               <FaceSwapPanel
                 modelImage={fsModelImage} faceRef={fsFaceRef}
-                resolution={fsRes} faceRefMode={fsFaceMode}
                 onModelImageChange={setFsModelImage} onFaceRefChange={setFsFaceRef}
-                onResolutionChange={setFsRes} onFaceRefModeChange={setFsFaceMode}
                 onPaste={handlePaste} openGallery={openGallery}
               />
             ) : (
               <GenericPanel
-                selectedTool={selectedTool}
-                images={images} prompt={genericPrompt}
-                videoDuration={videoDuration} videoResolution={videoRes}
-                onImagesChange={setImages} onPromptChange={setGenericPrompt}
-                onVideoDurationChange={setVideoDuration} onVideoResolutionChange={setVideoRes}
+                images={images}
+                onImagesChange={setImages}
                 onPaste={handlePaste} openGallery={openGallery}
               />
             )}
@@ -576,7 +558,26 @@ export default function StudioPage() {
         </div>
 
         <div className="mt-2 pt-2 border-t border-border/30 w-full">
-          <AiGenerateTest />
+          <ToolContextBar
+            selectedTool={selectedTool}
+            toCategory={toCategory} toModel={toModel} toResolution={toResolution} toHovered={toHovered}
+            onToCategoryChange={setToCategory} onToModelChange={setToModel}
+            onToResolutionChange={setToResolution} onToHoveredChange={setToHovered}
+            p2mPrompt={p2mPrompt} p2mAspect={p2mAspect} p2mRes={p2mRes}
+            p2mGenMode={p2mGenMode} p2mFaceMode={p2mFaceMode} p2mHasFaceRef={!!p2mFaceRef}
+            onP2mPromptChange={setP2mPrompt} onP2mAspectChange={setP2mAspect}
+            onP2mResChange={setP2mRes} onP2mGenModeChange={setP2mGenMode}
+            onP2mFaceModeChange={setP2mFaceMode}
+            msPrompt={msPrompt} msRes={msRes} msGenMode={msGenMode}
+            msFaceMode={msFaceMode} msHasFaceRef={!!msFaceRef}
+            onMsPromptChange={setMsPrompt} onMsResChange={setMsRes}
+            onMsGenModeChange={setMsGenMode} onMsFaceModeChange={setMsFaceMode}
+            fsRes={fsRes} fsFaceMode={fsFaceMode}
+            onFsResChange={setFsRes} onFsFaceModeChange={setFsFaceMode}
+            genericPrompt={genericPrompt} videoDuration={videoDuration} videoRes={videoRes}
+            onGenericPromptChange={setGenericPrompt}
+            onVideoDurationChange={setVideoDuration} onVideoResChange={setVideoRes}
+          />
         </div>
       </div>
 
