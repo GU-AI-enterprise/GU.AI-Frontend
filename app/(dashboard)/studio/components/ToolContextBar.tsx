@@ -67,7 +67,16 @@ export interface ToolContextBarProps {
   fsFaceMode: FaceRefMode;
   onFsResChange: (v: GenResolution) => void;
   onFsFaceModeChange: (v: FaceRefMode) => void;
-  // Generic (Edit / Create Model / Image to Video)
+  // Edit
+  editRes: GenResolution;
+  editGenMode: GenMode;
+  editNumImages: number;
+  editSeed: string;
+  onEditResChange: (v: GenResolution) => void;
+  onEditGenModeChange: (v: GenMode) => void;
+  onEditNumImagesChange: (v: number) => void;
+  onEditSeedChange: (v: string) => void;
+  // Create Model / Image to Video (generic prompt)
   genericPrompt: string;
   videoDuration: VideoDuration;
   videoRes: VideoResolution;
@@ -85,6 +94,8 @@ export function ToolContextBar({
   msPrompt, msRes, msGenMode, msFaceMode, msHasFaceRef,
   onMsPromptChange, onMsResChange, onMsGenModeChange, onMsFaceModeChange,
   fsRes, fsFaceMode, onFsResChange, onFsFaceModeChange,
+  editRes, editGenMode, editNumImages, editSeed,
+  onEditResChange, onEditGenModeChange, onEditNumImagesChange, onEditSeedChange,
   genericPrompt, videoDuration, videoRes,
   onGenericPromptChange, onVideoDurationChange, onVideoResChange,
 }: ToolContextBarProps) {
@@ -244,13 +255,43 @@ export function ToolContextBar({
   // ── Edit ──────────────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.EDIT) {
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2">
+      <div className="border border-border/60 rounded-2xl px-3 py-2 space-y-2">
         <input
           value={genericPrompt}
           onChange={(e) => onGenericPromptChange(e.target.value)}
-          placeholder='Mô tả thay đổi: "add a black leather bag", "change background to white"...'
+          placeholder='Mô tả thay đổi: "add a black leather bag", "turn slightly left", "studio lighting"...'
           className={inputCls}
         />
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+          <div className={row}>
+            <span className={lbl}>Res:</span>
+            {RESOLUTIONS.map((r) => (
+              <button key={r} onClick={() => onEditResChange(r)} className={pill(editRes === r)}>{r}</button>
+            ))}
+          </div>
+          <div className={row}>
+            <span className={lbl}>Mode:</span>
+            {GEN_MODES.map((m) => (
+              <button key={m} onClick={() => onEditGenModeChange(m)} className={pill(editGenMode === m)}>{m}</button>
+            ))}
+          </div>
+          <div className={row}>
+            <span className={lbl}>Số ảnh:</span>
+            {([1, 2, 3, 4] as const).map((n) => (
+              <button key={n} onClick={() => onEditNumImagesChange(n)} className={pill(editNumImages === n)}>{n}</button>
+            ))}
+          </div>
+          <div className={row}>
+            <span className={lbl}>Seed:</span>
+            <input
+              type="number"
+              value={editSeed}
+              onChange={(e) => onEditSeedChange(e.target.value)}
+              placeholder="42"
+              className="w-16 px-1.5 py-0.5 rounded-md text-[11px] bg-secondary/40 border border-border/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
+            />
+          </div>
+        </div>
       </div>
     );
   }

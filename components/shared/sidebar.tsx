@@ -37,8 +37,8 @@ import { useSupportUnread } from "@/contexts/SupportUnreadContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 
 const mainNav = [
-  { href: "/dashboard", label: "Tổng quan",       Icon: LayoutDashboard },
-  { href: "/studio",    label: "Studio",           Icon: Sparkles },
+  { href: "/dashboard", label: "Tổng quan", Icon: LayoutDashboard },
+  { href: "/studio",    label: "Studio",    Icon: Sparkles },
 ];
 
 const archiveNav = [

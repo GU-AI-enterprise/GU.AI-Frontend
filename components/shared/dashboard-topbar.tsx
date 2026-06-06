@@ -6,7 +6,7 @@ import NotificationCenter from "@/components/notification/NotificationCenter";
 import { useSidebar } from "@/contexts/SidebarContext";
 
 const ROUTE_MAP: Record<string, [string, string]> = {
-  "/dashboard":            ["Studio", "Tổng quan"],
+  "/dashboard":                 ["Studio", "Tổng quan"],
   "/studio":               ["Studio", "AI Studio"],
   "/archive/gallery":      ["Kho lưu trữ", "Tất cả ảnh"],
   "/archive/models":       ["Kho lưu trữ", "Người mẫu"],

@@ -135,7 +135,7 @@ export default function DashboardPage() {
             </h2>
             <div className="grid sm:grid-cols-2 gap-3">
               {[
-                { href: "/studio",             icon: <Sparkles className="size-5 text-primary" />,      bg: "bg-primary/10",     title: "AI Studio",       desc: "Try-on, tạo model, chỉnh ảnh" },
+                { href: "/studio",      icon: <Sparkles className="size-5 text-primary" />,      bg: "bg-primary/10",     title: "AI Studio",       desc: "Try-on, tạo model, chỉnh ảnh" },
                 { href: "/archive/gallery",    icon: <ImageIcon className="size-5 text-blue-500" />,    bg: "bg-blue-500/10",    title: "Tất cả ảnh",      desc: "Quản lý kho ảnh của bạn" },
                 { href: "/archive/collections",icon: <FolderHeart className="size-5 text-amber-500" />, bg: "bg-amber-500/10",   title: "Bộ sưu tập",      desc: "Sắp xếp ảnh thành album" },
                 { href: "/history",            icon: <Clock className="size-5 text-emerald-500" />,     bg: "bg-emerald-500/10", title: "Lịch sử tác vụ",  desc: "Xem kết quả AI đã tạo" },

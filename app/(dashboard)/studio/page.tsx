@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { Suspense, useEffect, useState, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { selectCreditBalance, setBalance } from "@/features/credit/creditSlice";
@@ -29,8 +29,8 @@ import {
 } from "@/features/studio/studioService";
 import { useAIJob } from "@/hooks/useAIJob";
 
-import { TOOLS } from "./constants";
-import { computeTryOnCost } from "./helpers";
+import { TOOLS, TOOL_SLUG, SLUG_TO_TOOL } from "./constants";
+import { computeTryOnCost, computeEditCost } from "./helpers";
 import type {
   StudioImage, TryOnModel, TryOnResolution,
   GenResolution, GenMode, FaceRefMode, VideoDuration, VideoResolution,
@@ -41,16 +41,23 @@ import { TryOnPanel } from "./components/TryOnPanel";
 import { ProductToModelPanel } from "./components/ProductToModelPanel";
 import { ModelSwapPanel } from "./components/ModelSwapPanel";
 import { FaceSwapPanel } from "./components/FaceSwapPanel";
+import { EditPanel } from "./components/EditPanel";
 import { GenericPanel } from "./components/GenericPanel";
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Inner page (needs Suspense because of useSearchParams) ───────────────────
 
-export default function StudioPage() {
-  const router = useRouter();
-  const dispatch = useAppDispatch();
+function StudioPageInner() {
+  const router        = useRouter();
+  const searchParams  = useSearchParams();
+  const dispatch      = useAppDispatch();
   const creditBalance = useAppSelector(selectCreditBalance);
   const [authLoading, setAuthLoading] = useState(true);
-  const [selectedTool, setSelectedTool] = useState<AIToolType>(AIToolType.TRY_ON);
+
+  // Derive selectedTool from ?tool= search param
+  const toolSlug     = searchParams.get("tool") ?? "try-on";
+  const selectedTool: AIToolType = SLUG_TO_TOOL[toolSlug] ?? AIToolType.TRY_ON;
+
+  const switchTool = (id: AIToolType) => router.push(`/studio?tool=${TOOL_SLUG[id]}`);
 
   // ── Try-On state ──────────────────────────────────────────────────────────
   const [toModelImage,  setToModelImage]  = useState<StudioImage | null>(null);
@@ -79,30 +86,38 @@ export default function StudioPage() {
   const [msGenMode,     setMsGenMode]     = useState<GenMode>("balanced");
   const [msFaceMode,    setMsFaceMode]    = useState<FaceRefMode>("match_reference");
 
-  // ── Face Swap state (fixed: dùng model-swap API, 2 ảnh bắt buộc) ─────────
+  // ── Face Swap state ───────────────────────────────────────────────────────
   const [fsModelImage,  setFsModelImage]  = useState<StudioImage | null>(null);
   const [fsFaceRef,     setFsFaceRef]     = useState<StudioImage | null>(null);
   const [fsRes,         setFsRes]         = useState<GenResolution>("1k");
   const [fsFaceMode,    setFsFaceMode]    = useState<FaceRefMode>("match_reference");
 
-  // ── Generic state (Edit / Create Model / Image to Video / Upscale) ────────
+  // ── Edit state ────────────────────────────────────────────────────────────
+  const [editSource,    setEditSource]    = useState<StudioImage | null>(null);
+  const [editMask,      setEditMask]      = useState<StudioImage | null>(null);
+  const [editContext,   setEditContext]   = useState<StudioImage | null>(null);
+  const [editRes,       setEditRes]       = useState<GenResolution>("1k");
+  const [editGenMode,   setEditGenMode]   = useState<GenMode>("balanced");
+  const [editNumImages, setEditNumImages] = useState(1);
+  const [editSeed,      setEditSeed]      = useState("");
+
+  // ── Generic state (Create Model / Image to Video) ─────────────────────────
   const [images,        setImages]        = useState<StudioImage[]>([]);
   const [genericPrompt, setGenericPrompt] = useState("");
   const [videoDuration, setVideoDuration] = useState<VideoDuration>(5);
   const [videoRes,      setVideoRes]      = useState<VideoResolution>("720p");
 
   // ── UI state ──────────────────────────────────────────────────────────────
-  const [guideToolId,       setGuideToolId]       = useState<string | null>(null);
-  const [showGallery,       setShowGallery]        = useState(false);
-  const [galleryImages,     setGalleryImages]      = useState<{ id: string; url: string }[]>([]);
-  const [lightboxUrl,       setLightboxUrl]        = useState<string | null>(null);
-  const [saveAlbumAssetId,  setSaveAlbumAssetId]   = useState<string | null>(null);
-  const [isMounted,         setIsMounted]          = useState(false);
-  const [isMobile,          setIsMobile]           = useState(false);
-  const [canScrollLeft,     setCanScrollLeft]      = useState(false);
-  const [canScrollRight,    setCanScrollRight]     = useState(false);
+  const [guideToolId,      setGuideToolId]      = useState<string | null>(null);
+  const [showGallery,      setShowGallery]       = useState(false);
+  const [galleryImages,    setGalleryImages]     = useState<{ id: string; url: string }[]>([]);
+  const [lightboxUrl,      setLightboxUrl]       = useState<string | null>(null);
+  const [saveAlbumAssetId, setSaveAlbumAssetId]  = useState<string | null>(null);
+  const [isMounted,        setIsMounted]         = useState(false);
+  const [isMobile,         setIsMobile]          = useState(false);
+  const [canScrollLeft,    setCanScrollLeft]     = useState(false);
+  const [canScrollRight,   setCanScrollRight]    = useState(false);
 
-  // Gallery callback ref (avoids treating fn as state updater)
   const galleryCallbackRef = useRef<((url: string) => void) | null>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
 
@@ -158,10 +173,7 @@ export default function StudioPage() {
     if (!el) return;
     const ro = new ResizeObserver(checkScroll);
     ro.observe(el);
-    return () => {
-      cancelAnimationFrame(rafId);
-      ro.disconnect();
-    };
+    return () => { cancelAnimationFrame(rafId); ro.disconnect(); };
   }, [checkScroll]);
 
   const scrollToolbar = (dir: "left" | "right") => {
@@ -177,6 +189,7 @@ export default function StudioPage() {
     setP2mProduct(null); setP2mPromptImg(null); setP2mFaceRef(null); setP2mBgRef(null); setP2mPrompt("");
     setMsImage(null); setMsFaceRef(null); setMsPrompt("");
     setFsModelImage(null); setFsFaceRef(null);
+    setEditSource(null); setEditMask(null); setEditContext(null); setEditRes("1k"); setEditGenMode("balanced"); setEditNumImages(1); setEditSeed("");
     setImages([]); setGenericPrompt("");
   }, [selectedTool]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -224,7 +237,6 @@ export default function StudioPage() {
 
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleRun = async () => {
-    // Try-On
     if (selectedTool === AIToolType.TRY_ON) {
       if (!toModelImage)  { toast.warning("Vui lòng thêm ảnh người mẫu."); return; }
       if (!toGarment)     { toast.warning("Vui lòng thêm ảnh trang phục."); return; }
@@ -251,10 +263,8 @@ export default function StudioPage() {
       return;
     }
 
-    // Credit check for other tools
-    const tool = TOOLS.find(t => t.id === selectedTool)!;
-    if (creditBalance !== null && creditBalance < tool.credit) {
-      toast.warning(`Bạn cần ${tool.credit} credits.`); return;
+    if (creditBalance !== null && creditBalance < currentCost) {
+      toast.warning(`Bạn cần ${currentCost} credits.`); return;
     }
 
     const submit = async (jobPromise: Promise<{ jobId: string }>) => {
@@ -262,13 +272,12 @@ export default function StudioPage() {
       try {
         const { jobId } = await jobPromise;
         setActiveJobId(jobId);
-        dispatch(setBalance((creditBalance ?? 0) - tool.credit));
+        dispatch(setBalance((creditBalance ?? 0) - currentCost));
       } catch (err: any) {
         toast.error(err.message ?? "Không thể bắt đầu xử lý.");
       }
     };
 
-    // Product to Model
     if (selectedTool === AIToolType.PRODUCT_TO_MODEL) {
       if (!p2mProduct) { toast.warning("Vui lòng thêm ảnh sản phẩm."); return; }
       return submit(productToModel({
@@ -282,20 +291,18 @@ export default function StudioPage() {
       }));
     }
 
-    // Model Swap (full controls, faceRef optional)
     if (selectedTool === AIToolType.MODEL_SWAP) {
       if (!msImage) { toast.warning("Vui lòng thêm ảnh thời trang."); return; }
       return submit(modelSwap({
-        modelImage:       msImage.file    ?? msImage.url,
-        faceReference:    msFaceRef ? (msFaceRef.file ?? msFaceRef.url) : undefined,
+        modelImage:        msImage.file    ?? msImage.url,
+        faceReference:     msFaceRef ? (msFaceRef.file ?? msFaceRef.url) : undefined,
         faceReferenceMode: msFaceRef ? msFaceMode : undefined,
-        prompt:     msPrompt || undefined,
-        resolution: msRes,
-        generationMode: msGenMode,
+        prompt:            msPrompt || undefined,
+        resolution:        msRes,
+        generationMode:    msGenMode,
       }));
     }
 
-    // Face Swap (fixed: dùng model-swap với faceReference bắt buộc)
     if (selectedTool === AIToolType.FACE_SWAP) {
       if (!fsModelImage) { toast.warning("Vui lòng thêm ảnh thời trang."); return; }
       if (!fsFaceRef)    { toast.warning("Vui lòng thêm ảnh khuôn mặt cần swap."); return; }
@@ -307,14 +314,24 @@ export default function StudioPage() {
       }));
     }
 
+    if (selectedTool === AIToolType.EDIT) {
+      if (!editSource)           { toast.warning("Vui lòng thêm ảnh cần chỉnh sửa."); return; }
+      if (!genericPrompt.trim()) { toast.warning("Vui lòng nhập mô tả thay đổi."); return; }
+      const parsedSeed = editSeed.trim() ? parseInt(editSeed.trim()) : undefined;
+      return submit(editImage({
+        image:          editSource.file ?? editSource.url,
+        prompt:         genericPrompt,
+        mask:           editMask    ? (editMask.file    ?? editMask.url)    : undefined,
+        imageContext:   editContext ? (editContext.file ?? editContext.url) : undefined,
+        resolution:     editRes,
+        generationMode: editGenMode,
+        numImages:      editNumImages,
+        seed:           parsedSeed,
+      }));
+    }
+
     const img0   = images[0];
     const imgSrc = img0?.file ?? img0?.url ?? "";
-
-    if (selectedTool === AIToolType.EDIT) {
-      if (!imgSrc)                    { toast.warning("Vui lòng thêm ảnh cần chỉnh sửa."); return; }
-      if (!genericPrompt.trim())      { toast.warning("Vui lòng nhập mô tả thay đổi."); return; }
-      return submit(editImage({ image: img0.file ?? img0.url, prompt: genericPrompt, resolution: "1k" }));
-    }
 
     if (selectedTool === AIToolType.CREATE_MODEL) {
       if (!genericPrompt.trim()) { toast.warning("Vui lòng nhập mô tả model muốn tạo."); return; }
@@ -326,20 +343,24 @@ export default function StudioPage() {
       return submit(imageToVideo({ image: img0.file ?? img0.url, prompt: genericPrompt || undefined, duration: videoDuration, resolution: videoRes }));
     }
 
-    toast.info(`${tool.name} sẽ sớm được cập nhật!`);
+    const toolData = TOOLS.find(t => t.id === selectedTool);
+    toast.info(`${toolData?.name ?? selectedTool} sẽ sớm được cập nhật!`);
   };
 
   // ── Derived ───────────────────────────────────────────────────────────────
-  const isTryOn  = selectedTool === AIToolType.TRY_ON;
-  const isP2M    = selectedTool === AIToolType.PRODUCT_TO_MODEL;
-  const isMS     = selectedTool === AIToolType.MODEL_SWAP;
-  const isFS     = selectedTool === AIToolType.FACE_SWAP;
-  const isVideo  = selectedTool === AIToolType.IMAGE_TO_VIDEO;
+  const isTryOn = selectedTool === AIToolType.TRY_ON;
+  const isP2M   = selectedTool === AIToolType.PRODUCT_TO_MODEL;
+  const isMS    = selectedTool === AIToolType.MODEL_SWAP;
+  const isFS    = selectedTool === AIToolType.FACE_SWAP;
+  const isEdit  = selectedTool === AIToolType.EDIT;
+  const isVideo = selectedTool === AIToolType.IMAGE_TO_VIDEO;
 
-  const showPanel  = isProcessing || jobState === "completed" || jobState === "failed";
-  const toolData   = TOOLS.find(t => t.id === selectedTool);
+  const showPanel = isProcessing || jobState === "completed" || jobState === "failed";
+  const toolData  = TOOLS.find(t => t.id === selectedTool);
   const currentCost = isTryOn
     ? computeTryOnCost(toModel, toCategory, toResolution)
+    : isEdit
+    ? computeEditCost(editGenMode, editRes, editNumImages)
     : (toolData?.credit ?? 0);
 
   const canRun = isProcessing ? false
@@ -347,14 +368,13 @@ export default function StudioPage() {
     : isP2M   ? !!p2mProduct
     : isMS    ? !!msImage
     : isFS    ? (!!fsModelImage && !!fsFaceRef)
+    : isEdit  ? (!!editSource && !!genericPrompt.trim())
     : selectedTool === AIToolType.CREATE_MODEL ? !!genericPrompt.trim()
-    : selectedTool === AIToolType.EDIT         ? (images.length > 0 && !!genericPrompt.trim())
     : images.length > 0;
 
   const leftW  = showPanel ? (isMobile ? "0%"   : "50%") : "100%";
   const rightW = showPanel ? (isMobile ? "100%" : "50%") : "0%";
 
-  // ── Loading screen ────────────────────────────────────────────────────────
   if (authLoading) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
@@ -363,7 +383,6 @@ export default function StudioPage() {
     );
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="w-full h-[100%] bg-background text-foreground flex flex-col overflow-hidden">
 
@@ -405,6 +424,12 @@ export default function StudioPage() {
                 onModelImageChange={setFsModelImage} onFaceRefChange={setFsFaceRef}
                 onPaste={handlePaste} openGallery={openGallery}
               />
+            ) : isEdit ? (
+              <EditPanel
+                source={editSource} mask={editMask} imageContext={editContext}
+                onSourceChange={setEditSource} onMaskChange={setEditMask} onImageContextChange={setEditContext}
+                onPaste={handlePaste} openGallery={openGallery}
+              />
             ) : (
               <GenericPanel
                 images={images}
@@ -423,12 +448,10 @@ export default function StudioPage() {
           >
             <div className="relative flex-1 min-h-0 w-full">
 
-              {/* Processing */}
               <div className={`absolute inset-0 transition-opacity duration-200 ${isProcessing ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
                 <ProcessingPanel active={isProcessing} />
               </div>
 
-              {/* Completed */}
               <div className={`absolute inset-0 transition-opacity duration-200 ${jobState === "completed" && resultUrl ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
                 <div className="flex flex-col h-full min-h-0 rounded-3xl border border-border bg-card overflow-hidden shadow-lg">
                   <div
@@ -454,9 +477,9 @@ export default function StudioPage() {
                       <Download className="size-3.5" /> Tải xuống
                     </button>
                     {!isVideo && (
-                    <button onClick={() => resultUrl && setLightboxUrl(resultUrl)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
-                      <Maximize2 className="size-3.5" /> Phóng to
-                    </button>
+                      <button onClick={() => resultUrl && setLightboxUrl(resultUrl)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
+                        <Maximize2 className="size-3.5" /> Phóng to
+                      </button>
                     )}
                     <button
                       onClick={() => resultAssetId && setSaveAlbumAssetId(resultAssetId)}
@@ -476,7 +499,6 @@ export default function StudioPage() {
                 </div>
               </div>
 
-              {/* Failed */}
               <div className={`absolute inset-0 transition-opacity duration-200 flex items-start pt-4 ${jobState === "failed" ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
                 <div className="flex items-center gap-3 w-full rounded-3xl border border-destructive/30 bg-destructive/5 p-5">
                   <AlertCircle className="size-5 text-destructive shrink-0" />
@@ -514,7 +536,7 @@ export default function StudioPage() {
             {TOOLS.map((tool) => (
               <button
                 key={tool.id}
-                onClick={() => setSelectedTool(tool.id)}
+                onClick={() => switchTool(tool.id)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
                   selectedTool === tool.id
                     ? "bg-foreground text-background"
@@ -581,6 +603,9 @@ export default function StudioPage() {
             onMsGenModeChange={setMsGenMode} onMsFaceModeChange={setMsFaceMode}
             fsRes={fsRes} fsFaceMode={fsFaceMode}
             onFsResChange={setFsRes} onFsFaceModeChange={setFsFaceMode}
+            editRes={editRes} editGenMode={editGenMode} editNumImages={editNumImages} editSeed={editSeed}
+            onEditResChange={setEditRes} onEditGenModeChange={setEditGenMode}
+            onEditNumImagesChange={setEditNumImages} onEditSeedChange={setEditSeed}
             genericPrompt={genericPrompt} videoDuration={videoDuration} videoRes={videoRes}
             onGenericPromptChange={setGenericPrompt}
             onVideoDurationChange={setVideoDuration} onVideoResChange={setVideoRes}
@@ -596,7 +621,6 @@ export default function StudioPage() {
         onClose={() => setGuideToolId(null)}
       />
 
-      {/* Gallery picker portal */}
       {isMounted && showGallery && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
@@ -642,5 +666,15 @@ export default function StudioPage() {
         document.body
       )}
     </div>
+  );
+}
+
+// ─── Page export (wraps inner in Suspense for useSearchParams) ────────────────
+
+export default function StudioPage() {
+  return (
+    <Suspense>
+      <StudioPageInner />
+    </Suspense>
   );
 }

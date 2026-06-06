@@ -209,25 +209,32 @@ export async function editImage(options: {
   image: File | string;
   prompt: string;
   mask?: File | string;
+  /** Reference image providing visual context the prompt alone can't describe */
+  imageContext?: File | string;
   resolution?: '1k' | '2k' | '4k';
   generationMode?: 'fast' | 'balanced' | 'quality';
+  numImages?: number;
+  seed?: number;
 }): Promise<AIJobStartResult> {
   const fd = new FormData();
-  if (options.image instanceof File) {
-    fd.append('image', options.image);
-  } else {
-    fd.append('imageUrl', options.image);
-  }
+
+  if (options.image instanceof File) fd.append('image', options.image);
+  else fd.append('imageUrl', options.image);
+
   fd.append('prompt', options.prompt);
+
   if (options.mask) {
-    if (options.mask instanceof File) {
-      fd.append('mask', options.mask);
-    } else {
-      fd.append('maskUrl', options.mask);
-    }
+    if (options.mask instanceof File) fd.append('mask', options.mask);
+    else fd.append('maskUrl', options.mask);
   }
-  if (options.resolution) fd.append('resolution', options.resolution);
-  if (options.generationMode) fd.append('generationMode', options.generationMode);
+  if (options.imageContext) {
+    if (options.imageContext instanceof File) fd.append('imageContext', options.imageContext);
+    else fd.append('imageContextUrl', options.imageContext);
+  }
+  if (options.resolution)      fd.append('resolution',     options.resolution);
+  if (options.generationMode)  fd.append('generationMode', options.generationMode);
+  if (options.numImages && options.numImages > 1) fd.append('numImages', String(options.numImages));
+  if (options.seed !== undefined) fd.append('seed', String(options.seed));
 
   return startJob('/api/ai/edit', fd);
 }

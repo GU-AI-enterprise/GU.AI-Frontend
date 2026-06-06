@@ -69,3 +69,19 @@ export const LOADING_MESSAGES = [
 ];
 
 export const LOADING_TIMING_MS = [5_000, 10_000, 20_000, 30_000];
+
+/** URL slug → AIToolType (e.g. "try-on" → AIToolType.TRY_ON) */
+export const TOOL_SLUG: Record<AIToolType, string> = {
+  [AIToolType.PRODUCT_TO_MODEL]: 'product-to-model',
+  [AIToolType.TRY_ON]:           'try-on',
+  [AIToolType.MODEL_SWAP]:       'model-swap',
+  [AIToolType.FACE_SWAP]:        'face-swap',
+  [AIToolType.EDIT]:             'edit',
+  [AIToolType.CREATE_MODEL]:     'create-model',
+  [AIToolType.IMAGE_TO_VIDEO]:   'image-to-video',
+  [AIToolType.UPSCALE]:          'upscale',
+};
+
+export const SLUG_TO_TOOL: Record<string, AIToolType> = Object.fromEntries(
+  Object.entries(TOOL_SLUG).map(([type, slug]) => [slug, type as AIToolType])
+);
