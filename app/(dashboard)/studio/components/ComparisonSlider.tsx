@@ -73,13 +73,6 @@ export function ComparisonSlider({ beforeUrl, afterUrl }: Props) {
         </div>
       </div>
 
-      {/* Labels */}
-      <span className="absolute top-3 left-3 rounded-full bg-black/50 backdrop-blur-sm px-2 py-0.5 text-[10px] text-white font-medium pointer-events-none">
-        Trước
-      </span>
-      <span className="absolute top-3 right-3 rounded-full bg-primary/80 backdrop-blur-sm px-2 py-0.5 text-[10px] text-white font-medium pointer-events-none">
-        Sau
-      </span>
     </div>
   );
 }

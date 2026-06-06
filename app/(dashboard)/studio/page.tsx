@@ -540,6 +540,16 @@ function StudioPageInner() {
                             }
                           </div>
                     )}
+                    {/* Download icon — top right of image */}
+                    {resultUrl && (
+                      <button
+                        onClick={() => { const a = document.createElement("a"); a.href = resultUrl!; a.download = `guai_result_${Date.now()}.${isVideo ? "mp4" : "png"}`; a.click(); }}
+                        className="cursor-pointer absolute top-3 right-3 flex items-center justify-center size-8 rounded-full bg-background/80 backdrop-blur-sm border border-border shadow-sm hover:bg-background transition-colors"
+                        title="Tải xuống"
+                      >
+                        <Download className="size-3.5" />
+                      </button>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 p-3 border-t border-border shrink-0 flex-wrap">
                     {isMobile && (
@@ -547,27 +557,16 @@ function StudioPageInner() {
                         <ChevronLeft className="size-3.5" /> Nhập ảnh
                       </button>
                     )}
-                    <button
-                      onClick={() => { if (!resultUrl) return; const a = document.createElement("a"); a.href = resultUrl; a.download = `guai_result_${Date.now()}.${isVideo ? "mp4" : "png"}`; a.click(); }}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-foreground text-background text-xs font-medium hover:opacity-90 transition-opacity"
-                    >
-                      <Download className="size-3.5" /> Tải xuống
-                    </button>
                     {!isVideo && beforeUrl && (
                       <button
                         onClick={() => setShowComparison(v => !v)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                        className={`cursor-pointer flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
                           showComparison
                             ? "bg-primary text-primary-foreground hover:bg-primary/90"
                             : "bg-secondary text-foreground hover:bg-secondary/70"
                         }`}
                       >
                         <SplitSquareHorizontal className="size-3.5" /> So sánh
-                      </button>
-                    )}
-                    {!isVideo && (
-                      <button onClick={() => resultUrl && setLightboxUrl(resultUrl)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
-                        <Maximize2 className="size-3.5" /> Phóng to
                       </button>
                     )}
                     <button
