@@ -86,7 +86,7 @@ export default function Header() {
     } ${scrolled ? "shadow-sm" : ""}`}>
       <div className="mx-auto grid h-16 max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-6 lg:px-8">
         <div className="flex items-center gap-4">
-          {authLoading ? <GuaiLoader size="sm" /> : <Logo />}
+          <Logo />
         </div>
 
         {/* Main Navigation — always centered */}
