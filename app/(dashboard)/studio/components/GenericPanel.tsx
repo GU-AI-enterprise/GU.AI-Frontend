@@ -77,19 +77,19 @@ export function GenericPanel({ images, onImagesChange, onPaste, openGallery }: P
           <div className="flex items-center gap-2">
             <button
               onClick={(e) => { e.stopPropagation(); addFromPasteBtn(); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border text-xs font-medium hover:bg-secondary transition-colors"
+              className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border text-xs font-medium hover:bg-secondary transition-colors"
             >
               <ClipboardPaste className="size-3.5" /> Paste
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border text-xs font-medium hover:bg-secondary transition-colors"
+              className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border text-xs font-medium hover:bg-secondary transition-colors"
             >
               <Upload className="size-3.5" /> Tải lên
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); openGallery(addFromGallery); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border text-xs font-medium hover:bg-secondary transition-colors"
+              className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border text-xs font-medium hover:bg-secondary transition-colors"
             >
               <GalleryHorizontal className="size-3.5" /> Gallery
             </button>

@@ -94,7 +94,7 @@ export function SaveToAlbumModal({ assetId, onClose }: SaveToAlbumModalProps) {
                 key={col.id}
                 disabled={savingToId === col.id}
                 onClick={() => handleSave(col.id)}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all text-left group disabled:opacity-60"
+                className="cursor-pointer w-full flex items-center gap-3 p-3 rounded-2xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all text-left group disabled:opacity-60"
               >
                 <div className="size-10 rounded-xl overflow-hidden border border-border bg-accent shrink-0">
                   {col.cover_asset ? (
@@ -122,7 +122,7 @@ export function SaveToAlbumModal({ assetId, onClose }: SaveToAlbumModalProps) {
           <div className="mt-4 pt-4 border-t border-border">
             <button
               onClick={() => { onClose(); router.push("/archive/collections"); }}
-              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
+              className="cursor-pointer w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
             >
               <FolderPlus className="size-3.5" />
               Tạo album mới

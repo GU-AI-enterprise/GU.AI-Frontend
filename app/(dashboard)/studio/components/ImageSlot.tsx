@@ -86,19 +86,19 @@ export function ImageSlot({ label, sublabel, image, onClear, onFileChange, onPas
           <div className="flex items-center gap-1.5">
             <button
               onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
-              className="px-2 py-1 rounded-md bg-background border border-border text-[10px] hover:bg-secondary transition-colors"
+              className="cursor-pointer px-2 py-1 rounded-md bg-background border border-border text-[10px] hover:bg-secondary transition-colors"
             >
               <Upload className="size-3 inline mr-1" />Tải lên
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onPaste(); }}
-              className="px-2 py-1 rounded-md bg-background border border-border text-[10px] hover:bg-secondary transition-colors"
+              className="cursor-pointer px-2 py-1 rounded-md bg-background border border-border text-[10px] hover:bg-secondary transition-colors"
             >
               <ClipboardPaste className="size-3 inline mr-1" />Paste
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onGallery(); }}
-              className="px-2 py-1 rounded-md bg-background border border-border text-[10px] hover:bg-secondary transition-colors"
+              className="cursor-pointer px-2 py-1 rounded-md bg-background border border-border text-[10px] hover:bg-secondary transition-colors"
             >
               <GalleryHorizontal className="size-3 inline mr-1" />Gallery
             </button>

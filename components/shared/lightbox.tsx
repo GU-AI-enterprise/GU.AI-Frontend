@@ -199,7 +199,7 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt,
           <span className="text-[11px] text-white/25 mr-1 font-mono hidden sm:block">ESC</span>
           <button
             onClick={onClose}
-            className="flex items-center justify-center size-8 rounded-lg bg-white/8 hover:bg-white/16 text-white/70 hover:text-white transition-colors"
+            className="cursor-pointer flex items-center justify-center size-8 rounded-lg bg-white/8 hover:bg-white/16 text-white/70 hover:text-white transition-colors"
           >
             <X className="size-4" />
           </button>
@@ -221,7 +221,7 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt,
         {hasNav && (
           <button
             onClick={goPrev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center size-10 rounded-full bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm border border-white/10 transition-all z-10"
+            className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center size-10 rounded-full bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm border border-white/10 transition-all z-10"
           >
             <ChevronLeft className="size-5" />
           </button>
@@ -249,7 +249,7 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt,
         {hasNav && (
           <button
             onClick={goNext}
-            className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center size-10 rounded-full bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm border border-white/10 transition-all z-10"
+            className="cursor-pointer absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center size-10 rounded-full bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm border border-white/10 transition-all z-10"
           >
             <ChevronRight className="size-5" />
           </button>
@@ -264,7 +264,7 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt,
           <button
             onClick={zoomOut}
             disabled={!canZoomOut}
-            className="flex items-center justify-center size-8 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="cursor-pointer flex items-center justify-center size-8 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             title="Thu nhỏ (−)"
           >
             <ZoomOut className="size-4" />
@@ -272,7 +272,7 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt,
 
           <button
             onClick={resetZoom}
-            className="min-w-[52px] px-2 py-1 rounded-lg hover:bg-white/10 text-white text-xs font-mono font-semibold transition-colors"
+            className="cursor-pointer min-w-[52px] px-2 py-1 rounded-lg hover:bg-white/10 text-white text-xs font-mono font-semibold transition-colors"
             title="Đặt lại (0)"
           >
             {zoomPct}%
@@ -281,7 +281,7 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt,
           <button
             onClick={zoomIn}
             disabled={!canZoomIn}
-            className="flex items-center justify-center size-8 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="cursor-pointer flex items-center justify-center size-8 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             title="Phóng to (+)"
           >
             <ZoomIn className="size-4" />
@@ -292,7 +292,7 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt,
           <button
             onClick={resetZoom}
             disabled={zoom === 1 && panX === 0 && panY === 0}
-            className="flex items-center justify-center size-8 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="cursor-pointer flex items-center justify-center size-8 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             title="Vừa màn hình"
           >
             <Maximize2 className="size-3.5" />
@@ -305,7 +305,7 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt,
         {/* Download */}
         <button
           onClick={handleDownload}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/8 hover:bg-white/14 text-white/80 hover:text-white text-xs font-medium transition-colors"
+          className="cursor-pointer flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/8 hover:bg-white/14 text-white/80 hover:text-white text-xs font-medium transition-colors"
         >
           <Download className="size-3.5" />
           Tải xuống
@@ -319,7 +319,7 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt,
               <button
                 key={i}
                 onClick={action.onClick}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                className={`cursor-pointer flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
                   action.variant === "destructive"
                     ? "bg-red-500/20 hover:bg-red-500/35 text-red-400 hover:text-red-300 border border-red-500/20"
                     : "bg-white/8 hover:bg-white/14 text-white/80 hover:text-white"

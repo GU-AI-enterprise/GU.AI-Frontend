@@ -18,7 +18,7 @@ const FACE_REF_MODES: { value: FaceRefMode; label: string }[] = [
 const ASPECT_RATIOS = ["1:1", "3:4", "4:5", "9:16", "16:9"];
 
 const pill = (active: boolean) =>
-  `px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+  `cursor-pointer px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
     active
       ? "bg-foreground text-background"
       : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"

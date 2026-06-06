@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import Logo from "@/components/shared/logo";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { Button } from "@/components/ui/button";
-import { LogOut, User as UserIcon, LayoutDashboard, Settings, ChevronDown } from "lucide-react";
+import { LogOut, User as UserIcon, LayoutDashboard, Settings, ChevronDown, Shirt, Box, Shuffle, UserRound, Video, Pencil, Crop, ImageUp } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import NotificationCenter from "@/components/notification/NotificationCenter";
 
@@ -17,8 +17,28 @@ export default function Header() {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isToolsOpen, setIsToolsOpen] = useState(false);
+  const toolsRef = useRef<HTMLDivElement>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [visible, setVisible] = useState(true);
+  const [scrolled, setScrolled] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      setScrolled(currentY > 20);
+      if (currentY > lastScrollY.current && currentY > 80) {
+        setVisible(false);
+      } else if (currentY < lastScrollY.current) {
+        setVisible(true);
+      }
+      lastScrollY.current = currentY;
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     // Get user session on mount
@@ -33,10 +53,13 @@ export default function Header() {
       setAuthLoading(false);
     });
 
-    // Close dropdown on click outside
+    // Close dropdowns on click outside
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
+      }
+      if (toolsRef.current && !toolsRef.current.contains(event.target as Node)) {
+        setIsToolsOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -58,7 +81,9 @@ export default function Header() {
   const isLanding = pathname === "/";
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl transition-all">
+    <header className={`sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl transition-all duration-300 ${
+      visible ? "translate-y-0" : "-translate-y-full"
+    } ${scrolled ? "shadow-sm" : ""}`}>
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
         <div className="flex items-center gap-4">
           {authLoading ? <GuaiLoader size="sm" /> : <Logo />}
@@ -66,12 +91,64 @@ export default function Header() {
 
         {/* Main Navigation */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-light text-muted-foreground">
-          <Link href={isLanding ? "#features" : "/#features"} className="hover:text-foreground transition-colors">
-            Tính năng
-          </Link>
-          <Link href={isLanding ? "#how-it-works" : "/#how-it-works"} className="hover:text-foreground transition-colors">
-            Cách hoạt động
-          </Link>
+
+          {/* AI Tools dropdown */}
+          <div className="relative" ref={toolsRef}>
+            <button
+              onClick={() => setIsToolsOpen(o => !o)}
+              className="flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              Công cụ AI
+              <ChevronDown className={`size-3.5 transition-transform duration-200 ${isToolsOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            <AnimatePresence>
+              {isToolsOpen && (
+                <>
+                  {/* invisible backdrop — click to close */}
+                  <div className="fixed inset-0 z-40" onClick={() => setIsToolsOpen(false)} />
+                  <motion.div
+                    key="tools-dropdown"
+                    initial={{ opacity: 0, scale: 0.95, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 8 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute left-0 mt-3 w-[480px] rounded-2xl border border-border bg-card/95 backdrop-blur-lg p-3 shadow-xl ring-1 ring-black/5 z-50"
+                  >
+                  <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">AI Tools</p>
+                  <div className="grid grid-cols-2 gap-0.5">
+                  {[
+                    { Icon: Shirt,     title: "Virtual Try-On",    desc: "Thử trang phục ảo lên ảnh người mẫu",     href: "/studio?tool=try_on"          },
+                    { Icon: Box,       title: "Product to Model",  desc: "Đặt sản phẩm lên model AI",               href: "/studio?tool=product_to_model" },
+                    { Icon: Shuffle,   title: "Model Swap",        desc: "Đổi model, giữ nguyên trang phục",        href: "/studio?tool=model_swap"       },
+                    { Icon: UserRound, title: "Face Swap",         desc: "Thay khuôn mặt tự nhiên",                 href: "/studio?tool=face_swap"        },
+                    { Icon: Pencil,    title: "AI Edit",           desc: "Chỉnh sửa ảnh bằng lệnh văn bản",        href: "/studio?tool=edit"             },
+                    { Icon: Video,     title: "Image to Video",    desc: "Biến ảnh tĩnh thành video thời trang",    href: "/studio?tool=image_to_video"   },
+                    { Icon: Crop,      title: "Reframe",           desc: "Đổi tỉ lệ khung hình bằng AI",           href: "/studio?tool=reframe"          },
+                    { Icon: ImageUp,   title: "Upscale",           desc: "Nâng độ phân giải ảnh 2× – 4×",          href: "/studio?tool=upscale"          },
+                  ].map(({ Icon, title, desc, href }) => (
+                    <Link
+                      key={title}
+                      href={href}
+                      onClick={() => setIsToolsOpen(false)}
+                      className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-secondary transition-colors group"
+                    >
+                      <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20 text-primary group-hover:bg-primary/15 transition-colors">
+                        <Icon className="size-3.5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-foreground leading-tight">{title}</p>
+                        <p className="text-[10px] font-light text-muted-foreground mt-0.5 leading-tight">{desc}</p>
+                      </div>
+                    </Link>
+                  ))}
+                  </div>
+                </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+
           <Link href="/services" className={`hover:text-foreground transition-colors ${pathname === "/services" ? "text-primary font-normal" : ""}`}>
             Dịch vụ
           </Link>
