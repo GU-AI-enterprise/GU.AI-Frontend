@@ -10,7 +10,7 @@ import {
   Sparkles, ImageIcon, GalleryHorizontal,
   ChevronRight, ChevronLeft, Loader2,
   Download, RefreshCw, AlertCircle, FolderHeart,
-  BookOpen, Check, X, Maximize2,
+  BookOpen, Check, X, Maximize2, SplitSquareHorizontal,
 } from "lucide-react";
 import { ToolGuideModal } from "@/components/shared/tool-guide-modal";
 import { TOOL_GUIDES } from "@/constants/toolGuides";
@@ -37,6 +37,7 @@ import type {
 } from "./types";
 
 import { ProcessingPanel } from "./components/ProcessingPanel";
+import { ComparisonSlider } from "./components/ComparisonSlider";
 import { TryOnPanel } from "./components/TryOnPanel";
 import { ProductToModelPanel } from "./components/ProductToModelPanel";
 import { ModelSwapPanel } from "./components/ModelSwapPanel";
@@ -133,6 +134,7 @@ function StudioPageInner() {
   const [isMobile,         setIsMobile]          = useState(false);
   const [canScrollLeft,    setCanScrollLeft]     = useState(false);
   const [canScrollRight,   setCanScrollRight]    = useState(false);
+  const [showComparison,   setShowComparison]    = useState(false);
 
   const galleryCallbackRef = useRef<((url: string) => void) | null>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -264,6 +266,7 @@ function StudioPageInner() {
 
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleRun = async () => {
+    setShowComparison(false);
     if (selectedTool === AIToolType.TRY_ON) {
       if (!toModelImage)  { toast.warning("Vui lòng thêm ảnh người mẫu."); return; }
       if (!toGarment)     { toast.warning("Vui lòng thêm ảnh trang phục."); return; }
@@ -403,6 +406,19 @@ function StudioPageInner() {
   const isEdit  = selectedTool === AIToolType.EDIT;
   const isVideo = selectedTool === AIToolType.IMAGE_TO_VIDEO;
 
+  // "before" image for the comparison slider
+  const beforeUrl = (() => {
+    if (isVideo || !resultUrl) return null;
+    switch (selectedTool) {
+      case AIToolType.TRY_ON:           return toModelImage?.url  ?? null;
+      case AIToolType.PRODUCT_TO_MODEL: return p2mProduct?.url    ?? null;
+      case AIToolType.MODEL_SWAP:       return msImage?.url       ?? null;
+      case AIToolType.FACE_SWAP:        return fsModelImage?.url  ?? null;
+      case AIToolType.EDIT:             return editSource?.url     ?? null;
+      default:                          return images[0]?.url     ?? null;
+    }
+  })();
+
   const showPanel = isProcessing || jobState === "completed" || jobState === "failed";
   const toolData  = TOOLS.find(t => t.id === selectedTool);
   const isCreateModel = selectedTool === AIToolType.CREATE_MODEL;
@@ -510,14 +526,19 @@ function StudioPageInner() {
 
               <div className={`absolute inset-0 transition-opacity duration-200 ${jobState === "completed" && resultUrl ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
                 <div className="flex flex-col h-full min-h-0 rounded-3xl border border-border bg-card overflow-hidden shadow-lg">
-                  <div
-                    className={`flex-1 min-h-0 flex items-center justify-center bg-muted/20 overflow-hidden ${isVideo ? "" : "cursor-zoom-in"}`}
-                    onClick={() => !isVideo && resultUrl && setLightboxUrl(resultUrl)}
-                  >
+                  <div className="flex-1 min-h-0 bg-muted/20 overflow-hidden relative">
                     {resultUrl && (
-                      isVideo
-                        ? <video src={resultUrl} controls className="w-full h-full object-contain" />
-                        : <img src={resultUrl} alt="Kết quả AI" className="w-full h-full object-contain" />
+                      showComparison && beforeUrl
+                        ? <ComparisonSlider beforeUrl={beforeUrl} afterUrl={resultUrl} />
+                        : <div
+                            className={`w-full h-full flex items-center justify-center ${isVideo ? "" : "cursor-zoom-in"}`}
+                            onClick={() => !isVideo && resultUrl && setLightboxUrl(resultUrl)}
+                          >
+                            {isVideo
+                              ? <video src={resultUrl} controls className="w-full h-full object-contain" />
+                              : <img src={resultUrl} alt="Kết quả AI" className="w-full h-full object-contain" />
+                            }
+                          </div>
                     )}
                   </div>
                   <div className="flex items-center gap-2 p-3 border-t border-border shrink-0 flex-wrap">
@@ -532,6 +553,18 @@ function StudioPageInner() {
                     >
                       <Download className="size-3.5" /> Tải xuống
                     </button>
+                    {!isVideo && beforeUrl && (
+                      <button
+                        onClick={() => setShowComparison(v => !v)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                          showComparison
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                            : "bg-secondary text-foreground hover:bg-secondary/70"
+                        }`}
+                      >
+                        <SplitSquareHorizontal className="size-3.5" /> So sánh
+                      </button>
+                    )}
                     {!isVideo && (
                       <button onClick={() => resultUrl && setLightboxUrl(resultUrl)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
                         <Maximize2 className="size-3.5" /> Phóng to

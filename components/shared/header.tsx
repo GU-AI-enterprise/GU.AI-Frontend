@@ -84,12 +84,12 @@ export default function Header() {
     <header className={`sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl transition-all duration-300 ${
       visible ? "translate-y-0" : "-translate-y-full"
     } ${scrolled ? "shadow-sm" : ""}`}>
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
+      <div className="mx-auto grid h-16 max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-6 lg:px-8">
         <div className="flex items-center gap-4">
           {authLoading ? <GuaiLoader size="sm" /> : <Logo />}
         </div>
 
-        {/* Main Navigation */}
+        {/* Main Navigation — always centered */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-light text-muted-foreground">
 
           {/* AI Tools dropdown */}
@@ -155,10 +155,13 @@ export default function Header() {
           <Link href="/pricing" className={`hover:text-foreground transition-colors ${pathname === "/pricing" ? "text-primary font-normal" : ""}`}>
             Bảng giá
           </Link>
+          <Link href="/about" className={`hover:text-foreground transition-colors ${pathname === "/about" ? "text-primary font-normal" : ""}`}>
+            Về chúng tôi
+          </Link>
         </nav>
 
         {/* Authentication State / Action buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-end gap-3">
           {user ? (
             /* Logged In User Profile Dropdown */
             <>
