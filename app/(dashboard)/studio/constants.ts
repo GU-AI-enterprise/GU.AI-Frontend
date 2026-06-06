@@ -1,4 +1,4 @@
-import { Wand2, Shirt, UserCircle2, Smile, Pencil, UserPlus, Video, Maximize2 } from "lucide-react";
+import { Wand2, Shirt, UserCircle2, Smile, Pencil, UserPlus, Video, Maximize2, Crop } from "lucide-react";
 import type { ElementType } from "react";
 import { AIToolType, CREDIT_COST } from "@/constants/ai";
 import type { TryOnModel, TryOnResolution } from "./types";
@@ -19,6 +19,7 @@ export const TOOLS: ToolDef[] = [
   { id: AIToolType.EDIT,             name: "Edit",             Icon: Pencil,        credit: CREDIT_COST[AIToolType.EDIT] },
   { id: AIToolType.CREATE_MODEL,     name: "Create Model",     Icon: UserPlus,      credit: CREDIT_COST[AIToolType.CREATE_MODEL] },
   { id: AIToolType.IMAGE_TO_VIDEO,   name: "Image to Video",   Icon: Video,         credit: CREDIT_COST[AIToolType.IMAGE_TO_VIDEO] },
+  { id: AIToolType.REFRAME,          name: "Reframe",          Icon: Crop,          credit: CREDIT_COST[AIToolType.REFRAME] },
   { id: AIToolType.UPSCALE,          name: "Image Upscale",    Icon: Maximize2,     credit: CREDIT_COST[AIToolType.UPSCALE] },
 ];
 
@@ -79,6 +80,7 @@ export const TOOL_SLUG: Record<AIToolType, string> = {
   [AIToolType.EDIT]:             'edit',
   [AIToolType.CREATE_MODEL]:     'create-model',
   [AIToolType.IMAGE_TO_VIDEO]:   'image-to-video',
+  [AIToolType.REFRAME]:          'reframe',
   [AIToolType.UPSCALE]:          'upscale',
 };
 

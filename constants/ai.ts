@@ -6,6 +6,7 @@ export enum AIToolType {
   EDIT = 'edit',
   CREATE_MODEL = 'create_model',
   IMAGE_TO_VIDEO = 'image_to_video',
+  REFRAME = 'reframe',
   UPSCALE = 'upscale',
 }
 
@@ -25,5 +26,6 @@ export const CREDIT_COST: Record<AIToolType, number> = {
   [AIToolType.EDIT]: 5,
   [AIToolType.CREATE_MODEL]: 20,
   [AIToolType.IMAGE_TO_VIDEO]: 25,
+  [AIToolType.REFRAME]: 4,
   [AIToolType.UPSCALE]: 8,
 };

@@ -13,17 +13,33 @@ interface Props {
   openGallery: (cb: (url: string) => void) => void;
 }
 
-export function GenericPanel({
-  images,
-  onImagesChange,
-  onPaste, openGallery,
-}: Props) {
+export function GenericPanel({ images, onImagesChange, onPaste, openGallery }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const addFiles = (files: File[]) => {
     const imgs = files.filter(f => f.type.startsWith("image/")).map(fileToStudioImage);
     onImagesChange([...images, ...imgs].slice(0, 5));
   };
+
+  // Native paste event — fires when Ctrl+V pressed while zone is focused
+  const handleNativePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const files: File[] = [];
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) files.push(file);
+      }
+    }
+    if (files.length > 0) addFiles(files);
+  };
+
+  const addFromGallery = (url: string) =>
+    onImagesChange([...images, { id: Math.random().toString(36).substr(2, 9), url }].slice(0, 5));
+
+  const addFromPasteBtn = () =>
+    onPaste((f) => onImagesChange([...images, fileToStudioImage(f)].slice(0, 5)));
 
   return (
     <div
@@ -34,25 +50,33 @@ export function GenericPanel({
         addFiles(Array.from(e.dataTransfer.files));
       }}
     >
-      {/* Image area */}
       {images.length === 0 ? (
+        /* Drop / focus zone — click to focus, then Ctrl+V to paste */
         <div
-          onClick={() => fileRef.current?.click()}
-          className="flex-1 min-h-0 rounded-3xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 hover:bg-card transition-all"
+          tabIndex={0}
+          onPaste={handleNativePaste}
+          className="flex-1 min-h-0 rounded-3xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 cursor-default select-none
+            hover:border-primary/30 hover:bg-card
+            focus:outline-none focus:border-primary/60 focus:bg-primary/5
+            transition-all"
         >
           <input
             type="file" multiple accept="image/*" ref={fileRef}
             className="hidden"
             onChange={(e) => { if (e.target.files) addFiles(Array.from(e.target.files)); }}
           />
-          <div className="flex items-center justify-center gap-2 mb-4">
+
+          <div className="flex items-center justify-center gap-2 mb-2">
             <div className="w-14 h-18 rounded-xl bg-gradient-to-br from-orange-200 to-orange-400 shadow-lg -rotate-6" />
             <div className="w-14 h-18 rounded-xl bg-gradient-to-br from-sky-200 to-sky-400 shadow-lg z-10" />
             <div className="w-14 h-18 rounded-xl bg-gradient-to-br from-amber-200 to-amber-400 shadow-lg rotate-6" />
           </div>
-          <div className="flex items-center gap-2 mb-3">
+
+          <p className="text-[11px] text-muted-foreground">Nhấp → Ctrl+V để dán · Kéo thả ảnh vào đây</p>
+
+          <div className="flex items-center gap-2">
             <button
-              onClick={(e) => { e.stopPropagation(); onPaste((f) => onImagesChange([...images, fileToStudioImage(f)].slice(0, 5))); }}
+              onClick={(e) => { e.stopPropagation(); addFromPasteBtn(); }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border text-xs font-medium hover:bg-secondary transition-colors"
             >
               <ClipboardPaste className="size-3.5" /> Paste
@@ -61,19 +85,15 @@ export function GenericPanel({
               onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border text-xs font-medium hover:bg-secondary transition-colors"
             >
-              <Upload className="size-3.5" /> Upload
+              <Upload className="size-3.5" /> Tải lên
             </button>
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                openGallery((url) => onImagesChange([...images, { id: Math.random().toString(36).substr(2, 9), url }].slice(0, 5)));
-              }}
+              onClick={(e) => { e.stopPropagation(); openGallery(addFromGallery); }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border text-xs font-medium hover:bg-secondary transition-colors"
             >
               <GalleryHorizontal className="size-3.5" /> Gallery
             </button>
           </div>
-          <p className="text-xs text-muted-foreground">or drop an image here</p>
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex items-center justify-center gap-3 flex-wrap overflow-hidden">
@@ -112,7 +132,6 @@ export function GenericPanel({
           />
         </div>
       )}
-
     </div>
   );
 }

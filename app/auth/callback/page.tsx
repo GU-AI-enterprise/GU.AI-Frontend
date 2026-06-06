@@ -28,7 +28,7 @@ export default function AuthCallbackPage() {
         if (session) {
           setStatusMessage("Đăng nhập thành công! Đang chuyển hướng về trang chủ...");
           setTimeout(() => {
-            router.push("/");
+            router.push("/dashboard");
           }, 1500);
         } else {
           // If no session found yet, wait for state to settle (sometimes hash parse takes a tick)

@@ -24,13 +24,13 @@ import { AIToolType } from "@/constants/ai";
 import { toast } from "sonner";
 import {
   tryOn, tryOnMax, productToModel, editImage,
-  modelSwap, modelCreate, imageToVideo,
+  modelSwap, modelCreate, imageToVideo, reframe,
   type TryOnCategory,
 } from "@/features/studio/studioService";
 import { useAIJob } from "@/hooks/useAIJob";
 
 import { TOOLS, TOOL_SLUG, SLUG_TO_TOOL } from "./constants";
-import { computeTryOnCost, computeEditCost } from "./helpers";
+import { computeTryOnCost, computeEditCost, computeModelCreateCost, computeVideoCost, computeReframeCost } from "./helpers";
 import type {
   StudioImage, TryOnModel, TryOnResolution,
   GenResolution, GenMode, FaceRefMode, VideoDuration, VideoResolution,
@@ -101,6 +101,22 @@ function StudioPageInner() {
   const [editNumImages, setEditNumImages] = useState(1);
   const [editSeed,      setEditSeed]      = useState("");
 
+  // ── Create Model state ────────────────────────────────────────────────────
+  const [createRes,       setCreateRes]       = useState<GenResolution>("1k");
+  const [createGenMode,   setCreateGenMode]   = useState<GenMode>("balanced");
+  const [createNumImages, setCreateNumImages] = useState(1);
+  const [createSeed,      setCreateSeed]      = useState("");
+
+  // ── Reframe state ─────────────────────────────────────────────────────────
+  const [reframeAspect,    setReframeAspect]    = useState("1:1");
+  const [reframeRes,       setReframeRes]       = useState<GenResolution>("1k");
+  const [reframeGenMode,   setReframeGenMode]   = useState<GenMode>("balanced");
+  const [reframeNumImages, setReframeNumImages] = useState(1);
+  const [reframeSeed,      setReframeSeed]      = useState("");
+
+  // ── Upscale state ──────────────────────────────────────────────────────────
+  const [upscaleScale,  setUpscaleScale]  = useState(2);
+
   // ── Generic state (Create Model / Image to Video) ─────────────────────────
   const [images,        setImages]        = useState<StudioImage[]>([]);
   const [genericPrompt, setGenericPrompt] = useState("");
@@ -168,13 +184,21 @@ function StudioPageInner() {
   }, []);
 
   useEffect(() => {
-    const rafId = requestAnimationFrame(checkScroll);
     const el = toolbarRef.current;
     if (!el) return;
+    const rafId = requestAnimationFrame(checkScroll);
     const ro = new ResizeObserver(checkScroll);
     ro.observe(el);
     return () => { cancelAnimationFrame(rafId); ro.disconnect(); };
   }, [checkScroll]);
+
+  // Re-check scroll after auth resolves (toolbar mounts after authLoading → false)
+  useEffect(() => {
+    if (!authLoading) {
+      const t = setTimeout(checkScroll, 80);
+      return () => clearTimeout(t);
+    }
+  }, [authLoading, checkScroll]);
 
   const scrollToolbar = (dir: "left" | "right") => {
     toolbarRef.current?.scrollBy({ left: dir === "left" ? -160 : 160, behavior: "smooth" });
@@ -190,6 +214,9 @@ function StudioPageInner() {
     setMsImage(null); setMsFaceRef(null); setMsPrompt("");
     setFsModelImage(null); setFsFaceRef(null);
     setEditSource(null); setEditMask(null); setEditContext(null); setEditRes("1k"); setEditGenMode("balanced"); setEditNumImages(1); setEditSeed("");
+    setCreateRes("1k"); setCreateGenMode("balanced"); setCreateNumImages(1); setCreateSeed("");
+    setReframeAspect("1:1"); setReframeRes("1k"); setReframeGenMode("balanced"); setReframeNumImages(1); setReframeSeed("");
+    setUpscaleScale(2);
     setImages([]); setGenericPrompt("");
   }, [selectedTool]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -335,12 +362,33 @@ function StudioPageInner() {
 
     if (selectedTool === AIToolType.CREATE_MODEL) {
       if (!genericPrompt.trim()) { toast.warning("Vui lòng nhập mô tả model muốn tạo."); return; }
-      return submit(modelCreate({ prompt: genericPrompt, imageReference: imgSrc || undefined, resolution: "1k" }));
+      const parsedCreateSeed = createSeed.trim() ? parseInt(createSeed.trim()) : undefined;
+      return submit(modelCreate({
+        prompt: genericPrompt,
+        imageReference: imgSrc || undefined,
+        resolution: createRes,
+        generationMode: createGenMode,
+        numImages: createNumImages,
+        seed: parsedCreateSeed,
+      }));
     }
 
     if (selectedTool === AIToolType.IMAGE_TO_VIDEO) {
       if (!imgSrc) { toast.warning("Vui lòng thêm ảnh nguồn."); return; }
       return submit(imageToVideo({ image: img0.file ?? img0.url, prompt: genericPrompt || undefined, duration: videoDuration, resolution: videoRes }));
+    }
+
+    if (selectedTool === AIToolType.REFRAME) {
+      if (!imgSrc) { toast.warning("Vui lòng thêm ảnh nguồn."); return; }
+      const parsedReframeSeed = reframeSeed.trim() ? parseInt(reframeSeed.trim()) : undefined;
+      return submit(reframe({
+        image:          img0.file ?? img0.url,
+        aspectRatio:    reframeAspect,
+        resolution:     reframeRes,
+        generationMode: reframeGenMode,
+        numImages:      reframeNumImages,
+        seed:           parsedReframeSeed,
+      }));
     }
 
     const toolData = TOOLS.find(t => t.id === selectedTool);
@@ -357,10 +405,18 @@ function StudioPageInner() {
 
   const showPanel = isProcessing || jobState === "completed" || jobState === "failed";
   const toolData  = TOOLS.find(t => t.id === selectedTool);
+  const isCreateModel = selectedTool === AIToolType.CREATE_MODEL;
+  const isReframe     = selectedTool === AIToolType.REFRAME;
   const currentCost = isTryOn
     ? computeTryOnCost(toModel, toCategory, toResolution)
     : isEdit
     ? computeEditCost(editGenMode, editRes, editNumImages)
+    : isCreateModel
+    ? computeModelCreateCost(createGenMode, createRes, createNumImages)
+    : isVideo
+    ? computeVideoCost(videoDuration, videoRes)
+    : isReframe
+    ? computeReframeCost(reframeGenMode, reframeRes, reframeNumImages)
     : (toolData?.credit ?? 0);
 
   const canRun = isProcessing ? false
@@ -606,9 +662,18 @@ function StudioPageInner() {
             editRes={editRes} editGenMode={editGenMode} editNumImages={editNumImages} editSeed={editSeed}
             onEditResChange={setEditRes} onEditGenModeChange={setEditGenMode}
             onEditNumImagesChange={setEditNumImages} onEditSeedChange={setEditSeed}
+            createRes={createRes} createGenMode={createGenMode} createNumImages={createNumImages} createSeed={createSeed}
+            onCreateResChange={setCreateRes} onCreateGenModeChange={setCreateGenMode}
+            onCreateNumImagesChange={setCreateNumImages} onCreateSeedChange={setCreateSeed}
             genericPrompt={genericPrompt} videoDuration={videoDuration} videoRes={videoRes}
             onGenericPromptChange={setGenericPrompt}
             onVideoDurationChange={setVideoDuration} onVideoResChange={setVideoRes}
+            reframeAspect={reframeAspect} reframeRes={reframeRes} reframeGenMode={reframeGenMode}
+            reframeNumImages={reframeNumImages} reframeSeed={reframeSeed}
+            onReframeAspectChange={setReframeAspect} onReframeResChange={setReframeRes}
+            onReframeGenModeChange={setReframeGenMode} onReframeNumImagesChange={setReframeNumImages}
+            onReframeSeedChange={setReframeSeed}
+            upscaleScale={upscaleScale} onUpscaleScaleChange={setUpscaleScale}
           />
         </div>
       </div>

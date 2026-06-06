@@ -76,13 +76,36 @@ export interface ToolContextBarProps {
   onEditGenModeChange: (v: GenMode) => void;
   onEditNumImagesChange: (v: number) => void;
   onEditSeedChange: (v: string) => void;
-  // Create Model / Image to Video (generic prompt)
+  // Create Model
+  createRes: GenResolution;
+  createGenMode: GenMode;
+  createNumImages: number;
+  createSeed: string;
+  onCreateResChange: (v: GenResolution) => void;
+  onCreateGenModeChange: (v: GenMode) => void;
+  onCreateNumImagesChange: (v: number) => void;
+  onCreateSeedChange: (v: string) => void;
+  // Image to Video (generic prompt shared with Create Model)
   genericPrompt: string;
   videoDuration: VideoDuration;
   videoRes: VideoResolution;
   onGenericPromptChange: (v: string) => void;
   onVideoDurationChange: (v: VideoDuration) => void;
   onVideoResChange: (v: VideoResolution) => void;
+  // Reframe
+  reframeAspect: string;
+  reframeRes: GenResolution;
+  reframeGenMode: GenMode;
+  reframeNumImages: number;
+  reframeSeed: string;
+  onReframeAspectChange: (v: string) => void;
+  onReframeResChange: (v: GenResolution) => void;
+  onReframeGenModeChange: (v: GenMode) => void;
+  onReframeNumImagesChange: (v: number) => void;
+  onReframeSeedChange: (v: string) => void;
+  // Upscale
+  upscaleScale: number;
+  onUpscaleScaleChange: (v: number) => void;
 }
 
 export function ToolContextBar({
@@ -96,8 +119,13 @@ export function ToolContextBar({
   fsRes, fsFaceMode, onFsResChange, onFsFaceModeChange,
   editRes, editGenMode, editNumImages, editSeed,
   onEditResChange, onEditGenModeChange, onEditNumImagesChange, onEditSeedChange,
+  createRes, createGenMode, createNumImages, createSeed,
+  onCreateResChange, onCreateGenModeChange, onCreateNumImagesChange, onCreateSeedChange,
   genericPrompt, videoDuration, videoRes,
   onGenericPromptChange, onVideoDurationChange, onVideoResChange,
+  reframeAspect, reframeRes, reframeGenMode, reframeNumImages, reframeSeed,
+  onReframeAspectChange, onReframeResChange, onReframeGenModeChange, onReframeNumImagesChange, onReframeSeedChange,
+  upscaleScale, onUpscaleScaleChange,
 }: ToolContextBarProps) {
 
   // ── Try-On ────────────────────────────────────────────────────────────────
@@ -299,13 +327,43 @@ export function ToolContextBar({
   // ── Create Model ──────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.CREATE_MODEL) {
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2">
+      <div className="border border-border/60 rounded-2xl px-3 py-2 space-y-2">
         <input
           value={genericPrompt}
           onChange={(e) => onGenericPromptChange(e.target.value)}
           placeholder='Mô tả model muốn tạo: "Full body shot, woman wearing a white t-shirt, studio"...'
           className={inputCls}
         />
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+          <div className={row}>
+            <span className={lbl}>Res:</span>
+            {RESOLUTIONS.map((r) => (
+              <button key={r} onClick={() => onCreateResChange(r)} className={pill(createRes === r)}>{r}</button>
+            ))}
+          </div>
+          <div className={row}>
+            <span className={lbl}>Mode:</span>
+            {GEN_MODES.map((m) => (
+              <button key={m} onClick={() => onCreateGenModeChange(m)} className={pill(createGenMode === m)}>{m}</button>
+            ))}
+          </div>
+          <div className={row}>
+            <span className={lbl}>Số ảnh:</span>
+            {([1, 2, 3, 4] as const).map((n) => (
+              <button key={n} onClick={() => onCreateNumImagesChange(n)} className={pill(createNumImages === n)}>{n}</button>
+            ))}
+          </div>
+          <div className={row}>
+            <span className={lbl}>Seed:</span>
+            <input
+              type="number"
+              value={createSeed}
+              onChange={(e) => onCreateSeedChange(e.target.value)}
+              placeholder="42"
+              className="w-16 px-1.5 py-0.5 rounded-md text-[11px] bg-secondary/40 border border-border/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
+            />
+          </div>
+        </div>
       </div>
     );
   }
@@ -333,6 +391,64 @@ export function ToolContextBar({
               <button key={r} onClick={() => onVideoResChange(r)} className={pill(videoRes === r)}>{r}</button>
             ))}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Reframe ───────────────────────────────────────────────────────────────────
+  if (selectedTool === AIToolType.REFRAME) {
+    return (
+      <div className="border border-border/60 rounded-2xl px-3 py-2">
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+          <div className={row}>
+            <span className={lbl}>Tỉ lệ:</span>
+            {ASPECT_RATIOS.map((r) => (
+              <button key={r} onClick={() => onReframeAspectChange(r)} className={pill(reframeAspect === r)}>{r}</button>
+            ))}
+          </div>
+          <div className={row}>
+            <span className={lbl}>Res:</span>
+            {RESOLUTIONS.map((r) => (
+              <button key={r} onClick={() => onReframeResChange(r)} className={pill(reframeRes === r)}>{r}</button>
+            ))}
+          </div>
+          <div className={row}>
+            <span className={lbl}>Mode:</span>
+            {GEN_MODES.map((m) => (
+              <button key={m} onClick={() => onReframeGenModeChange(m)} className={pill(reframeGenMode === m)}>{m}</button>
+            ))}
+          </div>
+          <div className={row}>
+            <span className={lbl}>Số ảnh:</span>
+            {([1, 2, 3, 4] as const).map((n) => (
+              <button key={n} onClick={() => onReframeNumImagesChange(n)} className={pill(reframeNumImages === n)}>{n}</button>
+            ))}
+          </div>
+          <div className={row}>
+            <span className={lbl}>Seed:</span>
+            <input
+              type="number"
+              value={reframeSeed}
+              onChange={(e) => onReframeSeedChange(e.target.value)}
+              placeholder="42"
+              className="w-16 px-1.5 py-0.5 rounded-md text-[11px] bg-secondary/40 border border-border/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Upscale ───────────────────────────────────────────────────────────────────
+  if (selectedTool === AIToolType.UPSCALE) {
+    return (
+      <div className="border border-border/60 rounded-2xl px-3 py-2">
+        <div className={row}>
+          <span className={lbl}>Scale:</span>
+          {([2, 4] as const).map((s) => (
+            <button key={s} onClick={() => onUpscaleScaleChange(s)} className={pill(upscaleScale === s)}>{s}×</button>
+          ))}
         </div>
       </div>
     );

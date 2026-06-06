@@ -8,40 +8,15 @@ interface LogoProps {
   href?: string;
 }
 
-export function LotusIcon({ className = "size-6", ...props }: React.ComponentProps<"svg">) {
-  return (
-    <svg
-      viewBox="0 0 456.021 456.021"
-      fill="currentColor"
-      className={className}
-      {...props}
-    >
-      <g>
-        <path className="text-primary/60 transition-all duration-300 group-hover:scale-105" d="M368.981,197.023l-140.97,210.96c58.39,0,116.83-22.07,161.38-66.62   c44.55-44.55,66.76-102.99,66.63-161.38C426.401,179.913,396.801,185.603,368.981,197.023z"/>
-        <path className="text-primary/60" d="M87.041,197.023c-27.82-11.42-57.42-17.11-87.04-17.04c-0.13,58.39,22.08,116.83,66.63,161.38   c44.55,44.55,102.99,66.62,161.37,66.61L87.041,197.023z"/>
-        <path className="text-primary/80" d="M351.411,110.083c-27.39,11.27-52.56,27.85-73.89,49.06l-49.51,248.84   c54-22.22,99.49-65.1,123.6-123.31c11.88-28.69,17.46-58.42,17.37-87.65C368.891,166.963,362.801,137.413,351.411,110.083z"/>
-        <path className="text-primary/80" d="M178.501,159.143c-21.33-21.21-46.5-37.79-73.89-49.06c-11.39,27.33-17.48,56.88-17.57,86.94   c-0.09,29.23,5.49,58.96,17.37,87.65c24.11,58.21,69.59,101.08,123.59,123.3L178.501,159.143z"/>
-        <circle className="text-primary/95" cx="228.011" cy="55.538" r="7.5"/>
-        <circle className="text-primary/95" cx="159.251" cy="62.31" r="7.5"/>
-        <circle className="text-primary/95" cx="296.77" cy="62.31" r="7.5"/>
-        <path className="text-primary" d="M277.521,159.143c11.27,26.96,17.49,56.56,17.49,87.62c0,63.01-25.62,120.03-67,161.22   c-41.38-41.2-67-98.22-67-161.22c0-31.06,6.22-60.66,17.49-87.62c11.59-27.76,28.53-52.72,49.51-73.61   C248.991,106.423,265.931,131.383,277.521,159.143z"/>
-      </g>
-    </svg>
-  );
-}
-
 export default function Logo({ className, iconOnly = false, href = "/" }: LogoProps) {
   const content = (
-    <div className={cn("group flex items-center gap-2.5 font-sans select-none cursor-pointer", className)}>
-      <div className="relative flex items-center justify-center rounded-xl p-1.5 bg-primary/10 border border-primary/25 shadow-inner transition-all duration-300 group-hover:bg-primary/20 group-hover:border-primary/40 group-hover:shadow-[0_0_15px_rgba(var(--color-primary),0.2)]">
-        <LotusIcon className="size-6 text-primary" />
-        <div className="absolute inset-0 rounded-xl bg-primary/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      </div>
-      {!iconOnly && (
-        <span className="text-xl font-bold tracking-wider text-foreground">
-          GU<span className="text-primary font-serif font-semibold italic">.AI</span>
-        </span>
-      )}
+    <div className={cn("select-none", className)}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/main_logo.png"
+        alt="GU.AI"
+        className={iconOnly ? "h-9 w-9 object-contain" : "h-9 w-auto max-w-[160px] object-contain"}
+      />
     </div>
   );
 

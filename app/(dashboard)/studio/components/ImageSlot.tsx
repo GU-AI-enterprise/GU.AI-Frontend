@@ -18,6 +18,18 @@ interface Props {
 export function ImageSlot({ label, sublabel, image, onClear, onFileChange, onPaste, onGallery, required }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Native paste event — fires when Ctrl+V pressed while frame is focused
+  const handleNativePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) { onFileChange(file); return; }
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col gap-2 min-h-0 h-full">
       <div className="flex items-center justify-between shrink-0">
@@ -44,10 +56,21 @@ export function ImageSlot({ label, sublabel, image, onClear, onFileChange, onPas
           </button>
         </div>
 
-        {/* Upload area */}
+        {/* Drop / focus zone — click to focus, then Ctrl+V to paste */}
         <div
-          onClick={() => fileRef.current?.click()}
-          className={`absolute inset-0 rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 hover:bg-card transition-all gap-2 ${image ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto"}`}
+          tabIndex={image ? -1 : 0}
+          onPaste={handleNativePaste}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            const file = e.dataTransfer.files?.[0];
+            if (file?.type.startsWith("image/")) onFileChange(file);
+          }}
+          className={`absolute inset-0 rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 cursor-default select-none
+            hover:border-primary/30 hover:bg-card
+            focus:outline-none focus:border-primary/60 focus:bg-primary/5
+            transition-all
+            ${image ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto"}`}
         >
           <input
             type="file"
@@ -56,8 +79,17 @@ export function ImageSlot({ label, sublabel, image, onClear, onFileChange, onPas
             onChange={(e) => { if (e.target.files?.[0]) onFileChange(e.target.files[0]); }}
             className="hidden"
           />
+
           <Upload className="size-5 text-muted-foreground" />
+          <p className="text-[10px] text-muted-foreground">Nhấp → Ctrl+V để dán · Kéo thả</p>
+
           <div className="flex items-center gap-1.5">
+            <button
+              onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
+              className="px-2 py-1 rounded-md bg-background border border-border text-[10px] hover:bg-secondary transition-colors"
+            >
+              <Upload className="size-3 inline mr-1" />Tải lên
+            </button>
             <button
               onClick={(e) => { e.stopPropagation(); onPaste(); }}
               className="px-2 py-1 rounded-md bg-background border border-border text-[10px] hover:bg-secondary transition-colors"

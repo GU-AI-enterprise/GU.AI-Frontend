@@ -192,6 +192,9 @@ export async function reframe(options: {
   image: File | string;
   aspectRatio: string;
   resolution?: '1k' | '2k' | '4k';
+  generationMode?: 'fast' | 'balanced' | 'quality';
+  numImages?: number;
+  seed?: number;
 }): Promise<AIJobStartResult> {
   const fd = new FormData();
   if (options.image instanceof File) {
@@ -200,7 +203,10 @@ export async function reframe(options: {
     fd.append('imageUrl', options.image);
   }
   fd.append('aspectRatio', options.aspectRatio);
-  if (options.resolution) fd.append('resolution', options.resolution);
+  if (options.resolution)      fd.append('resolution',     options.resolution);
+  if (options.generationMode)  fd.append('generationMode', options.generationMode);
+  if (options.numImages && options.numImages > 1) fd.append('numImages', String(options.numImages));
+  if (options.seed !== undefined) fd.append('seed',        String(options.seed));
 
   return startJob('/api/ai/reframe', fd);
 }
@@ -263,6 +269,8 @@ export async function modelCreate(options: {
   aspectRatio?: string;
   resolution?: '1k' | '2k' | '4k';
   generationMode?: 'fast' | 'balanced' | 'quality';
+  numImages?: number;
+  seed?: number;
 }): Promise<AIJobStartResult> {
   const fd = new FormData();
   fd.append('prompt', options.prompt);
@@ -273,9 +281,11 @@ export async function modelCreate(options: {
       fd.append('imageReferenceUrl', options.imageReference);
     }
   }
-  if (options.aspectRatio) fd.append('aspectRatio', options.aspectRatio);
-  if (options.resolution) fd.append('resolution', options.resolution);
+  if (options.aspectRatio)    fd.append('aspectRatio',    options.aspectRatio);
+  if (options.resolution)     fd.append('resolution',     options.resolution);
   if (options.generationMode) fd.append('generationMode', options.generationMode);
+  if (options.numImages)      fd.append('numImages',      String(options.numImages));
+  if (options.seed !== undefined) fd.append('seed',       String(options.seed));
   return startJob('/api/ai/model-create', fd);
 }
 
