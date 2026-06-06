@@ -76,10 +76,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         dispatch(setBalance(payload.data.newBalance));
       }
       setUnreadCount((n) => n + 1);
+      // Use domain category (payment/ai_job/…) from data; fall back to socket alert type
+      const category = payload.data?.category ?? payload.type;
       setItems((prev) => [
         {
           id: payload.data?.notificationId ?? String(Date.now()),
-          type: payload.type,
+          type: category,
           title: payload.title,
           content: payload.message,
           status: NotificationStatus.UNREAD,

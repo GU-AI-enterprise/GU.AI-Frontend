@@ -2,16 +2,35 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Bell, CheckCheck, Sparkles, Info, AlertTriangle, X } from "lucide-react";
+import { Bell, CheckCheck, Sparkles, Info, AlertTriangle, X, CreditCard, Wand2, MessageCircle, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNotifications } from "@/contexts/NotificationContext";
-import { NotificationStatus } from "@/constants/notification";
+import { NotificationStatus, NotificationType } from "@/constants/notification";
 import { cn } from "@/lib/utils";
 
+const NOTIF_META: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
+  [NotificationType.PAYMENT]:   { icon: <CreditCard className="size-4" />,    label: "Thanh toán", color: "text-emerald-500" },
+  [NotificationType.AI_JOB]:    { icon: <Wand2 className="size-4" />,         label: "AI Job",     color: "text-violet-400" },
+  [NotificationType.SUPPORT]:   { icon: <MessageCircle className="size-4" />, label: "Hỗ trợ",     color: "text-sky-400"    },
+  [NotificationType.SYSTEM]:    { icon: <Settings className="size-4" />,      label: "Hệ thống",   color: "text-muted-foreground" },
+  [NotificationType.SECURITY]:  { icon: <AlertTriangle className="size-4" />, label: "Bảo mật",    color: "text-red-400"    },
+  [NotificationType.PROMOTION]: { icon: <Sparkles className="size-4" />,      label: "Ưu đãi",     color: "text-amber-400"  },
+};
+const DEFAULT_META = { icon: <Info className="size-4" />, label: "", color: "text-primary" };
+
 function NotifIcon({ type }: { type: string }) {
-  if (type === "promotion") return <Sparkles className="size-4 text-amber-400" />;
-  if (type === "security") return <AlertTriangle className="size-4 text-red-400" />;
-  return <Info className="size-4 text-primary" />;
+  const meta = NOTIF_META[type] ?? DEFAULT_META;
+  return <span className={meta.color}>{meta.icon}</span>;
+}
+
+function NotifLabel({ type }: { type: string }) {
+  const label = NOTIF_META[type]?.label;
+  if (!label) return null;
+  return (
+    <span className="inline-block rounded-full bg-accent px-1.5 py-px text-[9px] font-medium text-muted-foreground uppercase tracking-wide leading-none">
+      {label}
+    </span>
+  );
 }
 
 function timeAgo(iso: string) {
@@ -144,10 +163,13 @@ export default function NotificationCenter({ variant = "sidebar", collapsed = fa
                 >
                   <div className="mt-0.5 flex-shrink-0"><NotifIcon type={n.type} /></div>
                   <div className="flex-1 min-w-0">
-                    <p className={cn("text-xs font-semibold truncate", n.status === NotificationStatus.UNREAD ? "text-foreground" : "text-muted-foreground")}>
-                      {n.title}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{n.content}</p>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <p className={cn("text-xs font-semibold truncate", n.status === NotificationStatus.UNREAD ? "text-foreground" : "text-muted-foreground")}>
+                        {n.title}
+                      </p>
+                      <NotifLabel type={n.type} />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground line-clamp-2">{n.content}</p>
                     <p className="text-[10px] text-muted-foreground/60 mt-1">{timeAgo(n.created_at)}</p>
                   </div>
                   {n.status === NotificationStatus.UNREAD && (

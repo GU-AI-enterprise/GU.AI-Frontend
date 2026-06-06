@@ -2,14 +2,14 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { 
-  Sparkles, 
-  Layers, 
-  Zap, 
-  ChevronRight, 
-  ArrowRight, 
-  Play, 
-  Check, 
+import {
+  Sparkles,
+  Layers,
+  Zap,
+  ChevronRight,
+  ArrowRight,
+  Play,
+  Check,
   HelpCircle,
   ExternalLink,
   ChevronLeft
@@ -19,6 +19,7 @@ import Header from "@/components/shared/header";
 import SupportChatWidget from "@/components/support/support-chat-widget";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 const showcaseItems = [
   {
@@ -90,7 +91,8 @@ export default function LandingPage() {
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+  const router = useRouter();
+
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annually">("monthly");
 
   const handleMove = (clientX: number) => {
@@ -132,7 +134,7 @@ export default function LandingPage() {
 
   return (
     <div className="flex-1 flex flex-col min-h-screen bg-background">
-      
+
       {/* Top Banner (Optional promo) */}
       <div className="relative z-50 bg-gradient-to-r from-primary/10 via-primary/20 to-rose-500/10 py-2.5 text-center text-xs font-light tracking-wide text-foreground border-b border-primary/20">
         🎉 Giới thiệu GU.AI Studio v1.0 - Trải nghiệm AI Virtual Shoot miễn phí ngay hôm nay.{" "}
@@ -146,7 +148,7 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-20 pb-24 md:pt-32 md:pb-36 lg:pt-40">
-        
+
         {/* Glow circles & grid backgrounds */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[600px] rounded-full bg-primary/5 blur-[150px] pointer-events-none" />
         <div className="absolute top-10 right-10 size-[300px] rounded-full bg-rose-500/5 blur-[100px] pointer-events-none" />
@@ -241,7 +243,7 @@ export default function LandingPage() {
         </div>
 
         <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10 text-center">
-          
+
           {/* Badge */}
           <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs text-primary font-medium tracking-wider uppercase mb-6 animate-fade-in">
             <Sparkles className="size-3.5" /> Nền tảng mẫu ảo AI số 1 Việt Nam
@@ -263,12 +265,10 @@ export default function LandingPage() {
 
           {/* CTAs */}
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <Link href="/register">
-              <Button className="rounded-full bg-primary px-8 py-6 text-sm font-semibold text-primary-foreground shadow-[0_0_25px_rgba(var(--color-primary),0.2)] hover:bg-primary/90 hover:scale-[1.02] transition-all">
-                Tạo ảnh ngay lập tức
-                <ArrowRight className="size-4 ml-1" />
-              </Button>
-            </Link>
+            <Button onClick={() => { router.push("/studio") }} className="rounded-full bg-primary px-8 py-6 text-sm font-semibold text-primary-foreground shadow-[0_0_25px_rgba(var(--color-primary),0.2)] hover:bg-primary/90 hover:scale-[1.02] transition-all">
+              Tạo ảnh ngay lập tức
+              <ArrowRight className="size-4 ml-1" />
+            </Button>
             <Link href="#interactive-demo">
               <Button variant="outline" className="rounded-full px-8 py-6 text-sm border-border hover:bg-secondary hover:text-foreground transition-all text-muted-foreground">
                 <Play className="size-3.5 mr-2 fill-current" /> Xem cách hoạt động
@@ -308,22 +308,22 @@ export default function LandingPage() {
 
           {/* Comparison Slider Component */}
           <div className="max-w-xl mx-auto">
-            <div 
+            <div
               ref={containerRef}
               className="relative aspect-[3/4] rounded-2xl overflow-hidden border border-border shadow-xl select-none cursor-ew-resize bg-background"
               onMouseDown={() => setIsDragging(true)}
               onTouchStart={() => setIsDragging(true)}
             >
-              
+
               {/* After: AI generated model (Left/Visible side when slider goes right) */}
               <div className="absolute inset-0 flex flex-col justify-end p-8 text-left">
                 {/* AI Fashion Model image */}
-                <img 
-                  src="/vietnamese_female.png" 
-                  alt="AI Generated Fashion Model" 
+                <img
+                  src="/vietnamese_female.png"
+                  alt="AI Generated Fashion Model"
                   className="absolute inset-0 size-full object-cover select-none"
                 />
-                
+
                 {/* Gradient overlay to make text readable */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent z-10" />
 
@@ -333,7 +333,7 @@ export default function LandingPage() {
                 <div className="absolute top-8 right-8 rounded-full bg-white/10 border border-white/20 px-3 py-1 text-[10px] text-white uppercase font-mono tracking-wider z-20 backdrop-blur-md">
                   Lighting: Studio Soft Light
                 </div>
-                
+
                 <div className="relative z-20">
                   <span className="text-[10px] font-mono tracking-wider uppercase text-primary font-bold">KẾT QUẢ AI RENDER</span>
                   <h4 className="font-serif text-2xl text-white mt-1">Ảnh Mẫu Mặc Đồ Hoàn Thiện</h4>
@@ -342,24 +342,24 @@ export default function LandingPage() {
               </div>
 
               {/* Before: Raw product on hanger (Right side, cropped by clipPath) */}
-              <div 
+              <div
                 className="absolute inset-0 flex flex-col justify-end p-8 text-left transition-all duration-75 select-none"
                 style={{ clipPath: `polygon(${sliderPosition}% 0, 100% 0, 100% 100%, ${sliderPosition}% 100%)` }}
               >
                 {/* Raw Product Photo */}
-                <img 
-                  src="https://images.unsplash.com/photo-1595777457583-95e059d581b8?q=80&w=600&auto=format&fit=crop" 
-                  alt="Raw Dress Hanger Input" 
+                <img
+                  src="https://images.unsplash.com/photo-1595777457583-95e059d581b8?q=80&w=600&auto=format&fit=crop"
+                  alt="Raw Dress Hanger Input"
                   className="absolute inset-0 size-full object-cover select-none filter contrast-[1.05]"
                 />
-                
+
                 {/* Gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent z-10" />
 
                 <div className="absolute top-8 right-8 rounded-full bg-white/20 border border-white/30 px-3 py-1 text-[10px] text-white uppercase font-mono tracking-wider z-20 backdrop-blur-md">
                   Flatlay / Hanger Only
                 </div>
-                
+
                 <div className="relative z-20">
                   <span className="text-[10px] font-mono tracking-wider uppercase text-white/70">ẢNH ĐẦU VÀO</span>
                   <h4 className="font-serif text-2xl text-white mt-1">Ảnh Chụp Thô Sản Phẩm</h4>
@@ -368,7 +368,7 @@ export default function LandingPage() {
               </div>
 
               {/* Drag line overlay */}
-              <div 
+              <div
                 className="absolute inset-y-0 w-1 bg-primary cursor-ew-resize select-none"
                 style={{ left: `${sliderPosition}%` }}
               >
@@ -398,20 +398,20 @@ export default function LandingPage() {
 
         {/* Marquee Row 1: Left scrolling */}
         <div className="relative flex w-full overflow-hidden py-4 gap-6 select-none">
-          <motion.div 
+          <motion.div
             className="flex gap-6 whitespace-nowrap min-w-full"
             animate={{ x: ["0%", "-50%"] }}
             transition={{ ease: "linear", duration: 30, repeat: Infinity }}
           >
             {[...showcaseItems, ...showcaseItems].map((item, idx) => (
-              <div 
+              <div
                 key={idx}
                 className="inline-flex flex-col flex-shrink-0 w-72 rounded-2xl border border-border bg-card p-3 shadow-md group hover:border-primary/30 transition-all duration-300"
               >
                 <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-secondary/20">
-                  <img 
-                    src={item.image} 
-                    alt={item.title} 
+                  <img
+                    src={item.image}
+                    alt={item.title}
                     className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"
                   />
@@ -432,20 +432,20 @@ export default function LandingPage() {
 
         {/* Marquee Row 2: Right scrolling */}
         <div className="relative flex w-full overflow-hidden py-4 gap-6 select-none mt-4">
-          <motion.div 
+          <motion.div
             className="flex gap-6 whitespace-nowrap min-w-full"
             animate={{ x: ["-50%", "0%"] }}
             transition={{ ease: "linear", duration: 32, repeat: Infinity }}
           >
             {[...showcaseItems2, ...showcaseItems2].map((item, idx) => (
-              <div 
+              <div
                 key={idx}
                 className="inline-flex flex-col flex-shrink-0 w-72 rounded-2xl border border-border bg-card p-3 shadow-md group hover:border-primary/30 transition-all duration-300"
               >
                 <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-secondary/20">
-                  <img 
-                    src={item.image} 
-                    alt={item.title} 
+                  <img
+                    src={item.image}
+                    alt={item.title}
                     className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"
                   />
@@ -468,7 +468,7 @@ export default function LandingPage() {
       {/* Services / Features Section */}
       <section id="features" className="py-24 border-t border-border/40 relative bg-background">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          
+
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-4">
             <div className="max-w-2xl">
               <span className="text-xs font-semibold uppercase tracking-wider text-primary">SẢN PHẨM & DỊCH VỤ</span>
@@ -499,8 +499,8 @@ export default function LandingPage() {
                 desc: "Lưu giữ phong cách chiếu sáng, phông màu, logo, tỷ lệ khung hình Shopee/TikTok Shop để tạo loạt ảnh đồng nhất tuyệt đối."
               }
             ].map((service, idx) => (
-              <div 
-                key={idx} 
+              <div
+                key={idx}
                 className="group relative rounded-2xl border border-border/60 bg-card/45 p-8 transition-all duration-300 hover:bg-secondary/40 hover:border-border hover:-translate-y-1 shadow-sm"
               >
                 <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 shadow-inner mb-6">
@@ -532,17 +532,17 @@ export default function LandingPage() {
       {/* Pricing Section */}
       <section id="pricing" className="py-24 border-t border-border/40 bg-secondary/15">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          
+
           <div className="text-center max-w-3xl mx-auto mb-16">
             <span className="text-xs font-semibold uppercase tracking-wider text-primary">BẢNG GIÁ DỊCH VỤ</span>
             <h2 className="font-serif text-3xl font-light tracking-tight text-foreground sm:text-4xl mt-2">
               Kế hoạch giá trị <span className="font-normal italic text-primary">phù hợp</span>
             </h2>
-            
+
             {/* Toggle monthly / annually */}
             <div className="mt-6 flex items-center justify-center gap-3">
               <span className={`text-xs font-light transition-colors ${billingPeriod === "monthly" ? "text-foreground" : "text-muted-foreground"}`}>Mỗi tháng</span>
-              <button 
+              <button
                 onClick={() => setBillingPeriod(billingPeriod === "monthly" ? "annually" : "monthly")}
                 className="relative h-6 w-11 rounded-full bg-foreground/10 p-0.5 transition-colors focus:outline-none"
               >
@@ -599,13 +599,12 @@ export default function LandingPage() {
                 href: "mailto:contact@gu.ai"
               }
             ].map((plan, idx) => (
-              <div 
-                key={idx} 
-                className={`relative rounded-2xl p-8 flex flex-col justify-between transition-all duration-300 ${
-                  plan.popular 
-                    ? "border-2 border-primary bg-primary/[0.02] shadow-[0_0_30px_rgba(var(--color-primary),0.08)] scale-105 z-10 bg-background" 
+              <div
+                key={idx}
+                className={`relative rounded-2xl p-8 flex flex-col justify-between transition-all duration-300 ${plan.popular
+                    ? "border-2 border-primary bg-primary/[0.02] shadow-[0_0_30px_rgba(var(--color-primary),0.08)] scale-105 z-10 bg-background"
                     : "border border-border/80 bg-card hover:border-border hover:shadow-sm"
-                }`}
+                  }`}
               >
                 {plan.popular && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-[9px] font-bold text-primary-foreground uppercase tracking-wider">
@@ -616,7 +615,7 @@ export default function LandingPage() {
                 <div>
                   <h3 className="text-lg font-bold text-foreground">{plan.name}</h3>
                   <p className="text-xs font-light text-muted-foreground/60 mt-1">{plan.desc}</p>
-                  
+
                   <div className="mt-6 flex items-baseline gap-1 border-b border-border/40 pb-6">
                     <span className="text-3xl font-serif font-semibold text-foreground">{plan.price}</span>
                     {plan.price !== "Liên hệ" && (
@@ -639,12 +638,11 @@ export default function LandingPage() {
 
                 <div className="mt-8">
                   <Link href={plan.href}>
-                    <Button 
-                      className={`w-full py-5 text-xs font-semibold rounded-xl transition-all ${
-                        plan.popular 
-                          ? "bg-primary text-primary-foreground shadow-[0_0_15px_rgba(var(--color-primary),0.15)] hover:bg-primary/90" 
+                    <Button
+                      className={`w-full py-5 text-xs font-semibold rounded-xl transition-all ${plan.popular
+                          ? "bg-primary text-primary-foreground shadow-[0_0_15px_rgba(var(--color-primary),0.15)] hover:bg-primary/90"
                           : "bg-secondary text-foreground hover:bg-secondary/80"
-                      }`}
+                        }`}
                     >
                       {plan.cta}
                     </Button>

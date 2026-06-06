@@ -330,10 +330,11 @@ export default function StudioPage() {
   };
 
   // ── Derived ───────────────────────────────────────────────────────────────
-  const isTryOn = selectedTool === AIToolType.TRY_ON;
-  const isP2M   = selectedTool === AIToolType.PRODUCT_TO_MODEL;
-  const isMS    = selectedTool === AIToolType.MODEL_SWAP;
-  const isFS    = selectedTool === AIToolType.FACE_SWAP;
+  const isTryOn  = selectedTool === AIToolType.TRY_ON;
+  const isP2M    = selectedTool === AIToolType.PRODUCT_TO_MODEL;
+  const isMS     = selectedTool === AIToolType.MODEL_SWAP;
+  const isFS     = selectedTool === AIToolType.FACE_SWAP;
+  const isVideo  = selectedTool === AIToolType.IMAGE_TO_VIDEO;
 
   const showPanel  = isProcessing || jobState === "completed" || jobState === "failed";
   const toolData   = TOOLS.find(t => t.id === selectedTool);
@@ -431,10 +432,14 @@ export default function StudioPage() {
               <div className={`absolute inset-0 transition-opacity duration-200 ${jobState === "completed" && resultUrl ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
                 <div className="flex flex-col h-full min-h-0 rounded-3xl border border-border bg-card overflow-hidden shadow-lg">
                   <div
-                    className="flex-1 min-h-0 flex items-center justify-center bg-muted/20 overflow-hidden cursor-zoom-in"
-                    onClick={() => resultUrl && setLightboxUrl(resultUrl)}
+                    className={`flex-1 min-h-0 flex items-center justify-center bg-muted/20 overflow-hidden ${isVideo ? "" : "cursor-zoom-in"}`}
+                    onClick={() => !isVideo && resultUrl && setLightboxUrl(resultUrl)}
                   >
-                    {resultUrl && <img src={resultUrl} alt="Kết quả AI" className="w-full h-full object-contain" />}
+                    {resultUrl && (
+                      isVideo
+                        ? <video src={resultUrl} controls className="w-full h-full object-contain" />
+                        : <img src={resultUrl} alt="Kết quả AI" className="w-full h-full object-contain" />
+                    )}
                   </div>
                   <div className="flex items-center gap-2 p-3 border-t border-border shrink-0 flex-wrap">
                     {isMobile && (
@@ -443,14 +448,16 @@ export default function StudioPage() {
                       </button>
                     )}
                     <button
-                      onClick={() => { if (!resultUrl) return; const a = document.createElement("a"); a.href = resultUrl; a.download = `guai_result_${Date.now()}.png`; a.click(); }}
+                      onClick={() => { if (!resultUrl) return; const a = document.createElement("a"); a.href = resultUrl; a.download = `guai_result_${Date.now()}.${isVideo ? "mp4" : "png"}`; a.click(); }}
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-foreground text-background text-xs font-medium hover:opacity-90 transition-opacity"
                     >
                       <Download className="size-3.5" /> Tải xuống
                     </button>
+                    {!isVideo && (
                     <button onClick={() => resultUrl && setLightboxUrl(resultUrl)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
                       <Maximize2 className="size-3.5" /> Phóng to
                     </button>
+                    )}
                     <button
                       onClick={() => resultAssetId && setSaveAlbumAssetId(resultAssetId)}
                       disabled={!resultAssetId}
