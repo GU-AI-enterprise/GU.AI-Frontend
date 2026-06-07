@@ -32,6 +32,7 @@ import Logo from "@/components/shared/logo";
 import SupportChatWidget from "@/components/support/support-chat-widget";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { fetchCredit, selectCreditBalance } from "@/features/credit/creditSlice";
+import { getTopupInfo } from "@/features/payment/paymentService";
 import { supabase } from "@/lib/supabase";
 import { useSupportUnread } from "@/contexts/SupportUnreadContext";
 import { useSidebar } from "@/contexts/SidebarContext";
@@ -57,6 +58,7 @@ export default function Sidebar() {
   const { theme, setTheme } = useTheme();
   const { session, user } = useAppSelector((s) => s.auth);
   const credit    = useAppSelector(selectCreditBalance);
+  const [planType, setPlanType] = useState<'free' | 'basic' | 'pro' | 'agency'>('free');
 
   const { unreadCount, role: userRole, markRead } = useSupportUnread();
   const isStaff = userRole === "staff" || userRole === "admin";
@@ -95,6 +97,11 @@ export default function Sidebar() {
   useEffect(() => {
     if (session?.access_token) dispatch(fetchCredit());
   }, [session?.access_token, dispatch]);
+
+  useEffect(() => {
+    if (!session?.access_token) return;
+    getTopupInfo().then(info => setPlanType(info.plan_type)).catch(() => {});
+  }, [session?.access_token]);
 
   // ── Close user menu on outside click ────────────────────────────────────────
   useEffect(() => {
@@ -141,6 +148,14 @@ export default function Sidebar() {
   const email     = user?.email ?? "";
   const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
   const initials  = displayName.charAt(0).toUpperCase();
+
+  const PLAN_META = {
+    free:   { label: 'Free',   color: 'text-slate-400',   bg: 'bg-slate-400/10',   dot: 'bg-slate-400'   },
+    basic:  { label: 'Basic',  color: 'text-blue-400',    bg: 'bg-blue-400/10',    dot: 'bg-blue-400'    },
+    pro:    { label: 'Pro',    color: 'text-violet-400',  bg: 'bg-violet-400/10',  dot: 'bg-violet-400'  },
+    agency: { label: 'Agency', color: 'text-amber-400',   bg: 'bg-amber-400/10',   dot: 'bg-amber-400'   },
+  } as const;
+  const plan = PLAN_META[planType];
 
   return (
     <>
@@ -311,17 +326,20 @@ export default function Sidebar() {
 
         </nav>
 
-        {/* ── Credit ── */}
+        {/* ── Credit + Plan ── */}
         {credit !== null && (
           <div className="px-3 pb-2 border-t border-sidebar-border pt-3">
             {isCollapsed ? (
-              <div className="flex flex-col items-center gap-1 py-1">
+              <div className="flex flex-col items-center gap-1.5 py-1">
                 <Link
                   href="/topup"
                   title={`${credit.toLocaleString()} credits — Nạp thêm`}
-                  className="flex items-center justify-center size-9 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                  className="relative flex items-center justify-center size-9 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                 >
                   <Coins className="size-4" />
+                  {planType !== 'free' && (
+                    <span className={`absolute -top-1 -right-1 size-2.5 rounded-full border-2 border-sidebar ${plan.dot}`} />
+                  )}
                 </Link>
               </div>
             ) : (
@@ -381,7 +399,13 @@ export default function Sidebar() {
               <>
                 <div className="flex-1 min-w-0 text-left">
                   <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">{displayName}</p>
-                  <p className="text-[11px] text-sidebar-foreground/50 truncate leading-tight">{email}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className={`shrink-0 inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${plan.bg} ${plan.color}`}>
+                      <span className={`size-1 rounded-full ${plan.dot}`} />
+                      {plan.label}
+                    </span>
+                    <p className="text-[11px] text-sidebar-foreground/50 truncate leading-tight">{email}</p>
+                  </div>
                 </div>
                 <ChevronUp className="size-3.5 text-sidebar-foreground/40 group-hover:text-sidebar-foreground/70 transition-colors shrink-0" />
               </>
@@ -453,7 +477,13 @@ export default function Sidebar() {
             )}
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
-              <p className="text-xs text-muted-foreground truncate">{email}</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${plan.bg} ${plan.color}`}>
+                  <span className={`size-1.5 rounded-full ${plan.dot}`} />
+                  {plan.label}
+                </span>
+                <p className="text-xs text-muted-foreground truncate">{email}</p>
+              </div>
             </div>
           </div>
 

@@ -234,15 +234,20 @@ export default function TopupPage() {
           </button>
           <div className="flex-1 relative">
             <input
-              type="number"
-              min={MIN_CREDITS}
-              max={MAX_CREDITS}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               value={creditAmount}
               onChange={e => {
-                const v = parseInt(e.target.value) || MIN_CREDITS;
-                setCreditAmount(Math.min(MAX_CREDITS, Math.max(MIN_CREDITS, v)));
+                const raw = e.target.value.replace(/\D/g, '');
+                if (raw === '') { setCreditAmount(MIN_CREDITS); return; }
+                const v = parseInt(raw, 10);
+                if (!isNaN(v)) setCreditAmount(Math.min(MAX_CREDITS, Math.max(MIN_CREDITS, v)));
               }}
-              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-center text-lg font-bold text-foreground tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-center text-lg font-bold text-foreground tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">credits</span>
           </div>
@@ -258,18 +263,16 @@ export default function TopupPage() {
         {/* Price breakdown */}
         <div className="rounded-xl bg-secondary/50 border border-border/60 px-4 py-3.5 mb-5 space-y-1.5">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>{fmt(creditAmount)} credits × {fmt(ratePerCredit)}đ</span>
-            <span className="tabular-nums">{fmt(totalPrice)}đ</span>
+            <span translate="no"><span className="tabular-nums">{fmt(creditAmount)}</span> credits × <span className="tabular-nums">{fmt(ratePerCredit)}</span>đ</span>
+            <span className="tabular-nums" translate="no">{fmt(totalPrice)}đ</span>
           </div>
-          {savings > 0 && (
-            <div className="flex items-center justify-between text-xs text-emerald-500">
-              <span>Tiết kiệm ({discountPct}%)</span>
-              <span className="tabular-nums">-{fmt(savings)}đ</span>
-            </div>
-          )}
+          <div className={`flex items-center justify-between text-xs text-emerald-500 ${savings > 0 ? '' : 'hidden'}`}>
+            <span>Tiết kiệm (<span className="tabular-nums">{discountPct}</span>%)</span>
+            <span className="tabular-nums" translate="no">-{fmt(savings)}đ</span>
+          </div>
           <div className="pt-1.5 border-t border-border/60 flex items-center justify-between">
             <span className="text-sm font-semibold text-foreground">Tổng cộng</span>
-            <span className="text-base font-bold text-foreground tabular-nums">{fmt(totalPrice)}đ</span>
+            <span className="text-base font-bold text-foreground tabular-nums" translate="no">{fmt(totalPrice)}đ</span>
           </div>
         </div>
 
@@ -278,10 +281,21 @@ export default function TopupPage() {
           disabled={topupping || !!buying || creditAmount < MIN_CREDITS || creditAmount > MAX_CREDITS}
           className="w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_16px_rgba(var(--color-primary),0.2)]"
         >
-          {topupping
-            ? <><Loader2 className="size-4 animate-spin" /> Đang xử lý...</>
-            : <><Coins className="size-4" /> Nạp {fmt(creditAmount)} credits — {fmt(totalPrice)}đ</>
-          }
+          {topupping ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              <span>Đang xử lý...</span>
+            </>
+          ) : (
+            <>
+              <Coins className="size-4" />
+              <span translate="no">
+                Nạp <span className="tabular-nums">{fmt(creditAmount)}</span> credits
+                {" — "}
+                <span className="tabular-nums">{fmt(totalPrice)}</span>đ
+              </span>
+            </>
+          )}
         </button>
 
         {discountPct === 0 && (
@@ -425,10 +439,14 @@ export default function TopupPage() {
                             : "bg-secondary text-foreground hover:bg-secondary/70"
                       }`}
                     >
-                      {isBuying
-                        ? <><Loader2 className="size-3.5 animate-spin" /> Đang xử lý...</>
-                        : isCurrentPlan ? "Gia hạn / nâng cấp" : "Mua ngay"
-                      }
+                      {isBuying ? (
+                        <>
+                          <Loader2 className="size-3.5 animate-spin" />
+                          <span>Đang xử lý...</span>
+                        </>
+                      ) : (
+                        <span>{isCurrentPlan ? "Gia hạn / nâng cấp" : "Mua ngay"}</span>
+                      )}
                     </button>
                   </div>
                 </div>

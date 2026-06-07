@@ -30,6 +30,9 @@ export const metadata: Metadata = {
     icon: "/icons/main_logo.png",
     apple: "/icons/main_logo.png",
   },
+  other: {
+    google: "notranslate",
+  },
 };
 
 export default function RootLayout({
@@ -40,6 +43,7 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
+      translate="no"
       className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} h-full antialiased`}
       suppressHydrationWarning
     >

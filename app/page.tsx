@@ -41,7 +41,6 @@ const TOOLS = [
 export default function LandingPage() {
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging]         = useState(false);
-  const [billingPeriod, setBillingPeriod]   = useState<"monthly" | "annually">("monthly");
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -360,41 +359,35 @@ export default function LandingPage() {
             <div className="text-center mb-7">
               <span className="text-xs font-semibold uppercase tracking-wider text-primary">BẢNG GIÁ</span>
               <h2 className="font-serif text-3xl sm:text-4xl font-light tracking-tight text-foreground mt-2">
-                Kế hoạch phù hợp <span className="font-normal italic text-primary">cho mọi quy mô</span>
+                Mua một lần, <span className="font-normal italic text-primary">dùng vĩnh viễn</span>
               </h2>
-              <div className="mt-4 flex items-center justify-center gap-3">
-                <span className={`text-xs transition-colors ${billingPeriod === "monthly" ? "text-foreground" : "text-muted-foreground"}`}>Mỗi tháng</span>
-                <button
-                  onClick={() => setBillingPeriod(p => p === "monthly" ? "annually" : "monthly")}
-                  className="cursor-pointer relative h-6 w-11 rounded-full bg-foreground/10 p-0.5 focus:outline-none"
-                >
-                  <div className={`h-5 w-5 rounded-full bg-primary transition-transform duration-300 ${billingPeriod === "annually" ? "translate-x-5" : ""}`} />
-                </button>
-                <span className={`text-xs transition-colors ${billingPeriod === "annually" ? "text-foreground" : "text-muted-foreground"}`}>
-                  Mỗi năm{" "}
-                  <span className="rounded-full bg-primary/20 border border-primary/30 text-primary px-1.5 py-0.5 text-[9px] font-bold">-20%</span>
-                </span>
-              </div>
+              <p className="mt-2 text-xs font-light text-muted-foreground">
+                Top-up credits bất kỳ lúc nào — gói cao hơn = giảm giá nhiều hơn
+              </p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-4">
               {[
                 {
-                  name: "Miễn phí", price: "0đ", credits: "10 Credits/tháng",
-                  features: ["Mẫu nam/nữ cơ bản", "Độ phân giải tiêu chuẩn", "1 Bối cảnh mặc định"],
-                  popular: false, cta: "Bắt đầu ngay", href: "/register",
+                  name: "Starter", price: "261.000đ", credits: "100 Credits",
+                  badge: { label: "Basic", color: "text-blue-400", bg: "bg-blue-400/10 border border-blue-400/20" },
+                  discount: "-5% top-up",
+                  features: ["100 credits nạp ngay", "Top-up: 1.501đ / credit", "Mẫu ảo cơ bản"],
+                  popular: false, cta: "Mua Starter", href: "/register",
                 },
                 {
-                  name: "Pro",
-                  price: billingPeriod === "monthly" ? "499.000đ" : "399.000đ",
-                  credits: "500 Credits/tháng",
-                  features: ["50+ mẫu ảo Việt Nam", "20+ bối cảnh phong phú", "Xử lý hàng loạt ưu tiên", "Ảnh Ultra-HD đa tỉ lệ", "2 Brand Kits"],
-                  popular: true, cta: "Nâng cấp Pro", href: "/register",
+                  name: "Gói Cơ Bản", price: "489.000đ", credits: "199 Credits",
+                  badge: { label: "Pro", color: "text-violet-400", bg: "bg-violet-400/10 border border-violet-400/20" },
+                  discount: "-10% top-up",
+                  features: ["199 credits nạp ngay", "Top-up: 1.422đ / credit", "50+ mẫu ảo Việt Nam", "20+ bối cảnh cao cấp"],
+                  popular: true, cta: "Mua Gói Cơ Bản", href: "/register",
                 },
                 {
-                  name: "Enterprise", price: "Liên hệ", credits: "Không giới hạn credits",
-                  features: ["AI model độc quyền theo yêu cầu", "Tích hợp API hệ thống", "Hỗ trợ kỹ thuật 24/7", "SLA cam kết phản hồi"],
-                  popular: false, cta: "Liên hệ ngay", href: "mailto:contact@gu.ai",
+                  name: "Gói Chuyên Nghiệp", price: "1.100.000đ", credits: "499 Credits",
+                  badge: { label: "Agency", color: "text-amber-400", bg: "bg-amber-400/10 border border-amber-400/20" },
+                  discount: "-15% top-up",
+                  features: ["499 credits nạp ngay", "Top-up: 1.343đ / credit", "Toàn bộ tính năng", "Xử lý ưu tiên hàng đầu"],
+                  popular: false, cta: "Mua Gói Chuyên Nghiệp", href: "/register",
                 },
               ].map((plan, idx) => (
                 <div
@@ -410,12 +403,19 @@ export default function LandingPage() {
                       Phổ biến nhất
                     </div>
                   )}
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${plan.badge.bg} ${plan.badge.color}`}>
+                      {plan.badge.label}
+                    </span>
+                  </div>
                   <h3 className="text-base font-bold text-foreground">{plan.name}</h3>
                   <div className="mt-3 pb-3 border-b border-border/40 flex items-baseline gap-1">
                     <span className="text-2xl font-serif font-semibold text-foreground">{plan.price}</span>
-                    {plan.price !== "Liên hệ" && <span className="text-xs text-muted-foreground">/tháng</span>}
                   </div>
-                  <div className="mt-3 text-xs font-semibold text-primary mb-3">{plan.credits}</div>
+                  <div className="mt-3 mb-2 flex items-center gap-2">
+                    <span className="text-xs font-semibold text-primary">{plan.credits}</span>
+                    <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">{plan.discount}</span>
+                  </div>
                   <ul className="space-y-2 flex-1">
                     {plan.features.map((f, fi) => (
                       <li key={fi} className="flex items-start gap-2 text-xs font-light text-muted-foreground">
@@ -435,6 +435,10 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
+
+            <p className="mt-5 text-center text-xs text-muted-foreground">
+              Không muốn mua gói? <Link href="/register" className="text-primary hover:underline font-medium">Đăng ký miễn phí</Link> và top-up credits với giá 1.580đ / credit bất kỳ lúc nào.
+            </p>
           </div>
         </section>
 
