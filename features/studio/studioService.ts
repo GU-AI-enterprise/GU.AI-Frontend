@@ -39,7 +39,7 @@ export interface AIJobStatusResult {
 }
 
 export type TryOnCategory = 'auto' | 'tops' | 'bottoms' | 'one-pieces';
-export type TryOnMode = 'quality' | 'balanced' | 'speed';
+export type TryOnMode = 'quality' | 'balanced' | 'performance';
 
 export interface TryOnPayload {
   /** File upload hoặc URL */
@@ -252,6 +252,9 @@ export async function faceToModel(options: {
   prompt?: string;
   aspectRatio?: string;
   resolution?: '1k' | '2k' | '4k';
+  generationMode?: 'fast' | 'balanced' | 'quality';
+  numImages?: number;
+  seed?: number;
 }): Promise<AIJobStartResult> {
   const fd = new FormData();
   if (options.faceImage instanceof File) {
@@ -259,15 +262,20 @@ export async function faceToModel(options: {
   } else {
     fd.append('faceImageUrl', options.faceImage);
   }
-  if (options.prompt) fd.append('prompt', options.prompt);
-  if (options.aspectRatio) fd.append('aspectRatio', options.aspectRatio);
-  if (options.resolution) fd.append('resolution', options.resolution);
+  if (options.prompt)          fd.append('prompt',          options.prompt);
+  if (options.aspectRatio)     fd.append('aspectRatio',     options.aspectRatio);
+  if (options.resolution)      fd.append('resolution',      options.resolution);
+  if (options.generationMode)  fd.append('generationMode',  options.generationMode);
+  if (options.numImages && options.numImages > 1) fd.append('numImages', String(options.numImages));
+  if (options.seed !== undefined) fd.append('seed',         String(options.seed));
   return startJob('/api/ai/face-to-model', fd);
 }
 
 export async function modelCreate(options: {
   prompt: string;
   imageReference?: File | string;
+  faceReference?: File | string;
+  faceReferenceMode?: 'match_base' | 'match_reference';
   aspectRatio?: string;
   resolution?: '1k' | '2k' | '4k';
   generationMode?: 'fast' | 'balanced' | 'quality';
@@ -277,17 +285,19 @@ export async function modelCreate(options: {
   const fd = new FormData();
   fd.append('prompt', options.prompt);
   if (options.imageReference) {
-    if (options.imageReference instanceof File) {
-      fd.append('imageReference', options.imageReference);
-    } else {
-      fd.append('imageReferenceUrl', options.imageReference);
-    }
+    if (options.imageReference instanceof File) fd.append('imageReference', options.imageReference);
+    else fd.append('imageReferenceUrl', options.imageReference);
   }
-  if (options.aspectRatio)    fd.append('aspectRatio',    options.aspectRatio);
-  if (options.resolution)     fd.append('resolution',     options.resolution);
-  if (options.generationMode) fd.append('generationMode', options.generationMode);
-  if (options.numImages)      fd.append('numImages',      String(options.numImages));
-  if (options.seed !== undefined) fd.append('seed',       String(options.seed));
+  if (options.faceReference) {
+    if (options.faceReference instanceof File) fd.append('faceReference', options.faceReference);
+    else fd.append('faceReferenceUrl', options.faceReference);
+  }
+  if (options.faceReferenceMode) fd.append('faceReferenceMode', options.faceReferenceMode);
+  if (options.aspectRatio)       fd.append('aspectRatio',       options.aspectRatio);
+  if (options.resolution)        fd.append('resolution',        options.resolution);
+  if (options.generationMode)    fd.append('generationMode',    options.generationMode);
+  if (options.numImages)         fd.append('numImages',         String(options.numImages));
+  if (options.seed !== undefined) fd.append('seed',             String(options.seed));
   return startJob('/api/ai/model-create', fd);
 }
 
@@ -322,6 +332,8 @@ export async function imageToVideo(options: {
   prompt?: string;
   duration?: 5 | 10;
   resolution?: '480p' | '720p' | '1080p';
+  /** Only sent when resolution is '1080p' */
+  endImage?: File | string;
 }): Promise<AIJobStartResult> {
   const fd = new FormData();
   if (options.image instanceof File) {
@@ -329,8 +341,12 @@ export async function imageToVideo(options: {
   } else {
     fd.append('imageUrl', options.image);
   }
-  if (options.prompt) fd.append('prompt', options.prompt);
-  if (options.duration) fd.append('duration', String(options.duration));
+  if (options.prompt)    fd.append('prompt',    options.prompt);
+  if (options.duration)  fd.append('duration',  String(options.duration));
   if (options.resolution) fd.append('resolution', options.resolution);
+  if (options.endImage && options.resolution === '1080p') {
+    if (options.endImage instanceof File) fd.append('endImage', options.endImage);
+    else fd.append('endImageUrl', options.endImage);
+  }
   return startJob('/api/ai/image-to-video', fd);
 }

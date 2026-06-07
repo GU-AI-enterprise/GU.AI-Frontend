@@ -15,9 +15,9 @@ export function computeEditCost(
   numImages = 1,
 ): number {
   const table: Record<GenMode, Record<GenResolution, number>> = {
-    fast:     { '1k': 2, '2k': 4, '4k': 6 },
-    balanced: { '1k': 4, '2k': 6, '4k': 8 },
-    quality:  { '1k': 6, '2k': 8, '4k': 10 },
+    fast:     { '1k': 1, '2k': 2, '4k': 3 },
+    balanced: { '1k': 2, '2k': 3, '4k': 4 },
+    quality:  { '1k': 3, '2k': 4, '4k': 5 },
   };
   return (table[genMode]?.[resolution] ?? 4) * Math.max(1, Math.min(4, numImages));
 }
@@ -30,9 +30,9 @@ export function computeModelCreateCost(
   hasFaceRef = false,
 ): number {
   const table: Record<GenMode, Record<GenResolution, number>> = {
-    fast:     { '1k': 2, '2k': 4, '4k': 6 },
-    balanced: { '1k': 4, '2k': 6, '4k': 8 },
-    quality:  { '1k': 6, '2k': 8, '4k': 10 },
+    fast:     { '1k': 1, '2k': 2, '4k': 3 },
+    balanced: { '1k': 2, '2k': 3, '4k': 4 },
+    quality:  { '1k': 3, '2k': 4, '4k': 5 },
   };
   const base = table[genMode]?.[resolution] ?? 4;
   // face_reference adds +3 Fashn = +6 GU.AI per image
@@ -42,8 +42,8 @@ export function computeModelCreateCost(
 /** Dynamic credit cost for Image to Video — mirrors Fashn table × 2 GU.AI markup */
 export function computeVideoCost(duration: 5 | 10 = 5, resolution: string = '720p'): number {
   const table: Record<number, Record<string, number>> = {
-    5:  { '480p': 2, '720p': 6,  '1080p': 12 },
-    10: { '480p': 4, '720p': 12, '1080p': 24 },
+    5:  { '480p': 1, '720p': 3,  '1080p': 6 },
+    10: { '480p': 2, '720p': 6, '1080p': 12 },
   };
   return table[duration]?.[resolution] ?? 6;
 }
@@ -55,19 +55,35 @@ export function computeReframeCost(
   numImages = 1,
 ): number {
   const table: Record<GenMode, Record<GenResolution, number>> = {
-    fast:     { '1k': 2, '2k': 4, '4k': 6 },
-    balanced: { '1k': 4, '2k': 6, '4k': 8 },
-    quality:  { '1k': 6, '2k': 8, '4k': 10 },
+    fast:     { '1k': 1, '2k': 4, '4k': 6 },
+    balanced: { '1k': 2, '2k': 3, '4k': 4 },
+    quality:  { '1k': 3, '2k': 4, '4k': 5 },
   };
   return (table[genMode]?.[resolution] ?? 4) * Math.max(1, Math.min(4, numImages));
 }
 
+/** Dynamic credit cost for variable-cost endpoints (model-swap, product-to-model, face-to-model) */
+export function computeVariableCost(
+  genMode: GenMode | 'fast' = 'balanced',
+  resolution: GenResolution = '1k',
+  numImages = 1,
+  hasFaceRef = false,
+): number {
+  const table: Record<string, Record<GenResolution, number>> = {
+    fast:     { '1k': 1, '2k': 2, '4k': 3 },
+    balanced: { '1k': 2, '2k': 3, '4k': 4 },
+    quality:  { '1k': 3, '2k': 4, '4k': 5 },
+  };
+  const base = table[genMode]?.[resolution] ?? 4;
+  return (base + (hasFaceRef ? 6 : 0)) * Math.max(1, Math.min(4, numImages));
+}
+
 export function computeTryOnCost(model: TryOnModel, mode: string, resolution: TryOnResolution): number {
   if (model === "v1.6") return 1;
+  // tryon-max: Fashn credits × 2 GU.AI markup
   const table: Record<string, Record<TryOnResolution, number>> = {
-    balanced: { "1k": 2, "2k": 3, "4k": 4 },
-    quality:  { "1k": 3, "2k": 4, "4k": 5 },
-    speed:    { "1k": 2, "2k": 3, "4k": 4 },
+    balanced:    { "1k": 2,  "2k": 3,  "4k": 4  },
+    quality:     { "1k": 3,  "2k": 4,  "4k": 5 },
   };
-  return table[mode]?.[resolution] ?? 2;
+  return table[mode]?.[resolution] ?? 4;
 }

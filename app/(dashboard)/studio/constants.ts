@@ -1,4 +1,4 @@
-import { Wand2, Shirt, UserCircle2, Smile, Pencil, UserPlus, Video, Maximize2, Crop } from "lucide-react";
+import { Wand2, Shirt, UserCircle2, ScanFace, Pencil, UserPlus, Video, Maximize2, Crop } from "lucide-react";
 import type { ElementType } from "react";
 import { AIToolType, CREDIT_COST } from "@/constants/ai";
 import type { TryOnModel, TryOnResolution } from "./types";
@@ -15,7 +15,7 @@ export const TOOLS: ToolDef[] = [
   { id: AIToolType.PRODUCT_TO_MODEL, name: "Product to Model", Icon: Wand2,        credit: CREDIT_COST[AIToolType.PRODUCT_TO_MODEL] },
   { id: AIToolType.TRY_ON,           name: "Try-On",           Icon: Shirt,         credit: CREDIT_COST[AIToolType.TRY_ON] },
   { id: AIToolType.MODEL_SWAP,       name: "Model Swap",       Icon: UserCircle2,   credit: CREDIT_COST[AIToolType.MODEL_SWAP] },
-  { id: AIToolType.FACE_SWAP,        name: "Face Swap",        Icon: Smile,         credit: CREDIT_COST[AIToolType.FACE_SWAP] },
+  { id: AIToolType.FACE_TO_MODEL,   name: "Face to Model",    Icon: ScanFace,      credit: CREDIT_COST[AIToolType.FACE_TO_MODEL] },
   { id: AIToolType.EDIT,             name: "Edit",             Icon: Pencil,        credit: CREDIT_COST[AIToolType.EDIT] },
   { id: AIToolType.CREATE_MODEL,     name: "Create Model",     Icon: UserPlus,      credit: CREDIT_COST[AIToolType.CREATE_MODEL] },
   { id: AIToolType.IMAGE_TO_VIDEO,   name: "Image to Video",   Icon: Video,         credit: CREDIT_COST[AIToolType.IMAGE_TO_VIDEO] },
@@ -76,7 +76,7 @@ export const TOOL_SLUG: Record<AIToolType, string> = {
   [AIToolType.PRODUCT_TO_MODEL]: 'product-to-model',
   [AIToolType.TRY_ON]:           'try-on',
   [AIToolType.MODEL_SWAP]:       'model-swap',
-  [AIToolType.FACE_SWAP]:        'face-swap',
+  [AIToolType.FACE_TO_MODEL]:   'face-to-model',
   [AIToolType.EDIT]:             'edit',
   [AIToolType.CREATE_MODEL]:     'create-model',
   [AIToolType.IMAGE_TO_VIDEO]:   'image-to-video',

@@ -67,11 +67,19 @@ export interface ToolContextBarProps {
   onMsResChange: (v: GenResolution) => void;
   onMsGenModeChange: (v: GenMode) => void;
   onMsFaceModeChange: (v: FaceRefMode) => void;
-  // Face Swap
-  fsRes: GenResolution;
-  fsFaceMode: FaceRefMode;
-  onFsResChange: (v: GenResolution) => void;
-  onFsFaceModeChange: (v: FaceRefMode) => void;
+  // Face to Model
+  f2mPrompt: string;
+  f2mAspect: string;
+  f2mRes: GenResolution;
+  f2mGenMode: GenMode;
+  f2mNumImages: number;
+  f2mSeed: string;
+  onF2mPromptChange: (v: string) => void;
+  onF2mAspectChange: (v: string) => void;
+  onF2mResChange: (v: GenResolution) => void;
+  onF2mGenModeChange: (v: GenMode) => void;
+  onF2mNumImagesChange: (v: number) => void;
+  onF2mSeedChange: (v: string) => void;
   // Edit
   editRes: GenResolution;
   editGenMode: GenMode;
@@ -121,7 +129,8 @@ export function ToolContextBar({
   onP2mPromptChange, onP2mAspectChange, onP2mResChange, onP2mGenModeChange, onP2mFaceModeChange,
   msPrompt, msRes, msGenMode, msFaceMode, msHasFaceRef,
   onMsPromptChange, onMsResChange, onMsGenModeChange, onMsFaceModeChange,
-  fsRes, fsFaceMode, onFsResChange, onFsFaceModeChange,
+  f2mPrompt, f2mAspect, f2mRes, f2mGenMode, f2mNumImages, f2mSeed,
+  onF2mPromptChange, onF2mAspectChange, onF2mResChange, onF2mGenModeChange, onF2mNumImagesChange, onF2mSeedChange,
   editRes, editGenMode, editNumImages, editSeed,
   onEditResChange, onEditGenModeChange, onEditNumImagesChange, onEditSeedChange,
   createRes, createGenMode, createNumImages, createSeed,
@@ -286,23 +295,50 @@ export function ToolContextBar({
     );
   }
 
-  // ── Face Swap ─────────────────────────────────────────────────────────────
-  if (selectedTool === AIToolType.FACE_SWAP) {
+  // ── Face to Model ─────────────────────────────────────────────────────────
+  if (selectedTool === AIToolType.FACE_TO_MODEL) {
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2">
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+      <div className="border border-border/60 rounded-2xl px-3 py-2 flex items-stretch min-h-0">
+        <div className="w-[40%] min-w-0 flex flex-col gap-1.5 pr-3">
           <div className={row}>
             <span className={lbl}>Res:</span>
             {RESOLUTIONS.map((r) => (
-              <button key={r} onClick={() => onFsResChange(r)} className={pill(fsRes === r)}>{r}</button>
+              <button key={r} onClick={() => onF2mResChange(r)} className={pill(f2mRes === r)}>{r}</button>
             ))}
           </div>
           <div className={row}>
-            <span className={lbl}>Face:</span>
-            {FACE_REF_MODES.map((m) => (
-              <button key={m.value} onClick={() => onFsFaceModeChange(m.value)} className={pill(fsFaceMode === m.value)}>{m.label}</button>
+            <span className={lbl}>Mode:</span>
+            {GEN_MODES.map((m) => (
+              <button key={m} onClick={() => onF2mGenModeChange(m)} className={pill(f2mGenMode === m)}>{m}</button>
             ))}
           </div>
+          <div className={row}>
+            <span className={lbl}>Ảnh:</span>
+            {([1, 2, 3, 4] as const).map((n) => (
+              <button key={n} onClick={() => onF2mNumImagesChange(n)} className={pill(f2mNumImages === n)}>{n}</button>
+            ))}
+            <span className={`${lbl} ml-2`}>Seed:</span>
+            <input
+              type="number" value={f2mSeed} onChange={(e) => onF2mSeedChange(e.target.value)}
+              placeholder="42"
+              className="w-14 px-1.5 py-0.5 rounded-md text-[11px] bg-secondary/40 border-0 focus:outline-none focus:ring-1 focus:ring-primary/40"
+            />
+          </div>
+          <div className={row}>
+            <span className={lbl}>Ratio:</span>
+            {["1:1","4:5","3:4","2:3","9:16"].map((a) => (
+              <button key={a} onClick={() => onF2mAspectChange(a)} className={pill(f2mAspect === a)}>{a}</button>
+            ))}
+          </div>
+        </div>
+        <Divider />
+        <div className="flex-1 min-w-0 pl-3 flex items-center">
+          <input
+            value={f2mPrompt}
+            onChange={(e) => onF2mPromptChange(e.target.value)}
+            placeholder='Mô tả body (tuỳ chọn): "athletic build", "slender frame", "curvy figure"...'
+            className={inputCls}
+          />
         </div>
       </div>
     );

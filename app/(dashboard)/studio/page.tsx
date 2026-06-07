@@ -24,7 +24,7 @@ import { AIToolType } from "@/constants/ai";
 import { toast } from "sonner";
 import {
   tryOn, tryOnMax, productToModel, editImage,
-  modelSwap, modelCreate, imageToVideo, reframe,
+  modelSwap, modelCreate, imageToVideo, reframe, faceToModel,
   type TryOnCategory,
 } from "@/features/studio/studioService";
 import { useAIJob } from "@/hooks/useAIJob";
@@ -38,7 +38,7 @@ import {
 } from "@/features/aiJob/aiJobSlice";
 
 import { TOOLS, TOOL_SLUG, SLUG_TO_TOOL } from "./constants";
-import { computeTryOnCost, computeEditCost, computeModelCreateCost, computeVideoCost, computeReframeCost } from "./helpers";
+import { computeTryOnCost, computeEditCost, computeModelCreateCost, computeVideoCost, computeReframeCost, computeVariableCost } from "./helpers";
 import type {
   StudioImage, TryOnModel, TryOnResolution,
   GenResolution, GenMode, FaceRefMode, VideoDuration, VideoResolution,
@@ -49,7 +49,7 @@ import { ComparisonSlider } from "./components/ComparisonSlider";
 import { TryOnPanel } from "./components/TryOnPanel";
 import { ProductToModelPanel } from "./components/ProductToModelPanel";
 import { ModelSwapPanel } from "./components/ModelSwapPanel";
-import { FaceSwapPanel } from "./components/FaceSwapPanel";
+import { FaceToModelPanel } from "./components/FaceToModelPanel";
 import { EditPanel } from "./components/EditPanel";
 import { GenericPanel } from "./components/GenericPanel";
 
@@ -96,11 +96,14 @@ function StudioPageInner() {
   const [msGenMode,     setMsGenMode]     = useState<GenMode>("balanced");
   const [msFaceMode,    setMsFaceMode]    = useState<FaceRefMode>("match_reference");
 
-  // ── Face Swap state ───────────────────────────────────────────────────────
-  const [fsModelImage,  setFsModelImage]  = useState<StudioImage | null>(null);
-  const [fsFaceRef,     setFsFaceRef]     = useState<StudioImage | null>(null);
-  const [fsRes,         setFsRes]         = useState<GenResolution>("1k");
-  const [fsFaceMode,    setFsFaceMode]    = useState<FaceRefMode>("match_reference");
+  // ── Face to Model state ───────────────────────────────────────────────────
+  const [f2mFaceImage,   setF2mFaceImage]  = useState<StudioImage | null>(null);
+  const [f2mPrompt,      setF2mPrompt]     = useState("");
+  const [f2mAspect,      setF2mAspect]     = useState("2:3");
+  const [f2mRes,         setF2mRes]        = useState<GenResolution>("1k");
+  const [f2mGenMode,     setF2mGenMode]    = useState<GenMode>("balanced");
+  const [f2mNumImages,   setF2mNumImages]  = useState(1);
+  const [f2mSeed,        setF2mSeed]       = useState("");
 
   // ── Edit state ────────────────────────────────────────────────────────────
   const [editSource,    setEditSource]    = useState<StudioImage | null>(null);
@@ -278,7 +281,6 @@ function StudioPageInner() {
     setToModelImage(null); setToGarment(null); setToPrompt("");
     setP2mProduct(null); setP2mPromptImg(null); setP2mFaceRef(null); setP2mBgRef(null); setP2mPrompt("");
     setMsImage(null); setMsFaceRef(null); setMsPrompt("");
-    setFsModelImage(null); setFsFaceRef(null);
     setEditSource(null); setEditMask(null); setEditContext(null); setEditRes("1k"); setEditGenMode("balanced"); setEditNumImages(1); setEditSeed("");
     setCreateRes("1k"); setCreateGenMode("balanced"); setCreateNumImages(1); setCreateSeed("");
     setReframeAspect("1:1"); setReframeRes("1k"); setReframeGenMode("balanced"); setReframeNumImages(1); setReframeSeed("");
@@ -334,7 +336,7 @@ function StudioPageInner() {
     if (selectedTool === AIToolType.TRY_ON) {
       if (!toModelImage)  { toast.warning("Vui lòng thêm ảnh người mẫu."); return; }
       if (!toGarment)     { toast.warning("Vui lòng thêm ảnh trang phục."); return; }
-      const cost = computeTryOnCost(toModel, toCategory, toResolution);
+      const cost = computeTryOnCost(toModel, "balanced", toResolution);
       if (creditBalance !== null && creditBalance < cost) {
         toast.warning(`Bạn cần ${cost} credits để chạy ${toModel === "max" ? "Try-On Max" : "Try-On v1.6"}.`);
         return;
@@ -386,6 +388,20 @@ function StudioPageInner() {
       }));
     }
 
+    if (selectedTool === AIToolType.FACE_TO_MODEL) {
+      if (!f2mFaceImage) { toast.warning("Vui lòng thêm ảnh khuôn mặt."); return; }
+      const parsedF2mSeed = f2mSeed.trim() ? parseInt(f2mSeed.trim()) : undefined;
+      return submit(faceToModel({
+        faceImage:      f2mFaceImage.file ?? f2mFaceImage.url,
+        prompt:         f2mPrompt || undefined,
+        aspectRatio:    f2mAspect,
+        resolution:     f2mRes,
+        generationMode: f2mGenMode,
+        numImages:      f2mNumImages,
+        seed:           parsedF2mSeed,
+      }));
+    }
+
     if (selectedTool === AIToolType.MODEL_SWAP) {
       if (!msImage) { toast.warning("Vui lòng thêm ảnh thời trang."); return; }
       return submit(modelSwap({
@@ -395,17 +411,6 @@ function StudioPageInner() {
         prompt:            msPrompt || undefined,
         resolution:        msRes,
         generationMode:    msGenMode,
-      }));
-    }
-
-    if (selectedTool === AIToolType.FACE_SWAP) {
-      if (!fsModelImage) { toast.warning("Vui lòng thêm ảnh thời trang."); return; }
-      if (!fsFaceRef)    { toast.warning("Vui lòng thêm ảnh khuôn mặt cần swap."); return; }
-      return submit(modelSwap({
-        modelImage:        fsModelImage.file ?? fsModelImage.url,
-        faceReference:     fsFaceRef.file    ?? fsFaceRef.url,
-        faceReferenceMode: fsFaceMode,
-        resolution:        fsRes,
       }));
     }
 
@@ -464,11 +469,11 @@ function StudioPageInner() {
   };
 
   // ── Derived ───────────────────────────────────────────────────────────────
-  const isTryOn = selectedTool === AIToolType.TRY_ON;
-  const isP2M   = selectedTool === AIToolType.PRODUCT_TO_MODEL;
-  const isMS    = selectedTool === AIToolType.MODEL_SWAP;
-  const isFS    = selectedTool === AIToolType.FACE_SWAP;
-  const isEdit  = selectedTool === AIToolType.EDIT;
+  const isTryOn       = selectedTool === AIToolType.TRY_ON;
+  const isP2M         = selectedTool === AIToolType.PRODUCT_TO_MODEL;
+  const isMS          = selectedTool === AIToolType.MODEL_SWAP;
+  const isFaceToModel = selectedTool === AIToolType.FACE_TO_MODEL;
+  const isEdit        = selectedTool === AIToolType.EDIT;
   const isVideo = selectedTool === AIToolType.IMAGE_TO_VIDEO;
 
   // "before" image for the comparison slider
@@ -477,8 +482,8 @@ function StudioPageInner() {
     switch (selectedTool) {
       case AIToolType.TRY_ON:           return toModelImage?.url  ?? null;
       case AIToolType.PRODUCT_TO_MODEL: return p2mProduct?.url    ?? null;
-      case AIToolType.MODEL_SWAP:       return msImage?.url       ?? null;
-      case AIToolType.FACE_SWAP:        return fsModelImage?.url  ?? null;
+      case AIToolType.MODEL_SWAP:       return msImage?.url        ?? null;
+      case AIToolType.FACE_TO_MODEL:   return f2mFaceImage?.url   ?? null;
       case AIToolType.EDIT:             return editSource?.url     ?? null;
       default:                          return images[0]?.url     ?? null;
     }
@@ -494,7 +499,7 @@ function StudioPageInner() {
   const isCreateModel = selectedTool === AIToolType.CREATE_MODEL;
   const isReframe     = selectedTool === AIToolType.REFRAME;
   const currentCost = isTryOn
-    ? computeTryOnCost(toModel, toCategory, toResolution)
+    ? computeTryOnCost(toModel, "balanced", toResolution)
     : isEdit
     ? computeEditCost(editGenMode, editRes, editNumImages)
     : isCreateModel
@@ -503,13 +508,19 @@ function StudioPageInner() {
     ? computeVideoCost(videoDuration, videoRes)
     : isReframe
     ? computeReframeCost(reframeGenMode, reframeRes, reframeNumImages)
+    : isP2M
+    ? computeVariableCost(p2mGenMode, p2mRes, 1, !!p2mFaceRef)
+    : isMS
+    ? computeVariableCost(msGenMode, msRes, 1, !!msFaceRef)
+    : isFaceToModel
+    ? computeVariableCost(f2mGenMode, f2mRes, f2mNumImages, false)
     : (toolData?.credit ?? 0);
 
   const canRun = effectiveIsProcessing ? false
     : isTryOn ? (!!toModelImage && !!toGarment)
     : isP2M   ? !!p2mProduct
-    : isMS    ? !!msImage
-    : isFS    ? (!!fsModelImage && !!fsFaceRef)
+    : isMS          ? !!msImage
+    : isFaceToModel ? !!f2mFaceImage
     : isEdit  ? (!!editSource && !!genericPrompt.trim())
     : selectedTool === AIToolType.CREATE_MODEL ? !!genericPrompt.trim()
     : images.length > 0;
@@ -560,10 +571,10 @@ function StudioPageInner() {
                 onModelImageChange={setMsImage} onFaceRefChange={setMsFaceRef}
                 onPaste={handlePaste} openGallery={openGallery}
               />
-            ) : isFS ? (
-              <FaceSwapPanel
-                modelImage={fsModelImage} faceRef={fsFaceRef}
-                onModelImageChange={setFsModelImage} onFaceRefChange={setFsFaceRef}
+            ) : isFaceToModel ? (
+              <FaceToModelPanel
+                faceImage={f2mFaceImage}
+                onFaceImageChange={setF2mFaceImage}
                 onPaste={handlePaste} openGallery={openGallery}
               />
             ) : isEdit ? (
@@ -751,8 +762,11 @@ function StudioPageInner() {
             msFaceMode={msFaceMode} msHasFaceRef={!!msFaceRef}
             onMsPromptChange={setMsPrompt} onMsResChange={setMsRes}
             onMsGenModeChange={setMsGenMode} onMsFaceModeChange={setMsFaceMode}
-            fsRes={fsRes} fsFaceMode={fsFaceMode}
-            onFsResChange={setFsRes} onFsFaceModeChange={setFsFaceMode}
+            f2mPrompt={f2mPrompt} f2mAspect={f2mAspect} f2mRes={f2mRes}
+            f2mGenMode={f2mGenMode} f2mNumImages={f2mNumImages} f2mSeed={f2mSeed}
+            onF2mPromptChange={setF2mPrompt} onF2mAspectChange={setF2mAspect}
+            onF2mResChange={setF2mRes} onF2mGenModeChange={setF2mGenMode}
+            onF2mNumImagesChange={setF2mNumImages} onF2mSeedChange={setF2mSeed}
             editRes={editRes} editGenMode={editGenMode} editNumImages={editNumImages} editSeed={editSeed}
             onEditResChange={setEditRes} onEditGenModeChange={setEditGenMode}
             onEditNumImagesChange={setEditNumImages} onEditSeedChange={setEditSeed}
