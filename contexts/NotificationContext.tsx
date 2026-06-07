@@ -55,7 +55,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [unreadCount, setUnreadCount] = useState(0);
   const [items, setItems] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(false);
-  const socketRef = useRef<Socket | null>(null);
+  const socketRef  = useRef<Socket | null>(null);
+  const audioRef   = useRef<HTMLAudioElement | null>(null);
+
+  const playSound = () => {
+    try {
+      if (!audioRef.current) {
+        audioRef.current = new Audio("/notification.mp3");
+        audioRef.current.volume = 0.6;
+      }
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {});
+    } catch {}
+  };
 
   // Map of jobId → callback for AI job subscriptions
   const aiJobCallbacksRef = useRef<Map<string, AIJobCallback>>(new Map());
@@ -95,6 +107,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     // AI job completion/failure events
     socket.on("ai_job_update", (payload: AIJobUpdatePayload) => {
+      if (payload.status === "completed" || payload.status === "failed") {
+        console.log("Received AI job update:", payload);
+        playSound();
+      }
       const cb = aiJobCallbacksRef.current.get(payload.jobId);
       if (cb) cb(payload);
     });
