@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Search, Sparkles, UserRound, Image as ImageIcon,
   Layers, Copy, Wand2, AlignLeft, Check, LayoutGrid,
@@ -181,6 +181,28 @@ const ITEMS: Item[] = [
     studioHref: "/studio?tool=edit", imgAspect: "landscape" },
 ];
 
+// ── Masonry helpers ───────────────────────────────────────────────────────────
+
+function useCols(): number {
+  const [cols, setCols] = useState(3);
+  useEffect(() => {
+    const update = () => {
+      const w = window.innerWidth;
+      setCols(w >= 1280 ? 4 : w >= 1024 ? 3 : w >= 640 ? 2 : 1);
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return cols;
+}
+
+function splitCols<T>(items: T[], n: number): T[][] {
+  const cols: T[][] = Array.from({ length: n }, () => []);
+  items.forEach((item, i) => cols[i % n].push(item));
+  return cols;
+}
+
 // ── Card ──────────────────────────────────────────────────────────────────────
 
 function LibraryCard({ item }: { item: Item }) {
@@ -200,7 +222,7 @@ function LibraryCard({ item }: { item: Item }) {
                                      "aspect-square";
 
   return (
-    <div className="break-inside-avoid mb-4 group rounded-2xl overflow-hidden border border-border bg-card hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/20 transition-all duration-300 hover:-translate-y-0.5">
+    <div className="group rounded-2xl overflow-hidden border border-border bg-card hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/20 transition-all duration-300 hover:-translate-y-0.5">
 
       {/* ── Image card ── */}
       {item.image ? (
@@ -227,7 +249,8 @@ function LibraryCard({ item }: { item: Item }) {
                 onClick={() => copy(item.title)}
                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/20 backdrop-blur-sm text-white text-[11px] font-medium hover:bg-white/30 transition-colors border border-white/20 ml-auto"
               >
-                {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+                <Copy className={cn("size-3", copied && "hidden")} />
+                <Check className={cn("size-3", !copied && "hidden")} />
               </button>
             </div>
           </div>
@@ -252,8 +275,9 @@ function LibraryCard({ item }: { item: Item }) {
                   : "bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400 hover:bg-violet-200 dark:hover:bg-violet-900/60"
               )}
             >
-              {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
-              {copied ? "Đã copy!" : "Copy"}
+              <Copy className={cn("size-3", copied && "hidden")} />
+              <Check className={cn("size-3", !copied && "hidden")} />
+              <span>{copied ? "Đã copy!" : "Copy"}</span>
             </button>
           </div>
           <p className="text-[11px] font-mono text-muted-foreground leading-relaxed flex-1">
@@ -296,6 +320,7 @@ function LibraryCard({ item }: { item: Item }) {
 export default function LibraryPage() {
   const [activeCat, setActiveCat] = useState<Cat>("all");
   const [search, setSearch]       = useState("");
+  const cols                      = useCols();
 
   const counts = useMemo(() => {
     const map: Record<string, number> = { all: ITEMS.length };
@@ -379,11 +404,15 @@ export default function LibraryPage() {
         )}
       </p>
 
-      {/* ── Masonry grid ── */}
+      {/* ── Masonry grid — JS-split columns so React DOM stays stable ── */}
       {filtered.length > 0 ? (
-        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4">
-          {filtered.map(item => (
-            <LibraryCard key={item.id} item={item} />
+        <div className="flex gap-4 items-start">
+          {splitCols(filtered, cols).map((col, ci) => (
+            <div key={ci} className="flex-1 flex flex-col gap-4 min-w-0">
+              {col.map(item => (
+                <LibraryCard key={item.id} item={item} />
+              ))}
+            </div>
           ))}
         </div>
       ) : (

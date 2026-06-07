@@ -14,10 +14,13 @@ import { SaveToAlbumModal } from "@/components/shared/save-to-album-modal";
 import { supabase } from "@/lib/supabase";
 import { getImages, archiveImage, bulkArchive, type DBAsset } from "@/features/archive/imageService";
 import { toast } from "sonner";
-import { ConfirmModal } from "@/components/shared/confirm-modal";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectPendingLightbox, clearPendingLightbox } from "@/features/aiJob/aiJobSlice";
 
 export default function GalleryPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const pendingLightbox = useAppSelector(selectPendingLightbox);
   const [assets, setAssets] = useState<DBAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
@@ -29,9 +32,6 @@ export default function GalleryPage() {
   const [lightboxIndex, setLightboxIndex]         = useState(0);
 
   const [saveAssetId, setSaveAssetId] = useState<string | null>(null);
-
-  const [archiveImageId, setArchiveImageId] = useState<string | null>(null);
-  const [bulkArchiveConfirm, setBulkArchiveConfirm] = useState(false);
 
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -62,17 +62,36 @@ export default function GalleryPage() {
     } catch { } finally { setLoading(false); }
   };
 
-  const executeArchive = async () => {
-    if (!archiveImageId) return;
+  // Open lightbox for a completed AI job when navigated from toast
+  useEffect(() => {
+    if (!pendingLightbox || loading) return;
+    if (pendingLightbox.assetId) {
+      const idx = assets.findIndex(a => a.id === pendingLightbox.assetId);
+      if (idx !== -1) {
+        setLightboxIndex(idx);
+        setLightboxUrl(assets[idx].url);
+        setLightboxCreatedAt(assets[idx].created_at);
+        dispatch(clearPendingLightbox());
+        return;
+      }
+    }
+    // Fallback: open by imageUrl directly (asset not yet in list)
+    if (pendingLightbox.imageUrl) {
+      setLightboxUrl(pendingLightbox.imageUrl);
+      dispatch(clearPendingLightbox());
+    }
+  }, [pendingLightbox, loading, assets]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const executeArchive = async (id: string) => {
     try {
-      await archiveImage(archiveImageId);
-      setAssets(prev => prev.filter(img => img.id !== archiveImageId));
+      await archiveImage(id);
+      setAssets(prev => prev.filter(img => img.id !== id));
       toast.success("Đã chuyển vào Archive.", {
         action: { label: "Xem Archive", onClick: () => router.push("/archive/trash") },
       });
     } catch (err: any) {
       toast.error(err.message || "Không thể chuyển ảnh vào Archive.");
-    } finally { setArchiveImageId(null); }
+    }
   };
 
   const executeBulkArchive = async () => {
@@ -87,7 +106,7 @@ export default function GalleryPage() {
       });
     } catch (err: any) {
       toast.error(err.message || "Không thể chuyển ảnh vào Archive.");
-    } finally { setBulkArchiveConfirm(false); }
+    }
   };
 
   const toggleSelect = useCallback((id: string) => {
@@ -226,7 +245,7 @@ export default function GalleryPage() {
                               className="cursor-pointer flex-1 py-2 rounded-xl bg-primary hover:bg-primary/90 transition-all text-[11px] font-semibold text-center text-primary-foreground flex items-center justify-center gap-1.5">
                               <FolderHeart className="size-3.5" /> Lưu album
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); setArchiveImageId(img.id); }}
+                            <button onClick={(e) => { e.stopPropagation(); executeArchive(img.id); }}
                               className="cursor-pointer p-2 rounded-xl bg-amber-500/20 backdrop-blur-md border border-amber-500/30 hover:bg-amber-500/30 hover:text-amber-300 transition-all text-amber-400"
                               title="Chuyển vào Archive">
                               <Archive className="size-3.5" />
@@ -252,7 +271,7 @@ export default function GalleryPage() {
               className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors">
               <FolderHeart className="size-3.5" /> Lưu vào Album
             </button>
-            <button onClick={() => setBulkArchiveConfirm(true)}
+            <button onClick={executeBulkArchive}
               className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-semibold hover:bg-red-500/20 transition-colors">
               <Archive className="size-3.5" /> Xóa {selectedIds.size} ảnh
             </button>
@@ -266,15 +285,6 @@ export default function GalleryPage() {
         onClose={() => { setLightboxUrl(null); setLightboxCreatedAt(undefined); }} />
 
       <SaveToAlbumModal assetId={saveAssetId} onClose={() => setSaveAssetId(null)} />
-
-      <ConfirmModal isOpen={archiveImageId !== null} onClose={() => setArchiveImageId(null)} onConfirm={executeArchive}
-        title="Chuyển vào Archive" description="Ảnh sẽ được chuyển vào Archive và tự động xóa vĩnh viễn sau 2 ngày nếu không khôi phục."
-        confirmText="Chuyển vào Archive" variant="destructive" />
-
-      <ConfirmModal isOpen={bulkArchiveConfirm} onClose={() => setBulkArchiveConfirm(false)} onConfirm={executeBulkArchive}
-        title={`Chuyển ${selectedIds.size} ảnh vào Archive`}
-        description="Tất cả ảnh đã chọn sẽ vào Archive và bị xóa vĩnh viễn sau 2 ngày nếu không khôi phục."
-        confirmText={`Chuyển ${selectedIds.size} ảnh vào Archive`} variant="destructive" />
     </div>
   );
 }

@@ -14,7 +14,6 @@ import { SaveToAlbumModal } from "@/components/shared/save-to-album-modal";
 import { supabase } from "@/lib/supabase";
 import { getImages, archiveImage, bulkArchive, syncImage, type DBAsset } from "@/features/archive/imageService";
 import { toast } from "sonner";
-import { ConfirmModal } from "@/components/shared/confirm-modal";
 
 const CATEGORY = "model";
 const BUCKET   = "images";
@@ -38,10 +37,6 @@ export default function ModelsPage() {
 
   // Save to album
   const [saveAssetId, setSaveAssetId] = useState<string | null>(null);
-
-  // Archive
-  const [archiveId, setArchiveId]   = useState<string | null>(null);
-  const [bulkConfirm, setBulkConfirm] = useState(false);
 
   // Multi-select
   const [selectMode, setSelectMode] = useState(false);
@@ -105,16 +100,14 @@ export default function ModelsPage() {
 
   // ── Archive ───────────────────────────────────────────────────────────────
 
-  const executeArchive = async () => {
-    if (!archiveId) return;
+  const executeArchive = async (id: string) => {
     try {
-      await archiveImage(archiveId);
-      setAssets(prev => prev.filter(a => a.id !== archiveId));
+      await archiveImage(id);
+      setAssets(prev => prev.filter(a => a.id !== id));
       toast.success("Đã chuyển vào Archive.", {
         action: { label: "Xem Archive", onClick: () => router.push("/archive/trash") },
       });
     } catch (err: any) { toast.error(err.message); }
-    finally { setArchiveId(null); }
   };
 
   const executeBulkArchive = async () => {
@@ -125,7 +118,6 @@ export default function ModelsPage() {
       setSelectedIds(new Set()); setSelectMode(false);
       toast.success(`Đã chuyển ${ids.length} ảnh vào Archive.`);
     } catch (err: any) { toast.error(err.message); }
-    finally { setBulkConfirm(false); }
   };
 
   const toggleSelect = useCallback((id: string) => {
@@ -263,7 +255,7 @@ export default function ModelsPage() {
                               className="cursor-pointer flex-1 py-2 rounded-xl bg-primary hover:bg-primary/90 transition-all text-[11px] font-semibold text-center text-primary-foreground flex items-center justify-center gap-1.5">
                               <FolderHeart className="size-3.5" /> Lưu album
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); setArchiveId(img.id); }}
+                            <button onClick={(e) => { e.stopPropagation(); executeArchive(img.id); }}
                               className="cursor-pointer p-2 rounded-xl bg-amber-500/20 backdrop-blur-md border border-amber-500/30 hover:bg-amber-500/30 hover:text-amber-300 transition-all text-amber-400"
                               title="Chuyển vào Archive">
                               <Archive className="size-3.5" />
@@ -289,7 +281,7 @@ export default function ModelsPage() {
               className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors">
               <FolderHeart className="size-3.5" /> Lưu vào Album
             </button>
-            <button onClick={() => setBulkConfirm(true)}
+            <button onClick={executeBulkArchive}
               className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 text-xs font-semibold hover:bg-amber-500/20 transition-colors">
               <Archive className="size-3.5" /> Archive {selectedIds.size} ảnh
             </button>
@@ -303,14 +295,6 @@ export default function ModelsPage() {
         onClose={() => { setLightboxUrl(null); setLightboxCreatedAt(undefined); }} />
 
       <SaveToAlbumModal assetId={saveAssetId} onClose={() => setSaveAssetId(null)} />
-
-      <ConfirmModal isOpen={archiveId !== null} onClose={() => setArchiveId(null)} onConfirm={executeArchive}
-        title="Chuyển vào Archive" description="Ảnh sẽ vào Archive và tự động xóa sau 2 ngày nếu không khôi phục."
-        confirmText="Chuyển vào Archive" variant="destructive" />
-
-      <ConfirmModal isOpen={bulkConfirm} onClose={() => setBulkConfirm(false)} onConfirm={executeBulkArchive}
-        title={`Archive ${selectedIds.size} ảnh`} description="Tất cả ảnh đã chọn sẽ vào Archive."
-        confirmText={`Archive ${selectedIds.size} ảnh`} variant="destructive" />
     </div>
   );
 }

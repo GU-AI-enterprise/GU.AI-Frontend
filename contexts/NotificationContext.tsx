@@ -2,8 +2,15 @@
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { setBalance } from "@/features/credit/creditSlice";
+import {
+  patchActiveJob,
+  removeJobFromStorage,
+  setPendingLightbox,
+} from "@/features/aiJob/aiJobSlice";
 import {
   getNotifications,
   getUnreadCount,
@@ -49,6 +56,7 @@ export function useNotifications() {
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const { session } = useAppSelector((s) => s.auth);
   const token = session?.access_token;
 
@@ -107,11 +115,50 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     // AI job completion/failure events
     socket.on("ai_job_update", (payload: AIJobUpdatePayload) => {
-      if (payload.status === "completed" || payload.status === "failed") {
-        console.log("Received AI job update:", payload);
-        playSound();
-      }
       const cb = aiJobCallbacksRef.current.get(payload.jobId);
+
+      if (payload.status === "completed" || payload.status === "failed") {
+        // Update Redux + clear localStorage (always, regardless of page)
+        dispatch(patchActiveJob({
+          jobId:    payload.jobId,
+          status:   payload.status,
+          imageUrl: payload.imageUrl,
+          assetId:  payload.assetId,
+          error:    payload.error,
+        }));
+        removeJobFromStorage();
+
+        playSound();
+
+        // Only show global toast when the page-level callback is gone (user navigated away)
+        if (!cb) {
+          if (payload.status === "completed") {
+            const imageUrl = payload.imageUrl;
+            const assetId  = payload.assetId;
+            toast.success("Tác vụ AI hoàn thành!", {
+              description: "Ảnh của bạn đã được tạo xong.",
+              style: { borderLeft: "4px solid #22c55e", background: "rgba(34,197,94,0.06)" },
+              classNames: { title: "text-green-400", description: "text-green-300/70" },
+              ...(imageUrl && {
+                action: {
+                  label: "Xem ảnh",
+                  onClick: () => {
+                    dispatch(setPendingLightbox({ imageUrl, assetId }));
+                    router.push("/archive/gallery");
+                  },
+                },
+              }),
+            });
+          } else {
+            toast.error("Tác vụ AI thất bại.", {
+              description: payload.error || "Đã xảy ra lỗi trong quá trình xử lý.",
+              style: { borderLeft: "4px solid #ef4444", background: "rgba(239,68,68,0.06)" },
+              classNames: { title: "text-red-400", description: "text-red-300/70" },
+            });
+          }
+        }
+      }
+
       if (cb) cb(payload);
     });
 

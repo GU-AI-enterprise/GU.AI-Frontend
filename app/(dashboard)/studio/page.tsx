@@ -28,6 +28,14 @@ import {
   type TryOnCategory,
 } from "@/features/studio/studioService";
 import { useAIJob } from "@/hooks/useAIJob";
+import {
+  setActiveJob as reduxSetActiveJob,
+  clearActiveJob,
+  saveJobToStorage,
+  removeJobFromStorage,
+  loadJobFromStorage,
+  selectActiveJob,
+} from "@/features/aiJob/aiJobSlice";
 
 import { TOOLS, TOOL_SLUG, SLUG_TO_TOOL } from "./constants";
 import { computeTryOnCost, computeEditCost, computeModelCreateCost, computeVideoCost, computeReframeCost } from "./helpers";
@@ -137,11 +145,14 @@ function StudioPageInner() {
   const [canScrollRight,   setCanScrollRight]    = useState(false);
   const [showComparison,   setShowComparison]    = useState(false);
 
-  const galleryCallbackRef = useRef<((url: string) => void) | null>(null);
-  const toolbarRef = useRef<HTMLDivElement>(null);
+  const galleryCallbackRef  = useRef<((url: string) => void) | null>(null);
+  const toolbarRef          = useRef<HTMLDivElement>(null);
+  const isToolSwitchRef     = useRef(false); // false on initial mount, true on subsequent tool changes
 
   // ── AI job ────────────────────────────────────────────────────────────────
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [restoredResult, setRestoredResult] = useState<{ imageUrl: string; assetId: string | null } | null>(null);
+  const reduxActiveJob = useAppSelector(selectActiveJob);
   const {
     state: jobState, imageUrl: resultUrl, assetId: resultAssetId,
     error: jobError, isProcessing, reset: resetJob,
@@ -168,6 +179,49 @@ function StudioPageInner() {
     });
     return () => { alive = false; subscription.unsubscribe(); };
   }, [router]);
+
+  // ── Job helpers ──────────────────────────────────────────────────────────
+  const startJob = useCallback((jobId: string) => {
+    setActiveJobId(jobId);
+    setRestoredResult(null);
+    const job = {
+      jobId, status: "processing" as const, tool: selectedTool,
+      imageUrl: null, assetId: null, error: null,
+      startedAt: new Date().toISOString(),
+    };
+    dispatch(reduxSetActiveJob(job));
+    saveJobToStorage(job);
+  }, [selectedTool, dispatch]);
+
+  const fullReset = useCallback(() => {
+    resetJob();
+    setActiveJobId(null);
+    setRestoredResult(null);
+    dispatch(clearActiveJob());
+    removeJobFromStorage();
+  }, [resetJob, dispatch]);
+
+  // ── Restore job on mount (after auth resolves) ────────────────────────────
+  useEffect(() => {
+    if (authLoading) return;
+
+    // Same-session: job state is in Redux (user navigated away and back)
+    if (reduxActiveJob) {
+      if (reduxActiveJob.status === "processing") {
+        setActiveJobId(reduxActiveJob.jobId);
+      } else if (reduxActiveJob.status === "completed" && reduxActiveJob.imageUrl) {
+        setRestoredResult({ imageUrl: reduxActiveJob.imageUrl, assetId: reduxActiveJob.assetId });
+      }
+      return;
+    }
+
+    // Cross-session: job was processing when page was refreshed
+    const stored = loadJobFromStorage();
+    if (stored?.status === "processing") {
+      dispatch(reduxSetActiveJob(stored));
+      setActiveJobId(stored.jobId);
+    }
+  }, [authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Mount / mobile ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -210,8 +264,17 @@ function StudioPageInner() {
 
   // ── Reset state on tool switch ────────────────────────────────────────────
   useEffect(() => {
+    if (isToolSwitchRef.current) {
+      // User actively switched tools — clear persisted job state
+      dispatch(clearActiveJob());
+      removeJobFromStorage();
+    } else {
+      // Initial mount — mark for next run, let restore effect handle job state
+      isToolSwitchRef.current = true;
+    }
     resetJob();
     setActiveJobId(null);
+    setRestoredResult(null);
     setToModelImage(null); setToGarment(null); setToPrompt("");
     setP2mProduct(null); setP2mPromptImg(null); setP2mFaceRef(null); setP2mBgRef(null); setP2mPrompt("");
     setMsImage(null); setMsFaceRef(null); setMsPrompt("");
@@ -286,7 +349,7 @@ function StudioPageInner() {
           const r = await tryOn({ modelImage: toModelImage.file ?? toModelImage.url, garmentImage: toGarment.file ?? toGarment.url, category: toCategory, mode: "balanced" });
           jobId = r.jobId;
         }
-        setActiveJobId(jobId);
+        startJob(jobId);
         dispatch(setBalance((creditBalance ?? 0) - cost));
       } catch (err: any) {
         toast.error(err.message ?? "Không thể bắt đầu try-on.");
@@ -300,9 +363,10 @@ function StudioPageInner() {
 
     const submit = async (jobPromise: Promise<{ jobId: string }>) => {
       resetJob();
+      setRestoredResult(null);
       try {
         const { jobId } = await jobPromise;
-        setActiveJobId(jobId);
+        startJob(jobId);
         dispatch(setBalance((creditBalance ?? 0) - currentCost));
       } catch (err: any) {
         toast.error(err.message ?? "Không thể bắt đầu xử lý.");
@@ -420,7 +484,12 @@ function StudioPageInner() {
     }
   })();
 
-  const showPanel = isProcessing || jobState === "completed" || jobState === "failed";
+  // Merge live job state with restored result (from Redux when user navigated away)
+  const effectiveIsProcessing   = restoredResult ? false : isProcessing;
+  const effectiveJobState       = restoredResult ? "completed" : jobState;
+  const effectiveResultUrl      = restoredResult?.imageUrl ?? resultUrl;
+  const effectiveResultAssetId  = restoredResult?.assetId  ?? resultAssetId;
+  const showPanel = effectiveIsProcessing || effectiveJobState === "completed" || effectiveJobState === "failed";
   const toolData  = TOOLS.find(t => t.id === selectedTool);
   const isCreateModel = selectedTool === AIToolType.CREATE_MODEL;
   const isReframe     = selectedTool === AIToolType.REFRAME;
@@ -436,7 +505,7 @@ function StudioPageInner() {
     ? computeReframeCost(reframeGenMode, reframeRes, reframeNumImages)
     : (toolData?.credit ?? 0);
 
-  const canRun = isProcessing ? false
+  const canRun = effectiveIsProcessing ? false
     : isTryOn ? (!!toModelImage && !!toGarment)
     : isP2M   ? !!p2mProduct
     : isMS    ? !!msImage
@@ -521,30 +590,29 @@ function StudioPageInner() {
           >
             <div className="relative flex-1 min-h-0 w-full">
 
-              <div className={`absolute inset-0 transition-opacity duration-200 ${isProcessing ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
-                <ProcessingPanel active={isProcessing} />
+              <div className={`absolute inset-0 transition-opacity duration-200 ${effectiveIsProcessing ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
+                <ProcessingPanel active={effectiveIsProcessing} />
               </div>
 
-              <div className={`absolute inset-0 transition-opacity duration-200 ${jobState === "completed" && resultUrl ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
+              <div className={`absolute inset-0 transition-opacity duration-200 ${effectiveJobState === "completed" && effectiveResultUrl ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
                 <div className="flex flex-col h-full min-h-0 rounded-3xl border border-border bg-card overflow-hidden shadow-lg">
                   <div className="flex-1 min-h-0 bg-muted/20 overflow-hidden relative">
-                    {resultUrl && (
+                    {effectiveResultUrl && (
                       showComparison && beforeUrl
-                        ? <ComparisonSlider beforeUrl={beforeUrl} afterUrl={resultUrl} />
+                        ? <ComparisonSlider beforeUrl={beforeUrl} afterUrl={effectiveResultUrl} />
                         : <div
                             className={`w-full h-full flex items-center justify-center ${isVideo ? "" : "cursor-zoom-in"}`}
-                            onClick={() => !isVideo && resultUrl && setLightboxUrl(resultUrl)}
+                            onClick={() => !isVideo && effectiveResultUrl && setLightboxUrl(effectiveResultUrl)}
                           >
                             {isVideo
-                              ? <video src={resultUrl} controls className="w-full h-full object-contain" />
-                              : <img src={resultUrl} alt="Kết quả AI" className="w-full h-full object-contain" />
+                              ? <video src={effectiveResultUrl} controls className="w-full h-full object-contain" />
+                              : <img src={effectiveResultUrl} alt="Kết quả AI" className="w-full h-full object-contain" />
                             }
                           </div>
                     )}
-                    {/* Download icon — top right of image */}
-                    {resultUrl && (
+                    {effectiveResultUrl && (
                       <button
-                        onClick={() => { const a = document.createElement("a"); a.href = resultUrl!; a.download = `guai_result_${Date.now()}.${isVideo ? "mp4" : "png"}`; a.click(); }}
+                        onClick={() => { const a = document.createElement("a"); a.href = effectiveResultUrl!; a.download = `guai_result_${Date.now()}.${isVideo ? "mp4" : "png"}`; a.click(); }}
                         className="cursor-pointer absolute top-3 right-3 flex items-center justify-center size-8 rounded-full bg-background/80 backdrop-blur-sm border border-border shadow-sm hover:bg-background transition-colors"
                         title="Tải xuống"
                       >
@@ -554,7 +622,7 @@ function StudioPageInner() {
                   </div>
                   <div className="flex items-center gap-2 p-3 border-t border-border shrink-0 flex-wrap">
                     {isMobile && (
-                      <button onClick={() => { resetJob(); setActiveJobId(null); }} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
+                      <button onClick={fullReset} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
                         <ChevronLeft className="size-3.5" /> Nhập ảnh
                       </button>
                     )}
@@ -571,16 +639,16 @@ function StudioPageInner() {
                       </button>
                     )}
                     <button
-                      onClick={() => resultAssetId && setSaveAlbumAssetId(resultAssetId)}
-                      disabled={!resultAssetId}
-                      title={resultAssetId ? "Lưu vào album" : "Đang lưu vào thư viện..."}
+                      onClick={() => effectiveResultAssetId && setSaveAlbumAssetId(effectiveResultAssetId)}
+                      disabled={!effectiveResultAssetId}
+                      title={effectiveResultAssetId ? "Lưu vào album" : "Đang lưu vào thư viện..."}
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <FolderHeart className="size-3.5" />
-                      {resultAssetId ? "Lưu vào Album" : "Đang lưu..."}
+                      {effectiveResultAssetId ? "Lưu vào Album" : "Đang lưu..."}
                     </button>
                     {!isMobile && (
-                      <button onClick={() => { resetJob(); setActiveJobId(null); }} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors ml-auto">
+                      <button onClick={fullReset} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors ml-auto">
                         <RefreshCw className="size-3.5" /> Thử lại
                       </button>
                     )}
@@ -588,14 +656,14 @@ function StudioPageInner() {
                 </div>
               </div>
 
-              <div className={`absolute inset-0 transition-opacity duration-200 flex items-start pt-4 ${jobState === "failed" ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
+              <div className={`absolute inset-0 transition-opacity duration-200 flex items-start pt-4 ${effectiveJobState === "failed" ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
                 <div className="flex items-center gap-3 w-full rounded-3xl border border-destructive/30 bg-destructive/5 p-5">
                   <AlertCircle className="size-5 text-destructive shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-destructive">Xử lý thất bại</p>
                     <p className="text-xs text-muted-foreground truncate">{jobError}</p>
                   </div>
-                  <button onClick={() => { resetJob(); setActiveJobId(null); }} className="text-xs underline text-muted-foreground hover:text-foreground">Thử lại</button>
+                  <button onClick={fullReset} className="text-xs underline text-muted-foreground hover:text-foreground">Thử lại</button>
                 </div>
               </div>
 
@@ -661,9 +729,9 @@ function StudioPageInner() {
               disabled={!canRun}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-foreground text-background text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-all"
             >
-              <Loader2 className={`size-4 animate-spin ${isProcessing ? "" : "hidden"}`} />
-              <Sparkles className={`size-4 ${isProcessing ? "hidden" : ""}`} />
-              {isProcessing ? "Đang xử lý" : "Chạy"}
+              <Loader2 className={`size-4 animate-spin ${effectiveIsProcessing ? "" : "hidden"}`} />
+              <Sparkles className={`size-4 ${effectiveIsProcessing ? "hidden" : ""}`} />
+              {effectiveIsProcessing ? "Đang xử lý" : "Chạy"}
             </button>
           </div>
         </div>

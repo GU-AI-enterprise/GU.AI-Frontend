@@ -2,12 +2,14 @@ import { configureStore } from '@reduxjs/toolkit';
 import appReducer from '@/features/app/appSlice';
 import authReducer from '@/features/auth/authSlice';
 import creditReducer from '@/features/credit/creditSlice';
+import aiJobReducer from '@/features/aiJob/aiJobSlice';
 
 export const store = configureStore({
   reducer: {
     app: appReducer,
     auth: authReducer,
     credit: creditReducer,
+    aiJob: aiJobReducer,
   },
   devTools: process.env.NODE_ENV !== 'production',
 });
