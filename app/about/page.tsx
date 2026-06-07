@@ -21,19 +21,19 @@ const TEAM = [
     name: "Nguyễn Minh Khoa",
     role: "Co-founder & CEO",
     desc: "10+ năm kinh nghiệm trong AI & Computer Vision. Từng làm việc tại Google Brain và VinAI.",
-    avatar: "/vietnamese_male.png",
+    avatar: "/images/vietnamese_male.png",
   },
   {
     name: "Trần Thị Linh",
     role: "Co-founder & CPO",
     desc: "Chuyên gia thiết kế sản phẩm với nền tảng thời trang. Cựu giám đốc sáng tạo tại Canifa.",
-    avatar: "/vietnamese_female.png",
+    avatar: "/images/vietnamese_female.png",
   },
   {
     name: "Lê Hoàng Nam",
     role: "CTO",
     desc: "Full-stack AI engineer. Từng xây dựng hạ tầng ML cho các startup Series B tại Singapore.",
-    avatar: "/vietnamese_male.png",
+    avatar: "/images/vietnamese_male.png",
   },
 ];
 
@@ -162,7 +162,7 @@ export default function AboutPage() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            {["/vietnamese_female.png", "/japanese_female.png", "/vietnamese_male.png", "/indian_female.png"].map((src, i) => (
+            {["/images/vietnamese_female.png", "/images/japanese_female.png", "/images/vietnamese_male.png", "/images/indian_female.png"].map((src, i) => (
               <div key={i} className={`aspect-[3/4] rounded-2xl overflow-hidden border border-border shadow-md ${i === 1 ? "mt-6" : ""} ${i === 3 ? "mt-6" : ""}`}>
                 <img src={src} alt="" className="size-full object-cover" />
               </div>

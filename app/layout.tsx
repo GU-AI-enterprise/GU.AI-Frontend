@@ -27,8 +27,8 @@ export const metadata: Metadata = {
   title: "GU.AI",
   description: "AI-powered Virtual Fashion Model Generation Platform for the Vietnamese Market. Save 90% photoshoot cost.",
   icons: {
-    icon: "/main_logo.png",
-    apple: "/main_logo.png",
+    icon: "/icons/main_logo.png",
+    apple: "/icons/main_logo.png",
   },
 };
 

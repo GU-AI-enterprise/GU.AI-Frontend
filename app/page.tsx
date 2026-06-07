@@ -152,10 +152,10 @@ export default function LandingPage() {
 
             {/* Floating model images */}
             {[
-              { src: "/vietnamese_female.png", cls: "top-[8%]  left-[3%]  w-28 lg:w-40 -rotate-6",  dur: 8   },
-              { src: "/japanese_female.png",   cls: "top-[6%]  right-[3%] w-24 lg:w-36  rotate-6",  dur: 9.5 },
-              { src: "/indian_female.png",     cls: "bottom-[8%] left-[5%]  w-32 lg:w-44  rotate-3",  dur: 11  },
-              { src: "/western_female.png",    cls: "bottom-[8%] right-[5%] w-28 lg:w-40 -rotate-3", dur: 8.5 },
+              { src: "/images/vietnamese_female.png", cls: "top-[8%]  left-[3%]  w-28 lg:w-40 -rotate-6",  dur: 8   },
+              { src: "/images/japanese_female.png",   cls: "top-[6%]  right-[3%] w-24 lg:w-36  rotate-6",  dur: 9.5 },
+              { src: "/images/indian_female.png",     cls: "bottom-[8%] left-[5%]  w-32 lg:w-44  rotate-3",  dur: 11  },
+              { src: "/images/western_female.png",    cls: "bottom-[8%] right-[5%] w-28 lg:w-40 -rotate-3", dur: 8.5 },
             ].map((img, i) => (
               <motion.div
                 key={i}
@@ -315,7 +315,7 @@ export default function LandingPage() {
               >
                 {/* After */}
                 <div className="absolute inset-0">
-                  <img src="/after.jpg" alt="AI Model" className="absolute inset-0 size-full object-cover" />
+                  <img src="/images/after.jpg" alt="AI Model" className="absolute inset-0 size-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                   <div className="absolute top-3 left-3 rounded-full bg-primary/30 border border-primary/50 px-2.5 py-0.5 text-[9px] text-white font-mono backdrop-blur-sm">✦ AI RENDER</div>
                   <div className="absolute bottom-4 left-4">
@@ -330,7 +330,7 @@ export default function LandingPage() {
                   style={{ clipPath: `polygon(${sliderPosition}% 0, 100% 0, 100% 100%, ${sliderPosition}% 100%)` }}
                 >
                   <img
-                    src="/before.jpg"
+                    src="/images/before.jpg"
                     alt="Raw Product"
                     className="absolute inset-0 size-full object-cover"
                   />
