@@ -82,8 +82,11 @@ export default function LandingPage() {
     scrolling.current = true;
     pageIdx.current   = idx;
     const target = el.children[idx] as HTMLElement;
-    el.scrollTo({ top: target.offsetTop, behavior: "smooth" });
-    setTimeout(() => { scrolling.current = false; }, 800);
+    // Use getBoundingClientRect so position is always relative to the scroll container,
+    // regardless of whether pageRef is the CSS offsetParent.
+    const targetTop = target.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop;
+    el.scrollTo({ top: targetTop, behavior: "smooth" });
+    setTimeout(() => { scrolling.current = false; }, 900);
   }, []);
 
   useEffect(() => {

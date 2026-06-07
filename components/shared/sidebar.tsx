@@ -217,7 +217,7 @@ export default function Sidebar() {
               <button
                 onClick={() => !isCollapsed && setArchiveOpen(!archiveOpen)}
                 onMouseLeave={() => setTooltip(null)}
-                className={`w-full flex items-center ${isCollapsed ? "justify-center" : "justify-between px-3"} h-10 rounded-lg text-sm font-medium transition-all ${
+                className={`cursor-pointer w-full flex items-center ${isCollapsed ? "justify-center" : "justify-between px-3"} h-10 rounded-lg text-sm font-medium transition-all ${
                   isActive("/archive")
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
@@ -354,7 +354,7 @@ export default function Sidebar() {
               }
             }}
             onMouseLeave={() => setTooltip(null)}
-            className={`w-full flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-2"} h-11 rounded-xl hover:bg-sidebar-accent transition-colors group`}
+            className={`cursor-pointer w-full flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-2"} h-11 rounded-xl hover:bg-sidebar-accent transition-colors group`}
           >
             {/* Avatar */}
             <div className="shrink-0 relative">
@@ -391,7 +391,7 @@ export default function Sidebar() {
       {!isMobile && (
         <button
           onClick={toggle}
-          className="fixed z-50 p-1.5 rounded-md bg-background border border-border shadow-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          className="cursor-pointer fixed z-50 p-1.5 rounded-md bg-background border border-border shadow-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           style={{ left: isCollapsed ? "62px" : "252px", top: "20px" }}
         >
           {isCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
@@ -468,7 +468,7 @@ export default function Sidebar() {
               <div className="flex items-center gap-0.5 bg-muted rounded-lg p-0.5">
                 <button
                   onClick={() => setTheme("light")}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${
+                  className={`cursor-pointer flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${
                     theme === "light" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -476,7 +476,7 @@ export default function Sidebar() {
                 </button>
                 <button
                   onClick={() => setTheme("dark")}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${
+                  className={`cursor-pointer flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${
                     theme === "dark" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -495,7 +495,7 @@ export default function Sidebar() {
             {!isStaff && (
               <button
                 onClick={() => { setUserMenuOpen(false); setChatForceOpen(true); setTimeout(() => setChatForceOpen(false), 200); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-foreground hover:bg-accent transition-colors"
+                className="cursor-pointer w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-foreground hover:bg-accent transition-colors"
               >
                 <span className="text-muted-foreground relative shrink-0">
                   <MessageCircle className="size-4" />
@@ -520,7 +520,7 @@ export default function Sidebar() {
           <div className="border-t border-border/60 p-1.5">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+              className="cursor-pointer w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
             >
               <LogOut className="size-4" />
               Đăng xuất

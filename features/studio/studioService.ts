@@ -125,6 +125,7 @@ export interface TryOnMaxPayload {
   resolution?: '1k' | '2k' | '4k';
   generationMode?: 'balanced' | 'quality';
   numImages?: number;
+  prompt?: string;
 }
 
 export async function tryOnMax(payload: TryOnMaxPayload): Promise<AIJobStartResult> {
@@ -142,6 +143,7 @@ export async function tryOnMax(payload: TryOnMaxPayload): Promise<AIJobStartResu
   if (payload.resolution) fd.append('resolution', payload.resolution);
   if (payload.generationMode) fd.append('generationMode', payload.generationMode);
   if (payload.numImages) fd.append('numImages', String(payload.numImages));
+  if (payload.prompt) fd.append('prompt', payload.prompt);
   return startJob('/api/ai/try-on-max', fd);
 }
 

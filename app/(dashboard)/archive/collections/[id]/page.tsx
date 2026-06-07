@@ -113,7 +113,7 @@ export default function CollectionDetailPage() {
         <div className="flex items-center gap-4 mb-8">
           <button
             onClick={() => router.push("/archive/collections")}
-            className="flex items-center justify-center size-9 rounded-xl border border-border bg-card hover:bg-accent transition-colors"
+            className="cursor-pointer flex items-center justify-center size-9 rounded-xl border border-border bg-card hover:bg-accent transition-colors"
           >
             <ArrowLeft className="size-4 text-muted-foreground" />
           </button>
@@ -161,14 +161,14 @@ export default function CollectionDetailPage() {
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-end justify-end p-2 gap-1.5 opacity-0 group-hover:opacity-100">
                   <button
                     onClick={(e) => { e.stopPropagation(); handleDownload(asset); }}
-                    className="flex items-center justify-center size-7 rounded-lg bg-white/20 backdrop-blur-sm hover:bg-white/40 text-white transition-colors"
+                    className="cursor-pointer flex items-center justify-center size-7 rounded-lg bg-white/20 backdrop-blur-sm hover:bg-white/40 text-white transition-colors"
                     title="Tải xuống"
                   >
                     <Download className="size-3.5" />
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setRemoveTargetId(asset.id); }}
-                    className="flex items-center justify-center size-7 rounded-lg bg-red-500/60 backdrop-blur-sm hover:bg-red-500/80 text-white transition-colors"
+                    className="cursor-pointer flex items-center justify-center size-7 rounded-lg bg-red-500/60 backdrop-blur-sm hover:bg-red-500/80 text-white transition-colors"
                     title="Xóa khỏi album"
                   >
                     <Trash2 className="size-3.5" />

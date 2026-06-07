@@ -67,6 +67,7 @@ function StudioPageInner() {
   const [toModel,       setToModel]       = useState<TryOnModel>("v1.6");
   const [toResolution,  setToResolution]  = useState<TryOnResolution>("1k");
   const [toHovered,     setToHovered]     = useState<TryOnModel | null>(null);
+  const [toPrompt,      setToPrompt]      = useState("");
 
   // ── Product to Model state ────────────────────────────────────────────────
   const [p2mProduct,    setP2mProduct]    = useState<StudioImage | null>(null);
@@ -211,7 +212,7 @@ function StudioPageInner() {
   useEffect(() => {
     resetJob();
     setActiveJobId(null);
-    setToModelImage(null); setToGarment(null);
+    setToModelImage(null); setToGarment(null); setToPrompt("");
     setP2mProduct(null); setP2mPromptImg(null); setP2mFaceRef(null); setP2mBgRef(null); setP2mPrompt("");
     setMsImage(null); setMsFaceRef(null); setMsPrompt("");
     setFsModelImage(null); setFsFaceRef(null);
@@ -279,7 +280,7 @@ function StudioPageInner() {
       try {
         let jobId: string;
         if (toModel === "max") {
-          const r = await tryOnMax({ modelImage: toModelImage.file ?? toModelImage.url, garmentImage: toGarment.file ?? toGarment.url, resolution: toResolution, generationMode: "balanced" });
+          const r = await tryOnMax({ modelImage: toModelImage.file ?? toModelImage.url, garmentImage: toGarment.file ?? toGarment.url, resolution: toResolution, generationMode: "balanced", prompt: toPrompt || undefined });
           jobId = r.jobId;
         } else {
           const r = await tryOn({ modelImage: toModelImage.file ?? toModelImage.url, garmentImage: toGarment.file ?? toGarment.url, category: toCategory, mode: "balanced" });
@@ -645,14 +646,7 @@ function StudioPageInner() {
           </button>
 
           <div className="flex items-center gap-3 shrink-0">
-            <div className="hidden sm:flex items-center gap-2 text-[11px] text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Sparkles className="size-3 text-primary" />
-                {isTryOn ? (toModel === "max" ? "Try-On Max" : "Try-On v1.6") : toolData?.name}
-              </span>
-              <span className="text-border">|</span>
-              <span className="font-semibold text-foreground">{currentCost} credit{currentCost > 1 ? "s" : ""}</span>
-            </div>
+            <span className="hidden sm:block text-[11px] font-semibold text-foreground">{currentCost} credit{currentCost > 1 ? "s" : ""}</span>
 
             <button
               onClick={() => setGuideToolId(selectedTool)}
@@ -677,9 +671,9 @@ function StudioPageInner() {
         <div className="mt-2 pt-2 border-t border-border/30 w-full">
           <ToolContextBar
             selectedTool={selectedTool}
-            toCategory={toCategory} toModel={toModel} toResolution={toResolution} toHovered={toHovered}
+            toCategory={toCategory} toModel={toModel} toResolution={toResolution} toHovered={toHovered} toPrompt={toPrompt}
             onToCategoryChange={setToCategory} onToModelChange={setToModel}
-            onToResolutionChange={setToResolution} onToHoveredChange={setToHovered}
+            onToResolutionChange={setToResolution} onToHoveredChange={setToHovered} onToPromptChange={setToPrompt}
             p2mPrompt={p2mPrompt} p2mAspect={p2mAspect} p2mRes={p2mRes}
             p2mGenMode={p2mGenMode} p2mFaceMode={p2mFaceMode} p2mHasFaceRef={!!p2mFaceRef}
             onP2mPromptChange={setP2mPrompt} onP2mAspectChange={setP2mAspect}

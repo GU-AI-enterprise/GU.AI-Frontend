@@ -40,7 +40,7 @@ export default function DashboardTopBar() {
         {isMobile && (
           <button
             onClick={toggle}
-            className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors mr-1"
+            className="cursor-pointer p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors mr-1"
             aria-label="Mở menu"
           >
             <Menu className="size-5" />

@@ -223,11 +223,11 @@ export default function GalleryPage() {
                               <Download className="size-3.5" />
                             </a>
                             <button onClick={(e) => { e.stopPropagation(); setSaveAssetId(img.id); }}
-                              className="flex-1 py-2 rounded-xl bg-primary hover:bg-primary/90 transition-all text-[11px] font-semibold text-center text-primary-foreground flex items-center justify-center gap-1.5">
+                              className="cursor-pointer flex-1 py-2 rounded-xl bg-primary hover:bg-primary/90 transition-all text-[11px] font-semibold text-center text-primary-foreground flex items-center justify-center gap-1.5">
                               <FolderHeart className="size-3.5" /> Lưu album
                             </button>
                             <button onClick={(e) => { e.stopPropagation(); setArchiveImageId(img.id); }}
-                              className="p-2 rounded-xl bg-amber-500/20 backdrop-blur-md border border-amber-500/30 hover:bg-amber-500/30 hover:text-amber-300 transition-all text-amber-400"
+                              className="cursor-pointer p-2 rounded-xl bg-amber-500/20 backdrop-blur-md border border-amber-500/30 hover:bg-amber-500/30 hover:text-amber-300 transition-all text-amber-400"
                               title="Chuyển vào Archive">
                               <Archive className="size-3.5" />
                             </button>
@@ -249,11 +249,11 @@ export default function GalleryPage() {
           <div className="flex items-center gap-3 bg-card border border-border rounded-2xl shadow-2xl p-3">
             <span className="text-sm font-semibold text-foreground flex-1">Đã chọn {selectedIds.size} ảnh</span>
             <button onClick={() => { const firstId = Array.from(selectedIds)[0]; if (firstId) setSaveAssetId(firstId); }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors">
+              className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors">
               <FolderHeart className="size-3.5" /> Lưu vào Album
             </button>
             <button onClick={() => setBulkArchiveConfirm(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-semibold hover:bg-red-500/20 transition-colors">
+              className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-semibold hover:bg-red-500/20 transition-colors">
               <Archive className="size-3.5" /> Xóa {selectedIds.size} ảnh
             </button>
           </div>

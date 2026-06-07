@@ -130,13 +130,13 @@ export default function NotificationCenter({ variant = "sidebar", collapsed = fa
               {unreadCount > 0 && (
                 <button
                   onClick={markAllRead}
-                  className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+                  className="cursor-pointer flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
                 >
                   <CheckCheck className="size-3.5" />
                   Đọc tất cả
                 </button>
               )}
-              <button onClick={() => setOpen(false)} className="p-1 rounded-lg hover:bg-accent text-muted-foreground">
+              <button onClick={() => setOpen(false)} className="cursor-pointer p-1 rounded-lg hover:bg-accent text-muted-foreground">
                 <X className="size-3.5" />
               </button>
             </div>
@@ -157,7 +157,7 @@ export default function NotificationCenter({ variant = "sidebar", collapsed = fa
                   key={n.id}
                   onClick={() => n.status === NotificationStatus.UNREAD && markRead(n.id)}
                   className={cn(
-                    "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/50 border-b border-border/50 last:border-0",
+                    "cursor-pointer flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/50 border-b border-border/50 last:border-0",
                     n.status === NotificationStatus.UNREAD && "bg-primary/5"
                   )}
                 >

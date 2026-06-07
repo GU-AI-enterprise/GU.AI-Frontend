@@ -204,11 +204,11 @@ export default function ArchivePage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 flex flex-col justify-end">
                         <div className="flex items-center gap-2">
                           <button onClick={(e) => { e.stopPropagation(); handleRestore(img.id); }}
-                            className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 transition-all text-[11px] font-semibold text-white flex items-center justify-center gap-1.5">
+                            className="cursor-pointer flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 transition-all text-[11px] font-semibold text-white flex items-center justify-center gap-1.5">
                             <RotateCcw className="size-3.5" /> Khôi phục
                           </button>
                           <button onClick={(e) => { e.stopPropagation(); setDeleteId(img.id); }}
-                            className="p-2 rounded-xl bg-red-600/80 hover:bg-red-600 transition-all text-white" title="Xóa vĩnh viễn">
+                            className="cursor-pointer p-2 rounded-xl bg-red-600/80 hover:bg-red-600 transition-all text-white" title="Xóa vĩnh viễn">
                             <Trash2 className="size-3.5" />
                           </button>
                         </div>
@@ -228,11 +228,11 @@ export default function ArchivePage() {
           <div className="flex items-center gap-3 bg-card border border-border rounded-2xl shadow-2xl p-3">
             <span className="text-sm font-semibold text-foreground flex-1">Đã chọn {selectedIds.size} ảnh</span>
             <button onClick={handleBulkRestore}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500 transition-colors">
+              className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500 transition-colors">
               <RotateCcw className="size-3.5" /> Khôi phục
             </button>
             <button onClick={() => setBulkDeleteConfirm(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-semibold hover:bg-red-500/20 transition-colors">
+              className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-semibold hover:bg-red-500/20 transition-colors">
               <Trash2 className="size-3.5" /> Xóa vĩnh viễn
             </button>
           </div>

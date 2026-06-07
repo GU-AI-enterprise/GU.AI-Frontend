@@ -116,7 +116,7 @@ export default function RegisterPage() {
       <button
         onClick={handleGoogleSignup}
         type="button"
-        className="group relative flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition-all duration-300 hover:bg-secondary hover:border-primary/30 hover:shadow-sm active:scale-[0.98]"
+        className="cursor-pointer group relative flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition-all duration-300 hover:bg-secondary hover:border-primary/30 hover:shadow-sm active:scale-[0.98]"
       >
         <svg className="size-5 transition-transform duration-300 group-hover:scale-105" viewBox="0 0 24 24">
           <path
@@ -202,7 +202,7 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
+              className="cursor-pointer absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
             >
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>

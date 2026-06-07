@@ -27,7 +27,10 @@ const pill = (active: boolean) =>
 const lbl = "text-[10px] text-muted-foreground shrink-0";
 const row = "flex items-center gap-1.5 flex-wrap";
 const inputCls =
-  "w-full h-8 px-0 text-sm bg-transparent border-0 focus:outline-none focus:ring-0 placeholder:text-muted-foreground/50";
+  "w-full h-full px-0 text-sm bg-transparent border-0 focus:outline-none focus:ring-0 placeholder:text-muted-foreground/50 resize-none";
+
+// Vertical divider between controls and prompt
+const Divider = () => <div className="w-px bg-border/50 self-stretch mx-1 shrink-0" />;
 
 export interface ToolContextBarProps {
   selectedTool: AIToolType;
@@ -36,10 +39,12 @@ export interface ToolContextBarProps {
   toModel: TryOnModel;
   toResolution: TryOnResolution;
   toHovered: TryOnModel | null;
+  toPrompt: string;
   onToCategoryChange: (v: TryOnCategory) => void;
   onToModelChange: (v: TryOnModel) => void;
   onToResolutionChange: (v: TryOnResolution) => void;
   onToHoveredChange: (v: TryOnModel | null) => void;
+  onToPromptChange: (v: string) => void;
   // Product to Model
   p2mPrompt: string;
   p2mAspect: string;
@@ -110,8 +115,8 @@ export interface ToolContextBarProps {
 
 export function ToolContextBar({
   selectedTool,
-  toCategory, toModel, toResolution, toHovered,
-  onToCategoryChange, onToModelChange, onToResolutionChange, onToHoveredChange,
+  toCategory, toModel, toResolution, toHovered, toPrompt,
+  onToCategoryChange, onToModelChange, onToResolutionChange, onToHoveredChange, onToPromptChange,
   p2mPrompt, p2mAspect, p2mRes, p2mGenMode, p2mFaceMode, p2mHasFaceRef,
   onP2mPromptChange, onP2mAspectChange, onP2mResChange, onP2mGenModeChange, onP2mFaceModeChange,
   msPrompt, msRes, msGenMode, msFaceMode, msHasFaceRef,
@@ -133,48 +138,61 @@ export function ToolContextBar({
     const display = toHovered ?? toModel;
     const info = TRY_ON_MODELS.find((m) => m.id === display);
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2.5 flex flex-col gap-2">
-        <div className={row}>
-          <span className={`${lbl} w-9`}>Loại:</span>
-          {TRY_ON_CATEGORIES.map((c) => (
-            <button key={c.value} onClick={() => onToCategoryChange(c.value)} className={pill(toCategory === c.value)}>
-              {c.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-start gap-2">
-          <span className={`${lbl} w-9 pt-1.5`}>AI:</span>
-          <div className="flex flex-col gap-1.5 flex-1">
-            <div className={row}>
-              {TRY_ON_MODELS.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => onToModelChange(m.id)}
-                  onMouseEnter={() => onToHoveredChange(m.id)}
-                  onMouseLeave={() => onToHoveredChange(null)}
-                  className={`flex items-center gap-1.5 ${pill(toModel === m.id)}`}
-                >
-                  {m.name}
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
-                    toModel === m.id ? "bg-background/15 text-background/80" : "bg-primary/10 text-primary"
-                  }`}>
-                    {m.id === "v1.6" ? "1 cr" : `${computeTryOnCost("max", "balanced", toResolution)} cr`}
-                  </span>
-                </button>
-              ))}
-              {toModel === "max" && TRY_ON_RESOLUTIONS.map((r) => (
-                <button key={r.value} onClick={() => onToResolutionChange(r.value)} className={pill(toResolution === r.value)}>
-                  {r.label}
-                </button>
-              ))}
-            </div>
-            {info && (
-              <p className="text-[10px] text-muted-foreground">
-                <span className="text-foreground font-medium">{info.tagline}</span>
-                {" · "}{info.speed}{" · "}{info.bestFor}
-              </p>
-            )}
+      <div className="border border-border/60 rounded-2xl px-3 py-2.5 flex items-stretch min-h-0">
+        {/* Left 40%: controls */}
+        <div className="w-[40%] min-w-0 flex flex-col gap-1.5 pr-3">
+          <div className={row}>
+            <span className={`${lbl} w-9`}>Loại:</span>
+            {TRY_ON_CATEGORIES.map((c) => (
+              <button key={c.value} onClick={() => onToCategoryChange(c.value)} className={pill(toCategory === c.value)}>
+                {c.label}
+              </button>
+            ))}
           </div>
+          <div className={row}>
+            <span className={`${lbl} w-9`}>AI:</span>
+            {TRY_ON_MODELS.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => onToModelChange(m.id)}
+                onMouseEnter={() => onToHoveredChange(m.id)}
+                onMouseLeave={() => onToHoveredChange(null)}
+                className={`flex items-center gap-1.5 ${pill(toModel === m.id)}`}
+              >
+                {m.name}
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
+                  toModel === m.id ? "bg-background/15 text-background/80" : "bg-primary/10 text-primary"
+                }`}>
+                  {m.id === "v1.6" ? "1 cr" : `${computeTryOnCost("max", "balanced", toResolution)} cr`}
+                </span>
+              </button>
+            ))}
+            {toModel === "max" && TRY_ON_RESOLUTIONS.map((r) => (
+              <button key={r.value} onClick={() => onToResolutionChange(r.value)} className={pill(toResolution === r.value)}>
+                {r.label}
+              </button>
+            ))}
+          </div>
+          {info && (
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              <span className="text-foreground font-medium">{info.tagline}</span>
+              {" · "}{info.speed}
+            </p>
+          )}
+        </div>
+        <Divider />
+        {/* Right 60%: prompt when max, hint when v1.6 */}
+        <div className="flex-1 min-w-0 pl-3 flex items-center">
+          {toModel === "max" ? (
+            <input
+              value={toPrompt ?? ""}
+              onChange={(e) => onToPromptChange(e.target.value)}
+              placeholder='Tuỳ chỉnh (tuỳ chọn): "remove scarf", "tuck in shirt", "roll up sleeves"...'
+              className={inputCls}
+            />
+          ) : (
+            <p className="text-[11px] text-muted-foreground/50 italic">Chọn Try-On Max để thêm prompt tuỳ chỉnh</p>
+          )}
         </div>
       </div>
     );
@@ -183,14 +201,9 @@ export function ToolContextBar({
   // ── Product to Model ──────────────────────────────────────────────────────
   if (selectedTool === AIToolType.PRODUCT_TO_MODEL) {
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2 space-y-2">
-        <input
-          value={p2mPrompt}
-          onChange={(e) => onP2mPromptChange(e.target.value)}
-          placeholder='Mô tả thêm: "professional office", "man casual", "studio white background"... (tuỳ chọn)'
-          className={inputCls}
-        />
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+      <div className="border border-border/60 rounded-2xl px-3 py-2 flex items-stretch min-h-0">
+        {/* Left 40%: controls */}
+        <div className="w-[40%] min-w-0 flex flex-col gap-1.5 pr-3">
           <div className={row}>
             <span className={lbl}>Tỉ lệ:</span>
             {ASPECT_RATIOS.map((r) => (
@@ -218,6 +231,16 @@ export function ToolContextBar({
             </div>
           )}
         </div>
+        <Divider />
+        {/* Right 60%: prompt */}
+        <div className="flex-1 min-w-0 pl-3 flex items-center">
+          <input
+            value={p2mPrompt}
+            onChange={(e) => onP2mPromptChange(e.target.value)}
+            placeholder='Mô tả thêm: "professional office", "man casual", "studio white background"... (tuỳ chọn)'
+            className={inputCls}
+          />
+        </div>
       </div>
     );
   }
@@ -225,14 +248,9 @@ export function ToolContextBar({
   // ── Model Swap ────────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.MODEL_SWAP) {
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2 space-y-2">
-        <input
-          value={msPrompt}
-          onChange={(e) => onMsPromptChange(e.target.value)}
-          placeholder='Mô tả thêm: "same pose", "outdoor", "studio lighting"... (tuỳ chọn)'
-          className={inputCls}
-        />
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+      <div className="border border-border/60 rounded-2xl px-3 py-2 flex items-stretch min-h-0">
+        {/* Left 40%: controls */}
+        <div className="w-[40%] min-w-0 flex flex-col gap-1.5 pr-3">
           <div className={row}>
             <span className={lbl}>Res:</span>
             {RESOLUTIONS.map((r) => (
@@ -253,6 +271,16 @@ export function ToolContextBar({
               ))}
             </div>
           )}
+        </div>
+        <Divider />
+        {/* Right 60%: prompt */}
+        <div className="flex-1 min-w-0 pl-3 flex items-center">
+          <input
+            value={msPrompt}
+            onChange={(e) => onMsPromptChange(e.target.value)}
+            placeholder='Mô tả thêm: "same pose", "outdoor", "studio lighting"... (tuỳ chọn)'
+            className={inputCls}
+          />
         </div>
       </div>
     );
@@ -283,14 +311,9 @@ export function ToolContextBar({
   // ── Edit ──────────────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.EDIT) {
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2 space-y-2">
-        <input
-          value={genericPrompt}
-          onChange={(e) => onGenericPromptChange(e.target.value)}
-          placeholder='Mô tả thay đổi: "add a black leather bag", "turn slightly left", "studio lighting"...'
-          className={inputCls}
-        />
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+      <div className="border border-border/60 rounded-2xl px-3 py-2 flex items-stretch min-h-0">
+        {/* Left 40%: controls */}
+        <div className="w-[40%] min-w-0 flex flex-col gap-1.5 pr-3">
           <div className={row}>
             <span className={lbl}>Res:</span>
             {RESOLUTIONS.map((r) => (
@@ -304,21 +327,29 @@ export function ToolContextBar({
             ))}
           </div>
           <div className={row}>
-            <span className={lbl}>Số ảnh:</span>
+            <span className={lbl}>Ảnh:</span>
             {([1, 2, 3, 4] as const).map((n) => (
               <button key={n} onClick={() => onEditNumImagesChange(n)} className={pill(editNumImages === n)}>{n}</button>
             ))}
-          </div>
-          <div className={row}>
-            <span className={lbl}>Seed:</span>
+            <span className={`${lbl} ml-2`}>Seed:</span>
             <input
               type="number"
               value={editSeed}
               onChange={(e) => onEditSeedChange(e.target.value)}
               placeholder="42"
-              className="w-16 px-1.5 py-0.5 rounded-md text-[11px] bg-secondary/40 border border-border/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
+              className="w-14 px-1.5 py-0.5 rounded-md text-[11px] bg-secondary/40 border border-border/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
             />
           </div>
+        </div>
+        <Divider />
+        {/* Right 60%: prompt (required) */}
+        <div className="flex-1 min-w-0 pl-3 flex items-center">
+          <input
+            value={genericPrompt}
+            onChange={(e) => onGenericPromptChange(e.target.value)}
+            placeholder='Mô tả thay đổi: "add a black leather bag", "turn slightly left", "studio lighting"...'
+            className={inputCls}
+          />
         </div>
       </div>
     );
@@ -327,14 +358,9 @@ export function ToolContextBar({
   // ── Create Model ──────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.CREATE_MODEL) {
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2 space-y-2">
-        <input
-          value={genericPrompt}
-          onChange={(e) => onGenericPromptChange(e.target.value)}
-          placeholder='Mô tả model muốn tạo: "Full body shot, woman wearing a white t-shirt, studio"...'
-          className={inputCls}
-        />
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+      <div className="border border-border/60 rounded-2xl px-3 py-2 flex items-stretch min-h-0">
+        {/* Left 40%: controls */}
+        <div className="w-[40%] min-w-0 flex flex-col gap-1.5 pr-3">
           <div className={row}>
             <span className={lbl}>Res:</span>
             {RESOLUTIONS.map((r) => (
@@ -348,21 +374,29 @@ export function ToolContextBar({
             ))}
           </div>
           <div className={row}>
-            <span className={lbl}>Số ảnh:</span>
+            <span className={lbl}>Ảnh:</span>
             {([1, 2, 3, 4] as const).map((n) => (
               <button key={n} onClick={() => onCreateNumImagesChange(n)} className={pill(createNumImages === n)}>{n}</button>
             ))}
-          </div>
-          <div className={row}>
-            <span className={lbl}>Seed:</span>
+            <span className={`${lbl} ml-2`}>Seed:</span>
             <input
               type="number"
               value={createSeed}
               onChange={(e) => onCreateSeedChange(e.target.value)}
               placeholder="42"
-              className="w-16 px-1.5 py-0.5 rounded-md text-[11px] bg-secondary/40 border border-border/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
+              className="w-14 px-1.5 py-0.5 rounded-md text-[11px] bg-secondary/40 border border-border/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
             />
           </div>
+        </div>
+        <Divider />
+        {/* Right 60%: prompt (required) */}
+        <div className="flex-1 min-w-0 pl-3 flex items-center">
+          <input
+            value={genericPrompt}
+            onChange={(e) => onGenericPromptChange(e.target.value)}
+            placeholder='Mô tả model: "Full body shot, woman wearing a white t-shirt, studio"...'
+            className={inputCls}
+          />
         </div>
       </div>
     );
@@ -371,14 +405,9 @@ export function ToolContextBar({
   // ── Image to Video ────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.IMAGE_TO_VIDEO) {
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2 space-y-2">
-        <input
-          value={genericPrompt}
-          onChange={(e) => onGenericPromptChange(e.target.value)}
-          placeholder="Mô tả chuyển động (tuỳ chọn — để trống để AI tự quyết)"
-          className={inputCls}
-        />
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+      <div className="border border-border/60 rounded-2xl px-3 py-2 flex items-stretch min-h-0">
+        {/* Left 40%: controls */}
+        <div className="w-[40%] min-w-0 flex flex-col gap-1.5 pr-3">
           <div className={row}>
             <span className={lbl}>Thời lượng:</span>
             {([5, 10] as const).map((d) => (
@@ -391,6 +420,16 @@ export function ToolContextBar({
               <button key={r} onClick={() => onVideoResChange(r)} className={pill(videoRes === r)}>{r}</button>
             ))}
           </div>
+        </div>
+        <Divider />
+        {/* Right 60%: prompt (optional) */}
+        <div className="flex-1 min-w-0 pl-3 flex items-center">
+          <input
+            value={genericPrompt}
+            onChange={(e) => onGenericPromptChange(e.target.value)}
+            placeholder="Mô tả chuyển động (tuỳ chọn — để trống để AI tự quyết)"
+            className={inputCls}
+          />
         </div>
       </div>
     );
@@ -420,7 +459,7 @@ export function ToolContextBar({
             ))}
           </div>
           <div className={row}>
-            <span className={lbl}>Số ảnh:</span>
+            <span className={lbl}>Ảnh:</span>
             {([1, 2, 3, 4] as const).map((n) => (
               <button key={n} onClick={() => onReframeNumImagesChange(n)} className={pill(reframeNumImages === n)}>{n}</button>
             ))}

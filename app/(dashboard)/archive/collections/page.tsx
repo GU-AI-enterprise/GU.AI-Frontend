@@ -199,7 +199,7 @@ export default function CollectionsPage() {
 
                   <button
                     onClick={(e) => { e.stopPropagation(); handleDeleteCollection(col.id); }}
-                    className="p-2 rounded-xl bg-red-950/30 border border-red-500/10 hover:bg-red-500/20 hover:text-red-400 text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                    className="cursor-pointer p-2 rounded-xl bg-red-950/30 border border-red-500/10 hover:bg-red-500/20 hover:text-red-400 text-red-500 opacity-0 group-hover:opacity-100 transition-all"
                   >
                     <Trash2 className="size-3.5" />
                   </button>
@@ -233,7 +233,7 @@ export default function CollectionsPage() {
                   <FolderPlus className="size-4 text-primary" />
                   Tạo Album mới
                 </h3>
-                <button onClick={() => setIsCreateModalOpen(false)} className="p-1 rounded-lg hover:bg-secondary text-muted-foreground">
+                <button onClick={() => setIsCreateModalOpen(false)} className="cursor-pointer p-1 rounded-lg hover:bg-secondary text-muted-foreground">
                   <X className="size-4" />
                 </button>
               </div>
