@@ -39,6 +39,7 @@ import { useSidebar } from "@/contexts/SidebarContext";
 const mainNav = [
   { href: "/dashboard", label: "Tổng quan", Icon: LayoutDashboard },
   { href: "/studio",    label: "Studio",    Icon: Sparkles },
+  { href: "/library",   label: "Thư viện",  Icon: BookOpen },
 ];
 
 const archiveNav = [
