@@ -184,7 +184,10 @@ export default function ArchivePage() {
                     className={`group relative rounded-2xl overflow-hidden border bg-card aspect-[3/4] transition-all duration-300 cursor-pointer ${isSelected ? "border-primary ring-2 ring-primary/40" : "border-border hover:border-primary/40"}`}
                     onClick={() => selectMode && toggleSelect(img.id)}>
 
-                    <img src={img.url} alt="Archived asset" className="size-full object-cover opacity-70 group-hover:opacity-85 transition-opacity duration-300" loading="lazy" />
+                    {img.type === "video"
+                      ? <video src={img.url} muted preload="metadata" className="size-full object-cover opacity-70 group-hover:opacity-85 transition-opacity duration-300" />
+                      : <img src={img.thumbnail_url || img.url} alt="Archived asset" className="size-full object-cover opacity-70 group-hover:opacity-85 transition-opacity duration-300" loading="lazy" />
+                    }
 
                     {badge && (
                       <div className={`absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold text-white ${badge.color}`}>

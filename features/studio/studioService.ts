@@ -36,6 +36,8 @@ export interface AIJobStatusResult {
   type?: string;
   creditsUsed?: number;
   error?: string | null;
+  imageUrl?: string;
+  assetId?: string;
 }
 
 export type TryOnCategory = 'auto' | 'tops' | 'bottoms' | 'one-pieces';

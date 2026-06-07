@@ -85,6 +85,8 @@ export function useAIJob(jobId: string | null): UseAIJobReturn {
             jobId: result.jobId,
             status: result.status,
             error: result.error ?? undefined,
+            imageUrl: result.imageUrl,
+            assetId: result.assetId,
           });
         }
       } catch {

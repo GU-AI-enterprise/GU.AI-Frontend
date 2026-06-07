@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ImageIcon, Search, Download, Archive,
-  FolderHeart, Plus, CheckSquare, X, Layers
+  FolderHeart, Plus, CheckSquare, X, Layers, Film, Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GuaiLoader from "@/components/shared/guai-loader";
@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectPendingLightbox, clearPendingLightbox } from "@/features/aiJob/aiJobSlice";
 
+type ActiveTab = "image" | "video";
+
 export default function GalleryPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -25,7 +27,7 @@ export default function GalleryPage() {
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "input" | "output" | "edit">("all");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("image");
 
   const [lightboxUrl, setLightboxUrl]             = useState<string | null>(null);
   const [lightboxCreatedAt, setLightboxCreatedAt] = useState<string | undefined>();
@@ -75,12 +77,18 @@ export default function GalleryPage() {
         return;
       }
     }
-    // Fallback: open by imageUrl directly (asset not yet in list)
     if (pendingLightbox.imageUrl) {
       setLightboxUrl(pendingLightbox.imageUrl);
       dispatch(clearPendingLightbox());
     }
   }, [pendingLightbox, loading, assets]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset selection when switching tabs
+  useEffect(() => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+    setSearchQuery("");
+  }, [activeTab]);
 
   const executeArchive = async (id: string) => {
     try {
@@ -90,7 +98,7 @@ export default function GalleryPage() {
         action: { label: "Xem Archive", onClick: () => router.push("/archive/trash") },
       });
     } catch (err: any) {
-      toast.error(err.message || "Không thể chuyển ảnh vào Archive.");
+      toast.error(err.message || "Không thể chuyển vào Archive.");
     }
   };
 
@@ -101,11 +109,11 @@ export default function GalleryPage() {
       setAssets(prev => prev.filter(img => !selectedIds.has(img.id)));
       setSelectedIds(new Set());
       setSelectMode(false);
-      toast.success(`Đã chuyển ${ids.length} ảnh vào Archive.`, {
+      toast.success(`Đã chuyển ${ids.length} mục vào Archive.`, {
         action: { label: "Xem Archive", onClick: () => router.push("/archive/trash") },
       });
     } catch (err: any) {
-      toast.error(err.message || "Không thể chuyển ảnh vào Archive.");
+      toast.error(err.message || "Không thể chuyển vào Archive.");
     }
   };
 
@@ -126,12 +134,11 @@ export default function GalleryPage() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
-  const filteredAssets = assets.filter(img => {
-    const matchesSearch = img.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (img.type && img.type.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesFilter = filterType === "all" || img.type === filterType;
-    return matchesSearch && matchesFilter;
-  });
+  const tabAssets = assets.filter(a => a.type === activeTab);
+
+  const filteredAssets = tabAssets.filter(img =>
+    !searchQuery || img.url.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const groupedByDate = filteredAssets.reduce<Record<string, DBAsset[]>>((acc, img) => {
     const date = new Date(img.created_at).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -145,6 +152,11 @@ export default function GalleryPage() {
     return toMs(b) - toMs(a);
   });
 
+  const imageCount = assets.filter(a => a.type === "image").length;
+  const videoCount = assets.filter(a => a.type === "video").length;
+
+  const isVideo = activeTab === "video";
+
   if (authLoading) return (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
       <GuaiLoader size="lg" text="Đang xác thực..." />
@@ -156,13 +168,13 @@ export default function GalleryPage() {
       <div className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-foreground flex items-center gap-3">
               <ImageIcon className="size-7 text-primary" />
-              Tất cả ảnh
+              Ảnh & Video
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">Quản lý và tổ chức thư viện ảnh của bạn.</p>
+            <p className="text-sm text-muted-foreground mt-1">Quản lý và tổ chức thư viện ảnh và video của bạn.</p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={selectMode ? exitSelectMode : () => setSelectMode(true)} className="rounded-xl text-xs">
@@ -171,38 +183,75 @@ export default function GalleryPage() {
               {selectMode ? "Thoát chọn" : "Chọn nhiều"}
             </Button>
             <Button onClick={() => router.push("/archive/upload")} className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm">
-              <Plus className="size-4 mr-2" /> Tải lên ảnh mới
+              <Plus className="size-4 mr-2" /> Tải lên mới
             </Button>
           </div>
         </div>
 
-        {/* Search & Filter */}
-        <div className="flex items-center gap-3 mb-8">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <input type="text" placeholder="Tìm kiếm ảnh..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all" />
-          </div>
-          <select value={filterType} onChange={(e: any) => setFilterType(e.target.value)}
-            className="px-4 py-2.5 text-sm rounded-xl bg-background border border-border focus:border-primary focus:outline-none cursor-pointer">
-            <option value="all">Tất cả định dạng</option>
-            <option value="image">Ảnh</option>
-            <option value="video">Video</option>
-            <option value="file">File</option>
-          </select>
+        {/* Tabs */}
+        <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-xl w-fit mb-6 border border-border/50">
+          <button
+            onClick={() => setActiveTab("image")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === "image"
+                ? "bg-background text-foreground shadow-sm border border-border/60"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <ImageIcon className="size-3.5" />
+            Ảnh
+            {!loading && <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === "image" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{imageCount}</span>}
+          </button>
+          <button
+            onClick={() => setActiveTab("video")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === "video"
+                ? "bg-background text-foreground shadow-sm border border-border/60"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Film className="size-3.5" />
+            Video
+            {!loading && <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === "video" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{videoCount}</span>}
+          </button>
         </div>
 
-        {/* Gallery */}
+        {/* Search */}
+        <div className="mb-8">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder={isVideo ? "Tìm kiếm video..." : "Tìm kiếm ảnh..."}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+            />
+          </div>
+        </div>
+
+        {/* Grid */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24">
             <GuaiLoader size="md" text="Đang tải thư viện..." />
           </div>
         ) : filteredAssets.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 rounded-3xl border border-dashed border-border bg-card">
-            <ImageIcon className="size-12 text-muted-foreground mb-4" />
-            <h3 className="text-sm font-semibold text-muted-foreground">Không tìm thấy hình ảnh nào</h3>
-            <p className="text-xs text-muted-foreground/70 mt-1 max-w-xs text-center">Thư viện của bạn hiện đang trống.</p>
-            <Button onClick={() => router.push("/archive/upload")} className="mt-5 rounded-xl text-xs bg-primary hover:bg-primary">Tải lên ngay</Button>
+            {isVideo
+              ? <Film className="size-12 text-muted-foreground mb-4" />
+              : <ImageIcon className="size-12 text-muted-foreground mb-4" />
+            }
+            <h3 className="text-sm font-semibold text-muted-foreground">
+              {isVideo ? "Chưa có video nào" : "Chưa có ảnh nào"}
+            </h3>
+            <p className="text-xs text-muted-foreground/70 mt-1 max-w-xs text-center">
+              {isVideo
+                ? "Tạo video từ Studio để xem ở đây."
+                : "Tải lên hoặc tạo ảnh từ Studio để xem ở đây."}
+            </p>
+            {!isVideo && (
+              <Button onClick={() => router.push("/archive/upload")} className="mt-5 rounded-xl text-xs bg-primary hover:bg-primary">Tải lên ngay</Button>
+            )}
           </div>
         ) : (
           <div className="space-y-10">
@@ -211,22 +260,35 @@ export default function GalleryPage() {
                 <div className="flex items-center gap-3 mb-4">
                   <h2 className="text-sm font-semibold text-foreground">{date}</h2>
                   <div className="flex-1 h-px bg-border/60" />
-                  <span className="text-xs text-muted-foreground">{groupedByDate[date].length} ảnh</span>
+                  <span className="text-xs text-muted-foreground">
+                    {groupedByDate[date].length} {isVideo ? "video" : "ảnh"}
+                  </span>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                <div className={`grid gap-5 ${isVideo ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"}`}>
                   {groupedByDate[date].map((img) => {
                     const isSelected = selectedIds.has(img.id);
                     return (
                       <motion.div key={img.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                        className={`group relative rounded-2xl overflow-hidden border bg-card aspect-[3/4] transition-all duration-300 cursor-pointer ${isSelected ? "border-primary ring-2 ring-primary/40" : "border-border hover:border-primary/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.1)]"}`}
+                        className={`group relative rounded-2xl overflow-hidden border bg-card transition-all duration-300 cursor-pointer ${isVideo ? "aspect-video" : "aspect-[3/4]"} ${isSelected ? "border-primary ring-2 ring-primary/40" : "border-border hover:border-primary/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.1)]"}`}
                         onClick={() => {
-                          if (selectMode) toggleSelect(img.id);
-                          else {
-                            const idx = filteredAssets.findIndex(a => a.id === img.id);
-                            setLightboxIndex(idx); setLightboxUrl(img.url); setLightboxCreatedAt(img.created_at);
-                          }
+                          if (selectMode) { toggleSelect(img.id); return; }
+                          const idx = filteredAssets.findIndex(a => a.id === img.id);
+                          setLightboxIndex(idx);
+                          setLightboxUrl(img.url);
+                          setLightboxCreatedAt(img.created_at);
                         }}>
-                        <img src={img.url} alt="GU.AI Asset" className="size-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+
+                        {isVideo
+                          ? <>
+                              <video src={img.url} muted preload="metadata" className="size-full object-cover" />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+                                <div className="size-10 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
+                                  <Play className="size-4 text-white fill-white ml-0.5" />
+                                </div>
+                              </div>
+                            </>
+                          : <img src={img.thumbnail_url || img.url} alt="GU.AI Asset" className="size-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                        }
 
                         <div className={`absolute top-2 left-2 transition-opacity duration-150 ${selectMode ? "opacity-100" : "opacity-0"}`}>
                           <div className={`size-5 rounded-md border-2 flex items-center justify-center transition-colors ${isSelected ? "bg-primary border-primary" : "bg-black/40 border-white/60"}`}>
@@ -266,23 +328,30 @@ export default function GalleryPage() {
       <div className={`fixed bottom-0 left-0 right-0 z-40 transition-all duration-300 ${selectMode && selectedIds.size > 0 ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"}`}>
         <div className="mx-auto max-w-xl mb-6 px-4">
           <div className="flex items-center gap-3 bg-card border border-border rounded-2xl shadow-2xl p-3">
-            <span className="text-sm font-semibold text-foreground flex-1">Đã chọn {selectedIds.size} ảnh</span>
+            <span className="text-sm font-semibold text-foreground flex-1">Đã chọn {selectedIds.size} mục</span>
             <button onClick={() => { const firstId = Array.from(selectedIds)[0]; if (firstId) setSaveAssetId(firstId); }}
               className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors">
               <FolderHeart className="size-3.5" /> Lưu vào Album
             </button>
             <button onClick={executeBulkArchive}
               className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-semibold hover:bg-red-500/20 transition-colors">
-              <Archive className="size-3.5" /> Xóa {selectedIds.size} ảnh
+              <Archive className="size-3.5" /> Xóa {selectedIds.size} mục
             </button>
           </div>
         </div>
       </div>
 
-      <Lightbox imageUrl={lightboxUrl} createdAt={lightboxCreatedAt} currentIndex={lightboxIndex}
-        images={filteredAssets.map(a => ({ url: a.url, createdAt: a.created_at }))}
-        onNavigate={(idx) => { const img = filteredAssets[idx]; if (img) { setLightboxIndex(idx); setLightboxUrl(img.url); setLightboxCreatedAt(img.created_at); } }}
-        onClose={() => { setLightboxUrl(null); setLightboxCreatedAt(undefined); }} />
+      <Lightbox
+        imageUrl={lightboxUrl}
+        createdAt={lightboxCreatedAt}
+        currentIndex={lightboxIndex}
+        images={filteredAssets.map(a => ({ url: a.url, createdAt: a.created_at, type: a.type }))}
+        onNavigate={(idx) => {
+          const img = filteredAssets[idx];
+          if (img) { setLightboxIndex(idx); setLightboxUrl(img.url); setLightboxCreatedAt(img.created_at); }
+        }}
+        onClose={() => { setLightboxUrl(null); setLightboxCreatedAt(undefined); }}
+      />
 
       <SaveToAlbumModal assetId={saveAssetId} onClose={() => setSaveAssetId(null)} />
     </div>

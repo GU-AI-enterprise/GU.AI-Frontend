@@ -17,6 +17,7 @@ interface LightboxImage {
   url: string;
   filename?: string;
   createdAt?: string;
+  type?: string;
 }
 
 interface LightboxProps {
@@ -28,6 +29,8 @@ interface LightboxProps {
   filename?: string;
   /** ISO timestamp — shown in top bar as creation time */
   createdAt?: string;
+  /** "video" to render a video player instead of image */
+  imageType?: string;
   /** Full image list for prev/next navigation */
   images?: LightboxImage[];
   /** Index of the currently open image within `images` */
@@ -40,7 +43,7 @@ const ZOOM_STEPS = [1, 1.5, 2, 3, 4];
 const ZOOM_MIN = ZOOM_STEPS[0];
 const ZOOM_MAX = ZOOM_STEPS[ZOOM_STEPS.length - 1];
 
-export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt, images, currentIndex, onNavigate }: LightboxProps) {
+export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt, imageType, images, currentIndex, onNavigate }: LightboxProps) {
   const [isMounted, setIsMounted] = useState(false);
   const isOpen = !!imageUrl;
 
@@ -55,9 +58,11 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt,
   const hasNav   = !!images && images.length > 1;
   const navIndex = currentIndex ?? 0;
   const activeImg = hasNav ? images![navIndex] : null;
-  const activeUrl      = activeImg?.url      ?? imageUrl ?? undefined;
-  const activeFilename = activeImg?.filename ?? filename;
-  const activeCreatedAt= activeImg?.createdAt ?? createdAt;
+  const activeUrl       = activeImg?.url      ?? imageUrl ?? undefined;
+  const activeFilename  = activeImg?.filename ?? filename;
+  const activeCreatedAt = activeImg?.createdAt ?? createdAt;
+  const activeType      = activeImg?.type ?? imageType;
+  const isVideo = activeType === "video" || (activeUrl?.match(/\.(mp4|webm|mov)(\?|$)/i) ?? false);
 
   // ── Mount guard for portal ─────────────────────────────────────────────────
   useEffect(() => { setIsMounted(true); }, []);
@@ -227,23 +232,36 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt,
           </button>
         )}
 
-        <img
-          ref={imgRef}
-          src={activeUrl}
-          alt="Phóng to"
-          draggable={false}
-          onDoubleClick={zoom > 1 ? resetZoom : zoomIn}
-          style={{
-            transform: `scale(${zoom}) translate(${panX / zoom}px, ${panY / zoom}px)`,
-            transition: dragging.current ? "none" : "transform 0.18s ease",
-            maxWidth: "90vw",
-            maxHeight: "calc(90vh - 120px)",
-            borderRadius: "12px",
-            objectFit: "contain",
-            boxShadow: "0 25px 60px rgba(0,0,0,0.6)",
-            cursor: zoom > 1 ? (dragging.current ? "grabbing" : "grab") : "zoom-in",
-          }}
-        />
+        {isVideo
+          ? <video
+              src={activeUrl}
+              controls
+              autoPlay={false}
+              style={{
+                maxWidth: "90vw",
+                maxHeight: "calc(90vh - 120px)",
+                borderRadius: "12px",
+                boxShadow: "0 25px 60px rgba(0,0,0,0.6)",
+              }}
+            />
+          : <img
+              ref={imgRef}
+              src={activeUrl}
+              alt="Phóng to"
+              draggable={false}
+              onDoubleClick={zoom > 1 ? resetZoom : zoomIn}
+              style={{
+                transform: `scale(${zoom}) translate(${panX / zoom}px, ${panY / zoom}px)`,
+                transition: dragging.current ? "none" : "transform 0.18s ease",
+                maxWidth: "90vw",
+                maxHeight: "calc(90vh - 120px)",
+                borderRadius: "12px",
+                objectFit: "contain",
+                boxShadow: "0 25px 60px rgba(0,0,0,0.6)",
+                cursor: zoom > 1 ? (dragging.current ? "grabbing" : "grab") : "zoom-in",
+              }}
+            />
+        }
 
         {/* Next button */}
         {hasNav && (
@@ -259,8 +277,8 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt,
       {/* ── Bottom toolbar ──────────────────────────────────────────────────── */}
       <div className="shrink-0 flex items-center justify-center gap-2 px-4 py-3 border-t border-white/8">
 
-        {/* Zoom controls */}
-        <div className="flex items-center gap-1 bg-white/8 rounded-xl p-1">
+        {/* Zoom controls — hidden for video */}
+        <div className={`flex items-center gap-1 bg-white/8 rounded-xl p-1 ${isVideo ? "hidden" : ""}`}>
           <button
             onClick={zoomOut}
             disabled={!canZoomOut}
