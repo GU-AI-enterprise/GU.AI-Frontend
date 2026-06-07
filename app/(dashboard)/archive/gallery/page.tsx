@@ -134,7 +134,7 @@ export default function GalleryPage() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
-  const tabAssets = assets.filter(a => a.type === activeTab);
+  const tabAssets = assets.filter(a => a.type === activeTab && a.category !== "model");
 
   const filteredAssets = tabAssets.filter(img =>
     !searchQuery || img.url.toLowerCase().includes(searchQuery.toLowerCase())
@@ -152,7 +152,7 @@ export default function GalleryPage() {
     return toMs(b) - toMs(a);
   });
 
-  const imageCount = assets.filter(a => a.type === "image").length;
+  const imageCount = assets.filter(a => a.type === "image" && a.category !== "model").length;
   const videoCount = assets.filter(a => a.type === "video").length;
 
   const isVideo = activeTab === "video";

@@ -5,18 +5,17 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   UserCircle2, Search, Download, Archive,
-  FolderHeart, Plus, CheckSquare, X, Layers, UploadCloud, Loader2
+  Plus, CheckSquare, X, Layers, UploadCloud, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { Lightbox } from "@/components/shared/lightbox";
-import { SaveToAlbumModal } from "@/components/shared/save-to-album-modal";
 import { supabase } from "@/lib/supabase";
-import { getImages, archiveImage, bulkArchive, syncImage, type DBAsset } from "@/features/archive/imageService";
+import { getImages, archiveImage, bulkArchive, syncImage, uploadFile, type DBAsset } from "@/features/archive/imageService";
 import { toast } from "sonner";
 
 const CATEGORY = "model";
-const BUCKET   = "images";
+const BUCKET   = "models";
 
 export default function ModelsPage() {
   const router = useRouter();
@@ -34,9 +33,6 @@ export default function ModelsPage() {
   const [lightboxUrl, setLightboxUrl]             = useState<string | null>(null);
   const [lightboxCreatedAt, setLightboxCreatedAt] = useState<string | undefined>();
   const [lightboxIndex, setLightboxIndex]         = useState(0);
-
-  // Save to album
-  const [saveAssetId, setSaveAssetId] = useState<string | null>(null);
 
   // Multi-select
   const [selectMode, setSelectMode] = useState(false);
@@ -68,7 +64,7 @@ export default function ModelsPage() {
   // ── Upload ────────────────────────────────────────────────────────────────
 
   const handleUpload = async (files: FileList | null) => {
-    if (!files || !userId) return;
+    if (!files) return;
     const list = Array.from(files).filter(f => f.type.startsWith("image/"));
     if (!list.length) return;
 
@@ -78,12 +74,7 @@ export default function ModelsPage() {
 
     for (const file of list) {
       try {
-        const ext = file.name.split(".").pop();
-        const path = `${userId}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
-        const { error: uploadErr } = await supabase.storage.from(BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
-        if (uploadErr) throw new Error(uploadErr.message);
-
-        const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
+        const publicUrl = await uploadFile(file, BUCKET);
         const saved = await syncImage({ fileUrl: publicUrl, fileSize: file.size, type: "image", category: CATEGORY, thumbnailUrl: publicUrl });
         newAssets.push(saved);
         successCount++;
@@ -251,10 +242,6 @@ export default function ModelsPage() {
                               className="p-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all text-white">
                               <Download className="size-3.5" />
                             </a>
-                            <button onClick={(e) => { e.stopPropagation(); setSaveAssetId(img.id); }}
-                              className="cursor-pointer flex-1 py-2 rounded-xl bg-primary hover:bg-primary/90 transition-all text-[11px] font-semibold text-center text-primary-foreground flex items-center justify-center gap-1.5">
-                              <FolderHeart className="size-3.5" /> Lưu album
-                            </button>
                             <button onClick={(e) => { e.stopPropagation(); executeArchive(img.id); }}
                               className="cursor-pointer p-2 rounded-xl bg-amber-500/20 backdrop-blur-md border border-amber-500/30 hover:bg-amber-500/30 hover:text-amber-300 transition-all text-amber-400"
                               title="Chuyển vào Archive">
@@ -277,10 +264,6 @@ export default function ModelsPage() {
         <div className="mx-auto max-w-xl mb-6 px-4">
           <div className="flex items-center gap-3 bg-card border border-border rounded-2xl shadow-2xl p-3">
             <span className="text-sm font-semibold text-foreground flex-1">Đã chọn {selectedIds.size} ảnh</span>
-            <button onClick={() => { const first = Array.from(selectedIds)[0]; if (first) setSaveAssetId(first); }}
-              className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors">
-              <FolderHeart className="size-3.5" /> Lưu vào Album
-            </button>
             <button onClick={executeBulkArchive}
               className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 text-xs font-semibold hover:bg-amber-500/20 transition-colors">
               <Archive className="size-3.5" /> Archive {selectedIds.size} ảnh
@@ -293,8 +276,6 @@ export default function ModelsPage() {
         images={filtered.map(a => ({ url: a.url, createdAt: a.created_at }))}
         onNavigate={(idx) => { const img = filtered[idx]; if (img) { setLightboxIndex(idx); setLightboxUrl(img.url); setLightboxCreatedAt(img.created_at); } }}
         onClose={() => { setLightboxUrl(null); setLightboxCreatedAt(undefined); }} />
-
-      <SaveToAlbumModal assetId={saveAssetId} onClose={() => setSaveAssetId(null)} />
     </div>
   );
 }

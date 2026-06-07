@@ -35,6 +35,16 @@ export async function getImages(category?: string): Promise<DBAsset[]> {
   return parseResponse<DBAsset[]>(await apiFetch(url));
 }
 
+/** Upload file lên Supabase qua backend (bypass RLS). Trả về public URL. */
+export async function uploadFile(file: File, bucket: 'assets' | 'videos' | 'models' = 'assets'): Promise<string> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await apiFetch(`/api/images/upload?bucket=${bucket}`, { method: 'POST', body: form });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Upload failed');
+  return json.data.url as string;
+}
+
 export async function syncImage(payload: SyncImagePayload): Promise<DBAsset> {
   return parseResponse<DBAsset>(await apiFetch('/api/images', {
     method: 'POST',

@@ -32,6 +32,14 @@ export async function deleteCollection(id: string): Promise<void> {
   await parseResponse<void>(await apiFetch(`/api/collections/${id}`, { method: 'DELETE' }));
 }
 
+export async function updateCollection(id: string, name: string): Promise<Collection> {
+  return parseResponse<Collection>(await apiFetch(`/api/collections/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  }));
+}
+
 export async function getCollection(id: string): Promise<Collection> {
   return parseResponse<Collection>(await apiFetch(`/api/collections/${id}`));
 }
