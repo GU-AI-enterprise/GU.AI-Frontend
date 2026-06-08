@@ -21,7 +21,7 @@ export function TryOnPanel({
   return (
     <div className="grid grid-cols-2 gap-4 h-full min-h-0">
       <ImageSlot
-        label="Ảnh người mẫu" sublabel="Người đứng thẳng"
+        label="Ảnh người mẫu" sublabel="Model"
         image={modelImage} onClear={() => onModelImageChange(null)}
         onFileChange={(f) => onModelImageChange(fileToStudioImage(f))}
         onPaste={() => onPaste((f) => onModelImageChange(fileToStudioImage(f)))}
