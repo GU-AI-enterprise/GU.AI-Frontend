@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef } from "react";
-import { Upload, X, ClipboardPaste, GalleryHorizontal } from "lucide-react";
+import { X } from "lucide-react";
 import type { StudioImage } from "../types";
+import { DropZoneContent } from "./DropZoneContent";
 
 interface Props {
   label: string;
@@ -80,29 +81,11 @@ export function ImageSlot({ label, sublabel, image, onClear, onFileChange, onPas
             className="hidden"
           />
 
-          <Upload className="size-5 text-muted-foreground" />
-          <p className="text-[10px] text-muted-foreground">Nhấp → Ctrl+V để dán · Kéo thả</p>
-
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
-              className="cursor-pointer px-2 py-1 rounded-md bg-background border border-border text-[10px] hover:bg-secondary transition-colors"
-            >
-              <Upload className="size-3 inline mr-1" />Tải lên
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onPaste(); }}
-              className="cursor-pointer px-2 py-1 rounded-md bg-background border border-border text-[10px] hover:bg-secondary transition-colors"
-            >
-              <ClipboardPaste className="size-3 inline mr-1" />Paste
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onGallery(); }}
-              className="cursor-pointer px-2 py-1 rounded-md bg-background border border-border text-[10px] hover:bg-secondary transition-colors"
-            >
-              <GalleryHorizontal className="size-3 inline mr-1" />Gallery
-            </button>
-          </div>
+          <DropZoneContent
+            onUpload={() => fileRef.current?.click()}
+            onPaste={onPaste}
+            onGallery={onGallery}
+          />
         </div>
       </div>
     </div>

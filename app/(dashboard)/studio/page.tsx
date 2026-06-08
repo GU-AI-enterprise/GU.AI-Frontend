@@ -24,7 +24,7 @@ import { AIToolType } from "@/constants/ai";
 import { toast } from "sonner";
 import {
   tryOn, tryOnMax, productToModel, editImage,
-  modelSwap, modelCreate, imageToVideo, reframe, faceToModel,
+  modelSwap, modelCreate, imageToVideo, reframe, faceToModel, removeBackground,
   type TryOnCategory,
 } from "@/features/studio/studioService";
 import { useAIJob } from "@/hooks/useAIJob";
@@ -462,6 +462,11 @@ function StudioPageInner() {
         numImages:      reframeNumImages,
         seed:           parsedReframeSeed,
       }));
+    }
+
+    if (selectedTool === AIToolType.REMOVE_BG) {
+      if (!imgSrc) { toast.warning("Vui lòng thêm ảnh nguồn."); return; }
+      return submit(removeBackground(img0.file ?? img0.url));
     }
 
     const toolData = TOOLS.find(t => t.id === selectedTool);

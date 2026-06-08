@@ -515,6 +515,17 @@ export function ToolContextBar({
     );
   }
 
+  // ── Remove Background ─────────────────────────────────────────────────────────
+  if (selectedTool === AIToolType.REMOVE_BG) {
+    return (
+      <div className="border border-border/60 rounded-2xl px-4 py-2.5 flex items-center">
+        <p className="text-[11px] text-muted-foreground/60 italic">
+          AI tự động phát hiện foreground và xóa nền — xuất file PNG trong suốt · 1 credit / ảnh
+        </p>
+      </div>
+    );
+  }
+
   // ── Upscale ───────────────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.UPSCALE) {
     return (

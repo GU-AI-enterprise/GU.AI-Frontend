@@ -8,6 +8,7 @@ export enum AIToolType {
   IMAGE_TO_VIDEO = 'image_to_video',
   REFRAME = 'reframe',
   UPSCALE = 'upscale',
+  REMOVE_BG = 'remove_bg',
 }
 
 export enum AIJobStatus {
@@ -28,4 +29,5 @@ export const CREDIT_COST: Record<AIToolType, number> = {
   [AIToolType.IMAGE_TO_VIDEO]: 12,    // 5s/1080p; dynamic in studio
   [AIToolType.REFRAME]: 4,            // balanced/1k; dynamic in studio
   [AIToolType.UPSCALE]: 8,
+  [AIToolType.REMOVE_BG]: 1,
 };
