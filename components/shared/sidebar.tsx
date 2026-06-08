@@ -31,16 +31,16 @@ import {
 import Logo from "@/components/shared/logo";
 import SupportChatWidget from "@/components/support/support-chat-widget";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { fetchCredit, selectCreditBalance } from "@/features/credit/creditSlice";
+import { fetchCredit, selectCreditBalance, setPlanType, selectPlanType } from "@/features/credit/creditSlice";
 import { getTopupInfo } from "@/features/payment/paymentService";
 import { supabase } from "@/lib/supabase";
 import { useSupportUnread } from "@/contexts/SupportUnreadContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 
 const mainNav = [
-  { href: "/dashboard", label: "Tổng quan", Icon: LayoutDashboard },
-  { href: "/studio",    label: "Studio",    Icon: Sparkles },
-  { href: "/library",   label: "Thư viện",  Icon: BookOpen },
+  { href: "/dashboard", label: "Tổng quan", Icon: LayoutDashboard, iconSrc: null },
+  { href: "/studio",    label: "Studio",    Icon: null,             iconSrc: "/icons/main_logo.png" },
+  { href: "/library",   label: "Thư viện",  Icon: BookOpen,         iconSrc: null },
 ];
 
 const archiveNav = [
@@ -58,7 +58,7 @@ export default function Sidebar() {
   const { theme, setTheme } = useTheme();
   const { session, user } = useAppSelector((s) => s.auth);
   const credit    = useAppSelector(selectCreditBalance);
-  const [planType, setPlanType] = useState<'free' | 'basic' | 'pro' | 'agency'>('free');
+  const planType  = useAppSelector(selectPlanType);
 
   const { unreadCount, role: userRole, markRead } = useSupportUnread();
   const isStaff = userRole === "staff" || userRole === "admin";
@@ -100,8 +100,8 @@ export default function Sidebar() {
 
   useEffect(() => {
     if (!session?.access_token) return;
-    getTopupInfo().then(info => setPlanType(info.plan_type)).catch(() => {});
-  }, [session?.access_token]);
+    getTopupInfo().then(info => dispatch(setPlanType(info.plan_type))).catch(() => {});
+  }, [session?.access_token, dispatch]);
 
   // ── Close user menu on outside click ────────────────────────────────────────
   useEffect(() => {
@@ -190,7 +190,7 @@ export default function Sidebar() {
               </div>
             )}
 
-            {mainNav.map(({ href, label, Icon }) => {
+            {mainNav.map(({ href, label, Icon, iconSrc }) => {
               const active = isActive(href);
               return (
                 <div key={href} className="relative" onMouseLeave={() => setTooltip(null)}>
@@ -208,7 +208,11 @@ export default function Sidebar() {
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     }`}
                   >
-                    <Icon className={`size-[18px] flex-shrink-0 ${active ? "text-primary" : ""}`} />
+                    {iconSrc ? (
+                      <img src={iconSrc} alt={label} className="size-[18px] flex-shrink-0 object-contain" />
+                    ) : Icon ? (
+                      <Icon className={`size-[18px] flex-shrink-0 ${active ? "text-primary" : ""}`} />
+                    ) : null}
                     {!isCollapsed && <span>{label}</span>}
                   </Link>
                 </div>

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Coins, ArrowRight, Home, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useAppDispatch } from "@/store/hooks";
-import { setBalance } from "@/features/credit/creditSlice";
+import { setBalance, setPlanType } from "@/features/credit/creditSlice";
 import { apiFetch } from "@/lib/apiFetch";
 
 type State = "processing" | "success" | "already" | "error";
@@ -30,13 +30,14 @@ function SuccessContent() {
         const json = await res.json();
 
         if (json.alreadyProcessed) {
-          // Webhook already handled it — just refresh balance
+          // Webhook already handled it — refresh balance + plan
           const profileRes  = await apiFetch('/api/users/profile');
           const profileJson = await profileRes.json();
           if (typeof profileJson.current_credit === 'number') {
             dispatch(setBalance(profileJson.current_credit));
             setNewBalance(profileJson.current_credit);
           }
+          if (profileJson.plan_type) dispatch(setPlanType(profileJson.plan_type));
           setState("already");
           return;
         }
@@ -45,6 +46,7 @@ function SuccessContent() {
           dispatch(setBalance(json.newBalance));
           setNewBalance(json.newBalance);
           setCreditsGot(json.credits);
+          if (json.planType) dispatch(setPlanType(json.planType));
           setState("success");
           return;
         }
