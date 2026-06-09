@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import GuaiLoader from "@/components/shared/guai-loader";
 import { LOADING_MESSAGES, LOADING_TIMING_MS } from "../constants";
 
 interface Props {
@@ -20,7 +19,16 @@ export function ProcessingPanel({ active }: Props) {
 
   return (
     <div className="flex flex-col items-center justify-center gap-6 rounded-3xl border border-border bg-card h-full min-h-0">
-      <GuaiLoader size="lg" />
+      {/* Animated loading GIF with premium pulse glow */}
+      <div className="relative w-16 h-16 flex items-center justify-center">
+        <div className="absolute inset-0 rounded-full bg-primary/10 blur-2xl animate-pulse" />
+        <img
+          src="/animation/studio_animation.gif"
+          alt="AI Processing"
+          className="w-full h-full object-contain rounded-2xl relative z-10"
+        />
+      </div>
+
       <div className="overflow-hidden" style={{ height: "1.4rem" }}>
         <AnimatePresence mode="wait">
           <motion.p

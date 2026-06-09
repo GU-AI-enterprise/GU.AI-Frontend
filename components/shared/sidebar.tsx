@@ -74,6 +74,24 @@ export default function Sidebar() {
   const [userMenuOpen,    setUserMenuOpen]     = useState(false);
   const [userMenuPos,     setUserMenuPos]      = useState<{ bottom: number; left: number } | null>(null);
   const [chatForceOpen,   setChatForceOpen]    = useState(false);
+  const [isFakeAI,        setIsFakeAI]         = useState(false);
+
+  // Sync and load fake AI mode state
+  useEffect(() => {
+    setIsFakeAI(localStorage.getItem("fake-ai-call") === "true");
+    const syncFakeAI = () => {
+      setIsFakeAI(localStorage.getItem("fake-ai-call") === "true");
+    };
+    window.addEventListener("fake-ai-toggle", syncFakeAI);
+    return () => window.removeEventListener("fake-ai-toggle", syncFakeAI);
+  }, []);
+
+  const toggleFakeAI = () => {
+    const newVal = !isFakeAI;
+    setIsFakeAI(newVal);
+    localStorage.setItem("fake-ai-call", String(newVal));
+    window.dispatchEvent(new Event("fake-ai-toggle"));
+  };
 
   const archiveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userBtnRef     = useRef<HTMLButtonElement>(null);
@@ -366,6 +384,45 @@ export default function Sidebar() {
             )}
           </div>
         )}
+
+        {/* ── Fake AI Call Toggle ── */}
+        <div className="px-3 pb-2">
+          {isCollapsed ? (
+            <div className="flex flex-col items-center gap-1.5 py-1">
+              <button
+                onClick={toggleFakeAI}
+                title={isFakeAI ? "Fake AI Calls: Đang bật" : "Fake AI Calls: Đang tắt"}
+                className={`cursor-pointer relative flex items-center justify-center size-9 rounded-xl border transition-colors ${
+                  isFakeAI
+                    ? "bg-amber-500/15 text-amber-500 border-amber-500/30 hover:bg-amber-500/25"
+                    : "bg-secondary/40 text-muted-foreground border-transparent hover:bg-secondary hover:text-foreground"
+                }`}
+              >
+                <Sparkles className={`size-4.5 ${isFakeAI ? "animate-pulse text-amber-500" : ""}`} />
+                {isFakeAI && (
+                  <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-amber-500 border-2 border-sidebar" />
+                )}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={toggleFakeAI}
+              className={`cursor-pointer w-full flex items-center justify-between px-3 h-10 rounded-xl text-xs font-medium border transition-all ${
+                isFakeAI
+                  ? "bg-amber-500/10 text-amber-500 border-amber-500/30 hover:bg-amber-500/20"
+                  : "bg-secondary/40 text-muted-foreground border-transparent hover:bg-secondary hover:text-foreground"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles className={`size-4 ${isFakeAI ? "animate-pulse text-amber-500" : ""}`} />
+                <span>Fake AI Calls</span>
+              </div>
+              <div className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 ${isFakeAI ? "bg-amber-500" : "bg-muted-foreground/30"}`}>
+                <div className={`w-3 h-3 rounded-full bg-white transition-transform duration-200 ${isFakeAI ? "translate-x-4" : "translate-x-0"}`} />
+              </div>
+            </button>
+          )}
+        </div>
 
         {/* ── User card (bottom) ── */}
         <div className="px-3 py-3 border-t border-sidebar-border">

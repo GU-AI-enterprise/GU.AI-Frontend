@@ -152,6 +152,17 @@ function StudioPageInner() {
   const toolbarRef          = useRef<HTMLDivElement>(null);
   const isToolSwitchRef     = useRef(false); // false on initial mount, true on subsequent tool changes
 
+  const [isFakeAI, setIsFakeAI] = useState(false);
+
+  useEffect(() => {
+    setIsFakeAI(localStorage.getItem("fake-ai-call") === "true");
+    const syncFakeAI = () => {
+      setIsFakeAI(localStorage.getItem("fake-ai-call") === "true");
+    };
+    window.addEventListener("fake-ai-toggle", syncFakeAI);
+    return () => window.removeEventListener("fake-ai-toggle", syncFakeAI);
+  }, []);
+
   // ── AI job ────────────────────────────────────────────────────────────────
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [restoredResult, setRestoredResult] = useState<{ imageUrl: string; assetId: string | null } | null>(null);
@@ -336,8 +347,8 @@ function StudioPageInner() {
     if (selectedTool === AIToolType.TRY_ON) {
       if (!toModelImage)  { toast.warning("Vui lòng thêm ảnh người mẫu."); return; }
       if (!toGarment)     { toast.warning("Vui lòng thêm ảnh trang phục."); return; }
-      const cost = computeTryOnCost(toModel, "balanced", toResolution);
-      if (creditBalance !== null && creditBalance < cost) {
+      const cost = isFakeAI ? 0 : computeTryOnCost(toModel, "balanced", toResolution);
+      if (!isFakeAI && creditBalance !== null && creditBalance < cost) {
         toast.warning(`Bạn cần ${cost} credits để chạy ${toModel === "max" ? "Try-On Max" : "Try-On v1.6"}.`);
         return;
       }
@@ -352,15 +363,18 @@ function StudioPageInner() {
           jobId = r.jobId;
         }
         startJob(jobId);
-        dispatch(setBalance((creditBalance ?? 0) - cost));
+        if (!isFakeAI) {
+          dispatch(setBalance((creditBalance ?? 0) - cost));
+        }
       } catch (err: any) {
         toast.error(err.message ?? "Không thể bắt đầu try-on.");
       }
       return;
     }
 
-    if (creditBalance !== null && creditBalance < currentCost) {
-      toast.warning(`Bạn cần ${currentCost} credits.`); return;
+    const activeCost = isFakeAI ? 0 : currentCost;
+    if (!isFakeAI && creditBalance !== null && creditBalance < activeCost) {
+      toast.warning(`Bạn cần ${activeCost} credits.`); return;
     }
 
     const submit = async (jobPromise: Promise<{ jobId: string }>) => {
@@ -369,7 +383,9 @@ function StudioPageInner() {
       try {
         const { jobId } = await jobPromise;
         startJob(jobId);
-        dispatch(setBalance((creditBalance ?? 0) - currentCost));
+        if (!isFakeAI) {
+          dispatch(setBalance((creditBalance ?? 0) - currentCost));
+        }
       } catch (err: any) {
         toast.error(err.message ?? "Không thể bắt đầu xử lý.");
       }
@@ -730,7 +746,9 @@ function StudioPageInner() {
           </button>
 
           <div className="flex items-center gap-3 shrink-0">
-            <span className="hidden sm:block text-[11px] font-semibold text-foreground">{currentCost} credit{currentCost > 1 ? "s" : ""}</span>
+            <span className="hidden sm:block text-[11px] font-semibold text-foreground">
+              {isFakeAI ? "0 credits (Fake AI)" : `${currentCost} credit${currentCost > 1 ? "s" : ""}`}
+            </span>
 
             <button
               onClick={() => setGuideToolId(selectedTool)}

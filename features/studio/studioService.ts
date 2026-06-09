@@ -62,6 +62,40 @@ function toFormData(entries: Record<string, File | string | undefined>): FormDat
 }
 
 async function startJob<T = AIJobStartResult>(path: string, formData: FormData): Promise<T> {
+  if (typeof window !== 'undefined' && localStorage.getItem('fake-ai-call') === 'true') {
+    // Generate a unique fake job ID
+    const jobId = `fake-job-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    // Try to extract an input image to return as result
+    let inputImageUrl = '';
+    const fileOrUrl = formData.get('modelImage') || 
+                      formData.get('productImage') || 
+                      formData.get('image') || 
+                      formData.get('faceImage') ||
+                      formData.get('imageUrl') ||
+                      formData.get('productImageUrl') ||
+                      formData.get('modelImageUrl') ||
+                      formData.get('faceImageUrl');
+
+    if (fileOrUrl) {
+      if (fileOrUrl instanceof File) {
+        inputImageUrl = URL.createObjectURL(fileOrUrl);
+      } else if (typeof fileOrUrl === 'string') {
+        inputImageUrl = fileOrUrl;
+      }
+    }
+
+    // Save mapping in localStorage so it is accessible in status polls
+    const fakeJobs = JSON.parse(localStorage.getItem('fake-jobs') || '{}');
+    fakeJobs[jobId] = {
+      imageUrl: inputImageUrl || '/images/after.jpg',
+      startTime: Date.now()
+    };
+    localStorage.setItem('fake-jobs', JSON.stringify(fakeJobs));
+
+    return { jobId, status: 'processing' } as unknown as T;
+  }
+
   // apiClient interceptor already attaches the Bearer token automatically
   const response = await apiClient.post(path, formData);
   const json = response.data;
@@ -94,6 +128,27 @@ export async function generateAI(payload: GeneratePayload): Promise<GenerateResu
 // ─── Job status polling ───────────────────────────────────────────────────────
 
 export async function getJobStatus(jobId: string): Promise<AIJobStatusResult> {
+  if (jobId.startsWith('fake-job-')) {
+    const fakeJobs = JSON.parse(localStorage.getItem('fake-jobs') || '{}');
+    const jobInfo = fakeJobs[jobId] || { startTime: Date.now(), imageUrl: '/images/after.jpg' };
+    
+    const elapsed = Date.now() - jobInfo.startTime;
+    if (elapsed < 6000) { // Simulate 6 seconds of processing time
+      return {
+        jobId,
+        status: 'processing'
+      };
+    } else {
+      return {
+        jobId,
+        status: 'completed',
+        imageUrl: jobInfo.imageUrl,
+        assetId: `fake-asset-${Date.now()}`,
+        creditsUsed: 0
+      };
+    }
+  }
+
   const res = await apiFetch(`/api/ai/jobs/${jobId}`);
   const json = await res.json();
   if (!json.success) throw new Error(json.error || 'Không thể lấy trạng thái job');

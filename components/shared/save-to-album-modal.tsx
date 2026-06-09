@@ -34,6 +34,13 @@ export function SaveToAlbumModal({ assetId, onClose }: SaveToAlbumModalProps) {
     if (!assetId) return;
     setSavingToId(collectionId);
     try {
+      if (assetId.startsWith("fake-asset-")) {
+        // Mock save delay
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        toast.success("Đã lưu ảnh vào album (Chế độ chạy thử)!");
+        onClose();
+        return;
+      }
       await addItemToCollection(collectionId, assetId);
       toast.success("Đã lưu ảnh vào album!");
       onClose();
