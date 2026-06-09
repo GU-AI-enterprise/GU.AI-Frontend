@@ -12,16 +12,16 @@ export interface ToolDef {
 }
 
 export const TOOLS: ToolDef[] = [
-  { id: AIToolType.PRODUCT_TO_MODEL, name: "Product to Model", Icon: Wand2,        credit: CREDIT_COST[AIToolType.PRODUCT_TO_MODEL] },
-  { id: AIToolType.TRY_ON,           name: "Try-On",           Icon: Shirt,         credit: CREDIT_COST[AIToolType.TRY_ON] },
-  { id: AIToolType.MODEL_SWAP,       name: "Model Swap",       Icon: UserCircle2,   credit: CREDIT_COST[AIToolType.MODEL_SWAP] },
-  { id: AIToolType.FACE_TO_MODEL,   name: "Face to Model",    Icon: ScanFace,      credit: CREDIT_COST[AIToolType.FACE_TO_MODEL] },
-  { id: AIToolType.EDIT,             name: "Edit",             Icon: Pencil,        credit: CREDIT_COST[AIToolType.EDIT] },
-  { id: AIToolType.CREATE_MODEL,     name: "Create Model",     Icon: UserPlus,      credit: CREDIT_COST[AIToolType.CREATE_MODEL] },
-  { id: AIToolType.IMAGE_TO_VIDEO,   name: "Image to Video",   Icon: Video,         credit: CREDIT_COST[AIToolType.IMAGE_TO_VIDEO] },
-  { id: AIToolType.REFRAME,          name: "Reframe",          Icon: Crop,          credit: CREDIT_COST[AIToolType.REFRAME] },
-  { id: AIToolType.UPSCALE,          name: "Image Upscale",    Icon: Maximize2,     credit: CREDIT_COST[AIToolType.UPSCALE] },
-  { id: AIToolType.REMOVE_BG,        name: "Remove Background", Icon: Scissors,      credit: CREDIT_COST[AIToolType.REMOVE_BG] },
+  { id: AIToolType.PRODUCT_TO_MODEL, name: "Ảnh → Model",      Icon: Wand2,        credit: CREDIT_COST[AIToolType.PRODUCT_TO_MODEL] },
+  { id: AIToolType.TRY_ON,           name: "Mặc thử",          Icon: Shirt,         credit: CREDIT_COST[AIToolType.TRY_ON] },
+  { id: AIToolType.MODEL_SWAP,       name: "Đổi Model",        Icon: UserCircle2,   credit: CREDIT_COST[AIToolType.MODEL_SWAP] },
+  { id: AIToolType.FACE_TO_MODEL,   name: "Ghép khuôn mặt",   Icon: ScanFace,      credit: CREDIT_COST[AIToolType.FACE_TO_MODEL] },
+  { id: AIToolType.EDIT,             name: "Chỉnh sửa",        Icon: Pencil,        credit: CREDIT_COST[AIToolType.EDIT] },
+  { id: AIToolType.CREATE_MODEL,     name: "Tạo Model",        Icon: UserPlus,      credit: CREDIT_COST[AIToolType.CREATE_MODEL] },
+  { id: AIToolType.IMAGE_TO_VIDEO,   name: "Ảnh → Video",      Icon: Video,         credit: CREDIT_COST[AIToolType.IMAGE_TO_VIDEO] },
+  { id: AIToolType.REFRAME,          name: "Đóng khung",       Icon: Crop,          credit: CREDIT_COST[AIToolType.REFRAME] },
+  { id: AIToolType.UPSCALE,          name: "Nâng độ nét",      Icon: Maximize2,     credit: CREDIT_COST[AIToolType.UPSCALE] },
+  { id: AIToolType.REMOVE_BG,        name: "Xóa nền",          Icon: Scissors,      credit: CREDIT_COST[AIToolType.REMOVE_BG] },
 ];
 
 export const TRY_ON_CATEGORIES: { value: TryOnCategory; label: string }[] = [
