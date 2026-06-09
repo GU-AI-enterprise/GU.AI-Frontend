@@ -39,26 +39,26 @@ import { useSidebar } from "@/contexts/SidebarContext";
 
 const mainNav = [
   { href: "/dashboard", label: "Tổng quan", Icon: LayoutDashboard, iconSrc: null },
-  { href: "/studio",    label: "Studio",    Icon: null,             iconSrc: "/icons/main_logo.png" },
-  { href: "/library",   label: "Thư viện",  Icon: BookOpen,         iconSrc: null },
+  { href: "/studio", label: "Studio", Icon: null, iconSrc: "/icons/logo_only.png" },
+  { href: "/library", label: "Thư viện", Icon: BookOpen, iconSrc: null },
 ];
 
 const archiveNav = [
-  { href: "/archive/gallery",     label: "Ảnh & Video",      Icon: ImageIcon },
-  { href: "/archive/models",      label: "Người mẫu",        Icon: FolderOpen },
-  { href: "/archive/collections", label: "Bộ sưu tập",      Icon: FolderHeart },
-  { href: "/archive/upload",      label: "Upload hàng loạt", Icon: UploadCloud },
-  { href: "/archive/trash",       label: "Archive",           Icon: Archive },
+  { href: "/archive/gallery", label: "Ảnh & Video", Icon: ImageIcon },
+  { href: "/archive/models", label: "Người mẫu", Icon: FolderOpen },
+  { href: "/archive/collections", label: "Bộ sưu tập", Icon: FolderHeart },
+  { href: "/archive/upload", label: "Upload hàng loạt", Icon: UploadCloud },
+  { href: "/archive/trash", label: "Archive", Icon: Archive },
 ];
 
 export default function Sidebar() {
-  const pathname  = usePathname();
-  const router    = useRouter();
-  const dispatch  = useAppDispatch();
+  const pathname = usePathname();
+  const router = useRouter();
+  const dispatch = useAppDispatch();
   const { theme, setTheme } = useTheme();
   const { session, user } = useAppSelector((s) => s.auth);
-  const credit    = useAppSelector(selectCreditBalance);
-  const planType  = useAppSelector(selectPlanType);
+  const credit = useAppSelector(selectCreditBalance);
+  const planType = useAppSelector(selectPlanType);
 
   const { unreadCount, role: userRole, markRead } = useSupportUnread();
   const isStaff = userRole === "staff" || userRole === "admin";
@@ -66,15 +66,15 @@ export default function Sidebar() {
   // Mobile drawer state comes from context; desktop collapsed is local
   const { isMobile, drawerOpen, close: closeDrawer } = useSidebar();
 
-  const [collapsed,       setCollapsed]       = useState(false);
-  const [archiveOpen,     setArchiveOpen]     = useState(pathname.startsWith("/archive"));
-  const [archiveFlyout,   setArchiveFlyout]   = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(pathname.startsWith("/archive"));
+  const [archiveFlyout, setArchiveFlyout] = useState(false);
   const [archiveFlyoutPos, setArchiveFlyoutPos] = useState<{ top: number; left: number } | null>(null);
-  const [tooltip,         setTooltip]         = useState<{ label: string; top: number } | null>(null);
-  const [userMenuOpen,    setUserMenuOpen]     = useState(false);
-  const [userMenuPos,     setUserMenuPos]      = useState<{ bottom: number; left: number } | null>(null);
-  const [chatForceOpen,   setChatForceOpen]    = useState(false);
-  const [isFakeAI,        setIsFakeAI]         = useState(false);
+  const [tooltip, setTooltip] = useState<{ label: string; top: number } | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [userMenuPos, setUserMenuPos] = useState<{ bottom: number; left: number } | null>(null);
+  const [chatForceOpen, setChatForceOpen] = useState(false);
+  const [isFakeAI, setIsFakeAI] = useState(false);
 
   // Sync and load fake AI mode state
   useEffect(() => {
@@ -94,8 +94,8 @@ export default function Sidebar() {
   };
 
   const archiveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const userBtnRef     = useRef<HTMLButtonElement>(null);
-  const menuRef        = useRef<HTMLDivElement>(null);
+  const userBtnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // "icon-only" mode: only on desktop when collapsed
   const isCollapsed = !isMobile && collapsed;
@@ -118,7 +118,7 @@ export default function Sidebar() {
 
   useEffect(() => {
     if (!session?.access_token) return;
-    getTopupInfo().then(info => dispatch(setPlanType(info.plan_type))).catch(() => {});
+    getTopupInfo().then(info => dispatch(setPlanType(info.plan_type))).catch(() => { });
   }, [session?.access_token, dispatch]);
 
   // ── Close user menu on outside click ────────────────────────────────────────
@@ -126,7 +126,7 @@ export default function Sidebar() {
     if (!userMenuOpen) return;
     const onDown = (e: MouseEvent) => {
       const target = e.target as Node;
-      const insideBtn  = userBtnRef.current?.contains(target);
+      const insideBtn = userBtnRef.current?.contains(target);
       const insideMenu = menuRef.current?.contains(target);
       if (!insideBtn && !insideMenu) setUserMenuOpen(false);
     };
@@ -163,15 +163,15 @@ export default function Sidebar() {
     || user?.user_metadata?.name
     || user?.email?.split("@")[0]
     || "Người dùng";
-  const email     = user?.email ?? "";
+  const email = user?.email ?? "";
   const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
-  const initials  = displayName.charAt(0).toUpperCase();
+  const initials = displayName.charAt(0).toUpperCase();
 
   const PLAN_META = {
-    free:   { label: 'Free',   color: 'text-slate-400',   bg: 'bg-slate-400/10',   dot: 'bg-slate-400'   },
-    basic:  { label: 'Basic',  color: 'text-blue-400',    bg: 'bg-blue-400/10',    dot: 'bg-blue-400'    },
-    pro:    { label: 'Pro',    color: 'text-violet-400',  bg: 'bg-violet-400/10',  dot: 'bg-violet-400'  },
-    agency: { label: 'Agency', color: 'text-amber-400',   bg: 'bg-amber-400/10',   dot: 'bg-amber-400'   },
+    free: { label: 'Free', color: 'text-slate-400', bg: 'bg-slate-400/10', dot: 'bg-slate-400' },
+    basic: { label: 'Basic', color: 'text-blue-400', bg: 'bg-blue-400/10', dot: 'bg-blue-400' },
+    pro: { label: 'Pro', color: 'text-violet-400', bg: 'bg-violet-400/10', dot: 'bg-violet-400' },
+    agency: { label: 'Agency', color: 'text-amber-400', bg: 'bg-amber-400/10', dot: 'bg-amber-400' },
   } as const;
   const plan = PLAN_META[planType];
 
@@ -220,11 +220,10 @@ export default function Sidebar() {
                         setTooltip({ label, top: rect.top + rect.height / 2 });
                       }
                     }}
-                    className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${
-                      active
+                    className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${active
                         ? "bg-sidebar-accent text-sidebar-accent-foreground"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                    }`}
+                      }`}
                   >
                     {iconSrc ? (
                       <img src={iconSrc} alt={label} className="size-[18px] flex-shrink-0 object-contain" />
@@ -255,11 +254,10 @@ export default function Sidebar() {
               <button
                 onClick={() => !isCollapsed && setArchiveOpen(!archiveOpen)}
                 onMouseLeave={() => setTooltip(null)}
-                className={`cursor-pointer w-full flex items-center ${isCollapsed ? "justify-center" : "justify-between px-3"} h-10 rounded-lg text-sm font-medium transition-all ${
-                  isActive("/archive")
+                className={`cursor-pointer w-full flex items-center ${isCollapsed ? "justify-center" : "justify-between px-3"} h-10 rounded-lg text-sm font-medium transition-all ${isActive("/archive")
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-3">
                   <FolderOpen className={`size-[18px] flex-shrink-0 ${isActive("/archive") ? "text-primary" : ""}`} />
@@ -273,9 +271,8 @@ export default function Sidebar() {
                   {archiveNav.map(({ href, label, Icon }) => {
                     const active = isActive(href);
                     return (
-                      <Link key={href} href={href} className={`flex items-center gap-3 h-9 rounded-md px-2 text-sm transition-all ${
-                        active ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                      }`}>
+                      <Link key={href} href={href} className={`flex items-center gap-3 h-9 rounded-md px-2 text-sm transition-all ${active ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        }`}>
                         <Icon className={`size-4 ${active ? "text-primary" : ""}`} />
                         <span className="text-xs">{label}</span>
                       </Link>
@@ -294,11 +291,10 @@ export default function Sidebar() {
                     setTooltip({ label: "Lịch sử tác vụ", top: rect.top + rect.height / 2 });
                   }
                 }}
-                className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${
-                  isActive("/history")
+                className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${isActive("/history")
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                }`}
+                  }`}
               >
                 <History className={`size-[18px] flex-shrink-0 ${isActive("/history") ? "text-primary" : ""}`} />
                 {!isCollapsed && <span>Lịch sử tác vụ</span>}
@@ -316,11 +312,10 @@ export default function Sidebar() {
                       setTooltip({ label: "Hỗ trợ khách hàng", top: rect.top + rect.height / 2 });
                     }
                   }}
-                  className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${
-                    isActive("/admin/support")
+                  className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${isActive("/admin/support")
                       ? "bg-sidebar-accent text-sidebar-accent-foreground"
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  }`}
+                    }`}
                 >
                   <span className="relative flex-shrink-0">
                     <MessageCircle className={`size-[18px] ${isActive("/admin/support") ? "text-primary" : ""}`} />
@@ -392,11 +387,10 @@ export default function Sidebar() {
               <button
                 onClick={toggleFakeAI}
                 title={isFakeAI ? "Fake AI Calls: Đang bật" : "Fake AI Calls: Đang tắt"}
-                className={`cursor-pointer relative flex items-center justify-center size-9 rounded-xl border transition-colors ${
-                  isFakeAI
+                className={`cursor-pointer relative flex items-center justify-center size-9 rounded-xl border transition-colors ${isFakeAI
                     ? "bg-amber-500/15 text-amber-500 border-amber-500/30 hover:bg-amber-500/25"
                     : "bg-secondary/40 text-muted-foreground border-transparent hover:bg-secondary hover:text-foreground"
-                }`}
+                  }`}
               >
                 <Sparkles className={`size-4.5 ${isFakeAI ? "animate-pulse text-amber-500" : ""}`} />
                 {isFakeAI && (
@@ -407,11 +401,10 @@ export default function Sidebar() {
           ) : (
             <button
               onClick={toggleFakeAI}
-              className={`cursor-pointer w-full flex items-center justify-between px-3 h-10 rounded-xl text-xs font-medium border transition-all ${
-                isFakeAI
+              className={`cursor-pointer w-full flex items-center justify-between px-3 h-10 rounded-xl text-xs font-medium border transition-all ${isFakeAI
                   ? "bg-amber-500/10 text-amber-500 border-amber-500/30 hover:bg-amber-500/20"
                   : "bg-secondary/40 text-muted-foreground border-transparent hover:bg-secondary hover:text-foreground"
-              }`}
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Sparkles className={`size-4 ${isFakeAI ? "animate-pulse text-amber-500" : ""}`} />
@@ -508,9 +501,8 @@ export default function Sidebar() {
           {archiveNav.map(({ href, label, Icon }) => {
             const active = isActive(href);
             return (
-              <Link key={href} href={href} className={`flex items-center gap-2.5 h-9 rounded-md px-2.5 text-sm transition-all ${
-                active ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              }`}>
+              <Link key={href} href={href} className={`flex items-center gap-2.5 h-9 rounded-md px-2.5 text-sm transition-all ${active ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}>
                 <Icon className="size-4" />
                 {label}
               </Link>
@@ -550,29 +542,27 @@ export default function Sidebar() {
 
           {/* Account links */}
           <div className="p-1.5">
-            <MenuItem icon={<User className="size-4" />}    label="Hồ sơ"    href="/profile"   onClick={() => setUserMenuOpen(false)} />
-            <MenuItem icon={<Settings className="size-4" />} label="Cài đặt"  href="/settings"  onClick={() => setUserMenuOpen(false)} />
+            <MenuItem icon={<User className="size-4" />} label="Hồ sơ" href="/profile" onClick={() => setUserMenuOpen(false)} />
+            <MenuItem icon={<Settings className="size-4" />} label="Cài đặt" href="/settings" onClick={() => setUserMenuOpen(false)} />
           </div>
 
           <div className="border-t border-border/60 p-1.5">
             {/* Theme toggle */}
             <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl">
-              <Sun  className="size-4 text-muted-foreground shrink-0" />
+              <Sun className="size-4 text-muted-foreground shrink-0" />
               <span className="flex-1 text-sm text-foreground">Giao diện</span>
               <div className="flex items-center gap-0.5 bg-muted rounded-lg p-0.5">
                 <button
                   onClick={() => setTheme("light")}
-                  className={`cursor-pointer flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${
-                    theme === "light" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`cursor-pointer flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${theme === "light" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   <Sun className="size-3" /> Sáng
                 </button>
                 <button
                   onClick={() => setTheme("dark")}
-                  className={`cursor-pointer flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${
-                    theme === "dark" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`cursor-pointer flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${theme === "dark" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   <Moon className="size-3" /> Tối
                 </button>
