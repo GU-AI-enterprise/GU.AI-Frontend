@@ -23,7 +23,7 @@ export function ProcessingPanel({ active }: Props) {
       <div className="relative w-16 h-16 flex items-center justify-center">
         <div className="absolute inset-0 rounded-full bg-primary/10 blur-2xl animate-pulse" />
         <img
-          src="/animation/studio_animation.gif"
+          src="/animation/studio_animation_speedup.gif"
           alt="AI Processing"
           className="w-full h-full object-contain rounded-2xl relative z-10"
         />

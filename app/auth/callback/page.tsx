@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import Logo from "@/components/shared/logo";
+import Image from "next/image";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -62,11 +62,14 @@ export default function AuthCallbackPage() {
 
   return (
     <div className="flex flex-col min-h-[60vh] items-center justify-center text-center p-6 space-y-6 bg-background">
-      {/* Animated Glowing Lotus Logo */}
-      <div className="relative flex size-20 items-center justify-center rounded-2xl bg-primary/5 border border-primary/20 shadow-md">
-        <div className="absolute inset-0 rounded-2xl bg-primary/10 blur-md opacity-75 animate-pulse" />
-        <Logo iconOnly href="" className="scale-[2] animate-[spin_8s_linear_infinite]" />
-      </div>
+      <Image
+        src="/animation/studio_animation.gif"
+        alt="Đang xác thực..."
+        width={180}
+        height={180}
+        unoptimized
+        className="object-contain"
+      />
 
       <div className="space-y-2">
         <h3 className="font-serif text-xl font-medium text-foreground">
@@ -76,9 +79,6 @@ export default function AuthCallbackPage() {
           {statusMessage}
         </p>
       </div>
-
-      {/* Spinner */}
-      <div className="size-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
     </div>
   );
 }
