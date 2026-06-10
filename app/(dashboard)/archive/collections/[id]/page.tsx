@@ -24,8 +24,10 @@ export default function CollectionDetailPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
-  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [removeTargetId, setRemoveTargetId] = useState<string | null>(null);
+
+  const selectedAsset = lightboxIndex !== null ? (assets[lightboxIndex] ?? null) : null;
 
   useEffect(() => {
     let isMounted = true;
@@ -150,7 +152,7 @@ export default function CollectionDetailPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.03 }}
                 className="group relative aspect-square rounded-2xl overflow-hidden border border-border bg-card cursor-pointer"
-                onClick={() => setSelectedAsset(asset)}
+                onClick={() => setLightboxIndex(idx)}
               >
                 <img
                   src={asset.thumbnail_url || asset.url}
@@ -183,14 +185,22 @@ export default function CollectionDetailPage() {
       {/* Lightbox — shared component */}
       <Lightbox
         imageUrl={selectedAsset?.url ?? null}
+        images={assets.map(a => ({
+          url: a.url,
+          thumbnailUrl: a.thumbnail_url || a.url,
+          filename: `guai-${a.id.slice(0, 8)}.jpg`,
+          createdAt: a.created_at,
+        }))}
+        currentIndex={lightboxIndex ?? 0}
+        onNavigate={setLightboxIndex}
         filename={selectedAsset ? `guai-${selectedAsset.id.slice(0, 8)}.jpg` : undefined}
         createdAt={selectedAsset?.created_at}
-        onClose={() => setSelectedAsset(null)}
+        onClose={() => setLightboxIndex(null)}
         actions={selectedAsset ? [
           {
             icon: <Trash2 className="size-3.5" />,
             label: "Xóa khỏi album",
-            onClick: () => { setRemoveTargetId(selectedAsset.id); setSelectedAsset(null); },
+            onClick: () => { setRemoveTargetId(selectedAsset.id); setLightboxIndex(null); },
             variant: "destructive",
           },
         ] : []}

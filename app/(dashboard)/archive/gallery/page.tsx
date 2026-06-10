@@ -305,7 +305,7 @@ export default function GalleryPage() {
                             </a>
                             <button onClick={(e) => { e.stopPropagation(); setSaveAssetId(img.id); }}
                               className="cursor-pointer flex-1 py-2 rounded-xl bg-primary hover:bg-primary/90 transition-all text-[11px] font-semibold text-center text-primary-foreground flex items-center justify-center gap-1.5">
-                              <FolderHeart className="size-3.5" /> Lưu album
+                              <FolderHeart className="size-3.5" />
                             </button>
                             <button onClick={(e) => { e.stopPropagation(); executeArchive(img.id); }}
                               className="cursor-pointer p-2 rounded-xl bg-amber-500/20 backdrop-blur-md border border-amber-500/30 hover:bg-amber-500/30 hover:text-amber-300 transition-all text-amber-400"
@@ -334,8 +334,8 @@ export default function GalleryPage() {
               <FolderHeart className="size-3.5" /> Lưu vào Album
             </button>
             <button onClick={executeBulkArchive}
-              className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-semibold hover:bg-red-500/20 transition-colors">
-              <Archive className="size-3.5" /> Xóa {selectedIds.size} mục
+              className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500/15 text-amber-500 border border-amber-500/25 text-xs font-semibold hover:bg-amber-500/25 transition-colors">
+              <Archive className="size-3.5" /> Archive {selectedIds.size} mục
             </button>
           </div>
         </div>
@@ -351,6 +351,17 @@ export default function GalleryPage() {
           if (img) { setLightboxIndex(idx); setLightboxUrl(img.url); setLightboxCreatedAt(img.created_at); }
         }}
         onClose={() => { setLightboxUrl(null); setLightboxCreatedAt(undefined); }}
+        actions={filteredAssets[lightboxIndex] ? [
+          {
+            icon: <Archive className="size-3.5" />,
+            label: "Archive",
+            variant: "archive",
+            onClick: () => {
+              const asset = filteredAssets[lightboxIndex];
+              if (asset) { setLightboxUrl(null); setLightboxCreatedAt(undefined); executeArchive(asset.id); }
+            },
+          },
+        ] : []}
       />
 
       <SaveToAlbumModal assetId={saveAssetId} onClose={() => setSaveAssetId(null)} />

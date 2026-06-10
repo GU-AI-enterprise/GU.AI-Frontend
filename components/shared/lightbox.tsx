@@ -10,11 +10,12 @@ export interface LightboxAction {
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
-  variant?: "default" | "destructive";
+  variant?: "default" | "destructive" | "archive";
 }
 
 interface LightboxImage {
   url: string;
+  thumbnailUrl?: string;
   filename?: string;
   createdAt?: string;
   type?: string;
@@ -54,6 +55,7 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt,
   const dragging  = useRef(false);
   const lastPos   = useRef({ x: 0, y: 0 });
   const imgRef    = useRef<HTMLImageElement>(null);
+  const thumbsRef = useRef<HTMLDivElement>(null);
 
   const hasNav   = !!images && images.length > 1;
   const navIndex = currentIndex ?? 0;
@@ -73,6 +75,17 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt,
     setPanX(0);
     setPanY(0);
   }, [imageUrl]);
+
+  // ── Scroll active thumbnail into view ─────────────────────────────────────
+  useEffect(() => {
+    const strip = thumbsRef.current;
+    if (!strip || !hasNav) return;
+    const active = strip.children[navIndex] as HTMLElement | undefined;
+    if (!active) return;
+    const stripCenter = strip.offsetWidth / 2;
+    const itemCenter  = active.offsetLeft + active.offsetWidth / 2;
+    strip.scrollTo({ left: itemCenter - stripCenter, behavior: "smooth" });
+  }, [navIndex, hasNav]);
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -201,11 +214,62 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt,
           )}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-white/25 mr-1 font-mono hidden sm:block">ESC</span>
-          <button
-            onClick={onClose}
-            className="cursor-pointer flex items-center justify-center size-8 rounded-lg bg-white/8 hover:bg-white/16 text-white/70 hover:text-white transition-colors"
-          >
+          {/* Zoom controls — hidden for video */}
+          {!isVideo && (
+            <>
+              <div className="flex items-center gap-1 bg-white/8 rounded-xl p-1">
+                <button onClick={zoomOut} disabled={!canZoomOut}
+                  className="cursor-pointer flex items-center justify-center size-7 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Thu nhỏ (−)">
+                  <ZoomOut className="size-3.5" />
+                </button>
+                <button onClick={resetZoom}
+                  className="cursor-pointer min-w-[44px] px-1.5 py-1 rounded-lg hover:bg-white/10 text-white text-[11px] font-mono font-semibold transition-colors"
+                  title="Đặt lại (0)">
+                  {zoomPct}%
+                </button>
+                <button onClick={zoomIn} disabled={!canZoomIn}
+                  className="cursor-pointer flex items-center justify-center size-7 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Phóng to (+)">
+                  <ZoomIn className="size-3.5" />
+                </button>
+                <div className="w-px h-4 bg-white/15 mx-0.5" />
+                <button onClick={resetZoom} disabled={zoom === 1 && panX === 0 && panY === 0}
+                  className="cursor-pointer flex items-center justify-center size-7 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Vừa màn hình">
+                  <Maximize2 className="size-3.5" />
+                </button>
+              </div>
+              <div className="w-px h-5 bg-white/15" />
+            </>
+          )}
+
+          {/* Download */}
+          <button onClick={handleDownload}
+            className="cursor-pointer flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/8 hover:bg-white/14 text-white/80 hover:text-white text-xs font-medium transition-colors">
+            <Download className="size-3.5" />
+            Tải xuống
+          </button>
+
+          {/* Custom actions */}
+          {actions.map((action, i) => (
+            <button key={i} onClick={action.onClick}
+              className={`cursor-pointer flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                action.variant === "destructive"
+                  ? "bg-red-500/20 hover:bg-red-500/35 text-red-400 hover:text-red-300 border border-red-500/20"
+                  : action.variant === "archive"
+                  ? "bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 hover:text-amber-300 border border-amber-500/25"
+                  : "bg-white/8 hover:bg-white/14 text-white/80 hover:text-white"
+              }`}>
+              {action.icon}
+              {action.label}
+            </button>
+          ))}
+
+          <div className="w-px h-5 bg-white/15 mx-0.5" />
+          <span className="text-[11px] text-white/25 font-mono hidden sm:block">ESC</span>
+          <button onClick={onClose}
+            className="cursor-pointer flex items-center justify-center size-8 rounded-lg bg-white/8 hover:bg-white/16 text-white/70 hover:text-white transition-colors">
             <X className="size-4" />
           </button>
         </div>
@@ -274,86 +338,40 @@ export function Lightbox({ imageUrl, onClose, actions = [], filename, createdAt,
         )}
       </div>
 
-      {/* ── Bottom toolbar ──────────────────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center justify-center gap-2 px-4 py-3 border-t border-white/8">
-
-        {/* Zoom controls — hidden for video */}
-        <div className={`flex items-center gap-1 bg-white/8 rounded-xl p-1 ${isVideo ? "hidden" : ""}`}>
-          <button
-            onClick={zoomOut}
-            disabled={!canZoomOut}
-            className="cursor-pointer flex items-center justify-center size-8 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            title="Thu nhỏ (−)"
-          >
-            <ZoomOut className="size-4" />
-          </button>
-
-          <button
-            onClick={resetZoom}
-            className="cursor-pointer min-w-[52px] px-2 py-1 rounded-lg hover:bg-white/10 text-white text-xs font-mono font-semibold transition-colors"
-            title="Đặt lại (0)"
-          >
-            {zoomPct}%
-          </button>
-
-          <button
-            onClick={zoomIn}
-            disabled={!canZoomIn}
-            className="cursor-pointer flex items-center justify-center size-8 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            title="Phóng to (+)"
-          >
-            <ZoomIn className="size-4" />
-          </button>
-
-          <div className="w-px h-4 bg-white/15 mx-0.5" />
-
-          <button
-            onClick={resetZoom}
-            disabled={zoom === 1 && panX === 0 && panY === 0}
-            className="cursor-pointer flex items-center justify-center size-8 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            title="Vừa màn hình"
-          >
-            <Maximize2 className="size-3.5" />
-          </button>
-        </div>
-
-        {/* Divider */}
-        <div className="w-px h-6 bg-white/15" />
-
-        {/* Download */}
-        <button
-          onClick={handleDownload}
-          className="cursor-pointer flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/8 hover:bg-white/14 text-white/80 hover:text-white text-xs font-medium transition-colors"
+      {/* ── Thumbnail strip ─────────────────────────────────────────────────── */}
+      {hasNav && (
+        <div
+          ref={thumbsRef}
+          className="shrink-0 h-[72px] flex items-center justify-center gap-1.5 px-4 border-t border-white/8 overflow-x-auto"
+          style={{ scrollbarWidth: "none" }}
         >
-          <Download className="size-3.5" />
-          Tải xuống
-        </button>
-
-        {/* Custom actions */}
-        {actions.length > 0 && (
-          <>
-            <div className="w-px h-6 bg-white/15" />
-            {actions.map((action, i) => (
+          {images!.map((img, i) => {
+            const active = i === navIndex;
+            return (
               <button
                 key={i}
-                onClick={action.onClick}
-                className={`cursor-pointer flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
-                  action.variant === "destructive"
-                    ? "bg-red-500/20 hover:bg-red-500/35 text-red-400 hover:text-red-300 border border-red-500/20"
-                    : "bg-white/8 hover:bg-white/14 text-white/80 hover:text-white"
+                data-active={active}
+                onClick={() => goTo(i)}
+                className={`shrink-0 rounded-md overflow-hidden transition-all duration-200 ${
+                  active
+                    ? "ring-2 ring-primary opacity-100 w-14 h-14"
+                    : "opacity-40 hover:opacity-75 w-10 h-10"
                 }`}
               >
-                {action.icon}
-                {action.label}
+                <img
+                  src={img.thumbnailUrl ?? img.url}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
               </button>
-            ))}
-          </>
-        )}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Hint: double-click to reset / zoom */}
       {zoom > 1 && (
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 pointer-events-none">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none">
           <span className="text-[10px] text-white/30 font-mono">Double-click để đặt lại</span>
         </div>
       )}
