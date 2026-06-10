@@ -211,7 +211,7 @@ export default function LandingPage() {
             <div className="mt-14 grid grid-cols-3 gap-6 border border-border/60 py-6 max-w-xl mx-auto bg-card/45 rounded-2xl px-6 backdrop-blur-sm shadow-sm">
               {[
                 { num: "90%",   label: "Tiết kiệm chi phí" },
-                { num: "< 10s", label: "Tốc độ tạo ảnh"   },
+                { num: "< 1 min", label: "Tốc độ tạo ảnh"   },
                 { num: "8+",    label: "Công cụ AI"        },
               ].map((s, i) => (
                 <div key={i} className="text-center">

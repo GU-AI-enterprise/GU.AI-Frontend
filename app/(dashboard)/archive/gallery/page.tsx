@@ -264,7 +264,7 @@ export default function GalleryPage() {
                     {groupedByDate[date].length} {isVideo ? "video" : "ảnh"}
                   </span>
                 </div>
-                <div className={`grid gap-5 ${isVideo ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"}`}>
+                <div className={`grid gap-3 ${isVideo ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" : "grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"}`}>
                   {groupedByDate[date].map((img) => {
                     const isSelected = selectedIds.has(img.id);
                     return (
