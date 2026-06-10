@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Sparkles, Image as ImageIcon, FolderHeart, Clock,
   ArrowRight, Coins, Upload, CheckCircle2, XCircle,
-  Loader2, Shirt, Wand2, RefreshCw,
+  Loader2, Shirt, Wand2,
 } from "lucide-react";
+import { apiClient } from "@/lib/apiFetch";
 import { useAppSelector } from "@/store/hooks";
 import { selectCreditBalance } from "@/features/credit/creditSlice";
 import { getImages } from "@/features/archive/imageService";
@@ -281,6 +282,8 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+// ── Stat card ─────────────────────────────────────────────────────────────────
 
 function StatCard({ icon, bg, label, value, sub }: {
   icon: React.ReactNode;

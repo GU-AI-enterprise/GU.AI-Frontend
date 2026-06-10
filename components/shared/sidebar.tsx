@@ -28,6 +28,7 @@ import {
   Archive,
   Plus,
   Layers,
+  Workflow,
 } from "lucide-react";
 import Logo from "@/components/shared/logo";
 import SupportChatWidget from "@/components/support/support-chat-widget";
@@ -41,6 +42,7 @@ import { useSidebar } from "@/contexts/SidebarContext";
 const mainNav = [
   { href: "/dashboard", label: "Tổng quan", Icon: LayoutDashboard, iconSrc: null },
   { href: "/studio", label: "Studio", Icon: null, iconSrc: "/icons/logo_only.png" },
+  { href: "/workflow", label: "Workflow AI", Icon: Workflow, iconSrc: null },
   { href: "/library", label: "Thư viện", Icon: BookOpen, iconSrc: null },
 ];
 
