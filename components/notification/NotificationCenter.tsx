@@ -192,7 +192,7 @@ export default function NotificationCenter({ variant = "sidebar", collapsed = fa
           ref={btnRef}
           onClick={toggle}
           className={cn(
-            "relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground w-full",
+            "cursor-pointer relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground w-full",
             open && "bg-accent text-foreground"
           )}
         >
@@ -219,7 +219,7 @@ export default function NotificationCenter({ variant = "sidebar", collapsed = fa
           ref={btnRef}
           onClick={toggle}
           className={cn(
-            "relative flex size-9 items-center justify-center rounded-xl border border-border/60 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground",
+            "cursor-pointer relative flex size-9 items-center justify-center rounded-xl border border-border/60 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground",
             open && "bg-secondary text-foreground"
           )}
         >

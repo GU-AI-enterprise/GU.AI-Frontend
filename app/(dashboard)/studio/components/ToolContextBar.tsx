@@ -1,39 +1,184 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { AIToolType } from "@/constants/ai";
 import { TRY_ON_CATEGORIES, TRY_ON_MODELS, TRY_ON_RESOLUTIONS } from "../constants";
 import { computeTryOnCost } from "../helpers";
 import type {
   TryOnModel, TryOnResolution, GenResolution, GenMode, FaceRefMode,
-  VideoDuration, VideoResolution,
+  VideoDuration, VideoResolution, StudioImage,
 } from "../types";
 import type { TryOnCategory } from "@/features/studio/studioService";
+import { ChevronDown, Loader2, Sparkles, ScanFace, ImageIcon, Mountain } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const RESOLUTIONS: GenResolution[] = ["1k", "2k", "4k"];
-const GEN_MODES: GenMode[] = ["fast", "balanced", "quality"];
-const FACE_REF_MODES: { value: FaceRefMode; label: string }[] = [
-  { value: "match_reference", label: "giống nhất" },
-  { value: "match_base",      label: "cân bằng" },
-];
-const ASPECT_RATIOS = ["1:1", "3:4", "4:5", "9:16", "16:9"];
+// ── Dropdown button ──────────────────────────────────────────────────────────
 
-const pill = (active: boolean) =>
-  `cursor-pointer px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
-    active
-      ? "bg-foreground text-background"
-      : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
-  }`;
+function DropdownBtn<T extends string | number>({
+  label, value, options, onChange,
+}: {
+  label?: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const currentLabel = options.find((o) => o.value === value)?.label ?? String(value);
 
-const lbl = "text-[10px] text-muted-foreground shrink-0";
-const row = "flex items-center gap-1.5 flex-wrap";
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="cursor-pointer flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border/60 bg-background hover:bg-secondary/50 text-xs text-foreground transition-colors whitespace-nowrap"
+      >
+        {label && <span className="text-muted-foreground mr-0.5">{label}</span>}
+        <span className="font-medium">{currentLabel}</span>
+        <ChevronDown className="size-3 text-muted-foreground ml-0.5" />
+      </button>
+      {open && (
+        <div className="absolute bottom-full mb-1.5 right-0 z-[200] min-w-[110px] rounded-xl border border-border bg-popover shadow-xl py-1 overflow-hidden">
+          {options.map((opt) => (
+            <button
+              key={String(opt.value)}
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              className={cn(
+                "cursor-pointer w-full text-left px-3 py-1.5 text-xs transition-colors hover:bg-accent",
+                opt.value === value ? "text-foreground font-semibold" : "text-muted-foreground"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Run button ───────────────────────────────────────────────────────────────
+
+function RunBtn({ onClick, disabled, isProcessing }: {
+  onClick: () => void;
+  disabled: boolean;
+  isProcessing: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="cursor-pointer flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-foreground text-background text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-all whitespace-nowrap"
+    >
+      {isProcessing ? (
+        <><Loader2 className="size-3.5 animate-spin" />Đang chạy</>
+      ) : (
+        <><Sparkles className="size-3.5" />Chạy</>
+      )}
+    </button>
+  );
+}
+
+// ── Action button ────────────────────────────────────────────────────────────
+
+function ActionBtn({ icon: Icon, label, active, onClick }: {
+  icon: React.ElementType;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "cursor-pointer flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors whitespace-nowrap",
+        active
+          ? "border-primary/40 bg-primary/10 text-primary"
+          : "border-border/60 text-muted-foreground hover:text-foreground hover:border-border hover:bg-secondary/40"
+      )}
+    >
+      <Icon className="size-3.5" />
+      {label}
+    </button>
+  );
+}
+
+// ── Bottom row ───────────────────────────────────────────────────────────────
+
+function BottomRow({ left, right }: { left?: React.ReactNode; right: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2">
+      {left && (
+        <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">{left}</div>
+      )}
+      <div className="flex items-center gap-1.5 ml-auto shrink-0">{right}</div>
+    </div>
+  );
+}
+
+// ── Shared constants ─────────────────────────────────────────────────────────
+
 const inputCls =
-  "w-full h-full px-0 text-sm bg-transparent border-0 focus:outline-none focus:ring-0 placeholder:text-muted-foreground/50 resize-none";
+  "w-full px-0 text-sm bg-transparent border-0 focus:outline-none focus:ring-0 placeholder:text-muted-foreground/40 resize-none leading-relaxed";
 
-// Vertical divider between controls and prompt
-const Divider = () => <div className="w-px bg-border/50 self-stretch mx-1 shrink-0" />;
+const RES_OPTS: { value: GenResolution; label: string }[] = [
+  { value: "1k", label: "1K" },
+  { value: "2k", label: "2K" },
+  { value: "4k", label: "4K" },
+];
+const MODE_OPTS: { value: GenMode; label: string }[] = [
+  { value: "fast",     label: "Fast" },
+  { value: "balanced", label: "Balanced" },
+  { value: "quality",  label: "Quality" },
+];
+const RATIO_OPTS = ["1:1", "3:4", "4:5", "9:16", "16:9"].map((v) => ({ value: v, label: v }));
+const COUNT_OPTS = [1, 2, 3, 4].map((n) => ({ value: n, label: String(n) }));
+const FACE_MODE_OPTS: { value: FaceRefMode; label: string }[] = [
+  { value: "match_reference", label: "Giống nhất" },
+  { value: "match_base",      label: "Cân bằng" },
+];
+const VIDEO_DUR_OPTS: { value: VideoDuration; label: string }[] = [
+  { value: 5,  label: "5s" },
+  { value: 10, label: "10s" },
+];
+const VIDEO_RES_OPTS: { value: VideoResolution; label: string }[] = [
+  { value: "480p",  label: "480p" },
+  { value: "720p",  label: "720p" },
+  { value: "1080p", label: "1080p" },
+];
+const TRY_ON_MODEL_OPTS: { value: TryOnModel; label: string }[] = TRY_ON_MODELS.map((m) => ({
+  value: m.id,
+  label: m.name,
+}));
+const TRY_ON_CAT_OPTS: { value: TryOnCategory; label: string }[] = TRY_ON_CATEGORIES.map((c) => ({
+  value: c.value,
+  label: c.label,
+}));
+const TRY_ON_RES_OPTS: { value: TryOnResolution; label: string }[] = TRY_ON_RESOLUTIONS;
+
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+// ── Props ────────────────────────────────────────────────────────────────────
 
 export interface ToolContextBarProps {
   selectedTool: AIToolType;
+
+  // Run
+  handleRun: () => void;
+  canRun: boolean;
+  isProcessing: boolean;
+
+  // Gallery opener
+  openGallery: (cb: (url: string) => void) => void;
+
   // Try-On
   toCategory: TryOnCategory;
   toModel: TryOnModel;
@@ -45,18 +190,25 @@ export interface ToolContextBarProps {
   onToResolutionChange: (v: TryOnResolution) => void;
   onToHoveredChange: (v: TryOnModel | null) => void;
   onToPromptChange: (v: string) => void;
+
   // Product to Model
   p2mPrompt: string;
   p2mAspect: string;
   p2mRes: GenResolution;
   p2mGenMode: GenMode;
   p2mFaceMode: FaceRefMode;
-  p2mHasFaceRef: boolean;
+  p2mFaceRef: StudioImage | null;
+  p2mPromptImg: StudioImage | null;
+  p2mBgRef: StudioImage | null;
   onP2mPromptChange: (v: string) => void;
   onP2mAspectChange: (v: string) => void;
   onP2mResChange: (v: GenResolution) => void;
   onP2mGenModeChange: (v: GenMode) => void;
   onP2mFaceModeChange: (v: FaceRefMode) => void;
+  onP2mFaceRefChange: (img: StudioImage | null) => void;
+  onP2mPromptImgChange: (img: StudioImage | null) => void;
+  onP2mBgRefChange: (img: StudioImage | null) => void;
+
   // Model Swap
   msPrompt: string;
   msRes: GenResolution;
@@ -67,6 +219,7 @@ export interface ToolContextBarProps {
   onMsResChange: (v: GenResolution) => void;
   onMsGenModeChange: (v: GenMode) => void;
   onMsFaceModeChange: (v: FaceRefMode) => void;
+
   // Face to Model
   f2mPrompt: string;
   f2mAspect: string;
@@ -80,15 +233,19 @@ export interface ToolContextBarProps {
   onF2mGenModeChange: (v: GenMode) => void;
   onF2mNumImagesChange: (v: number) => void;
   onF2mSeedChange: (v: string) => void;
+
   // Edit
   editRes: GenResolution;
   editGenMode: GenMode;
   editNumImages: number;
   editSeed: string;
+  genericPrompt: string;
   onEditResChange: (v: GenResolution) => void;
   onEditGenModeChange: (v: GenMode) => void;
   onEditNumImagesChange: (v: number) => void;
   onEditSeedChange: (v: string) => void;
+  onGenericPromptChange: (v: string) => void;
+
   // Create Model
   createRes: GenResolution;
   createGenMode: GenMode;
@@ -98,13 +255,13 @@ export interface ToolContextBarProps {
   onCreateGenModeChange: (v: GenMode) => void;
   onCreateNumImagesChange: (v: number) => void;
   onCreateSeedChange: (v: string) => void;
-  // Image to Video (generic prompt shared with Create Model)
-  genericPrompt: string;
+
+  // Image to Video
   videoDuration: VideoDuration;
   videoRes: VideoResolution;
-  onGenericPromptChange: (v: string) => void;
   onVideoDurationChange: (v: VideoDuration) => void;
   onVideoResChange: (v: VideoResolution) => void;
+
   // Reframe
   reframeAspect: string;
   reframeRes: GenResolution;
@@ -116,270 +273,191 @@ export interface ToolContextBarProps {
   onReframeGenModeChange: (v: GenMode) => void;
   onReframeNumImagesChange: (v: number) => void;
   onReframeSeedChange: (v: string) => void;
+
   // Upscale
   upscaleScale: number;
   onUpscaleScaleChange: (v: number) => void;
 }
 
+// ── Main component ────────────────────────────────────────────────────────────
+
 export function ToolContextBar({
   selectedTool,
+  handleRun, canRun, isProcessing,
+  openGallery,
   toCategory, toModel, toResolution, toHovered, toPrompt,
   onToCategoryChange, onToModelChange, onToResolutionChange, onToHoveredChange, onToPromptChange,
-  p2mPrompt, p2mAspect, p2mRes, p2mGenMode, p2mFaceMode, p2mHasFaceRef,
+  p2mPrompt, p2mAspect, p2mRes, p2mGenMode, p2mFaceMode,
+  p2mFaceRef, p2mPromptImg, p2mBgRef,
   onP2mPromptChange, onP2mAspectChange, onP2mResChange, onP2mGenModeChange, onP2mFaceModeChange,
+  onP2mFaceRefChange, onP2mPromptImgChange, onP2mBgRefChange,
   msPrompt, msRes, msGenMode, msFaceMode, msHasFaceRef,
   onMsPromptChange, onMsResChange, onMsGenModeChange, onMsFaceModeChange,
   f2mPrompt, f2mAspect, f2mRes, f2mGenMode, f2mNumImages, f2mSeed,
   onF2mPromptChange, onF2mAspectChange, onF2mResChange, onF2mGenModeChange, onF2mNumImagesChange, onF2mSeedChange,
-  editRes, editGenMode, editNumImages, editSeed,
-  onEditResChange, onEditGenModeChange, onEditNumImagesChange, onEditSeedChange,
+  editRes, editGenMode, editNumImages, editSeed, genericPrompt,
+  onEditResChange, onEditGenModeChange, onEditNumImagesChange, onEditSeedChange, onGenericPromptChange,
   createRes, createGenMode, createNumImages, createSeed,
   onCreateResChange, onCreateGenModeChange, onCreateNumImagesChange, onCreateSeedChange,
-  genericPrompt, videoDuration, videoRes,
-  onGenericPromptChange, onVideoDurationChange, onVideoResChange,
+  videoDuration, videoRes,
+  onVideoDurationChange, onVideoResChange,
   reframeAspect, reframeRes, reframeGenMode, reframeNumImages, reframeSeed,
   onReframeAspectChange, onReframeResChange, onReframeGenModeChange, onReframeNumImagesChange, onReframeSeedChange,
   upscaleScale, onUpscaleScaleChange,
 }: ToolContextBarProps) {
 
-  // ── Try-On ────────────────────────────────────────────────────────────────
+  // ── Try-On ─────────────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.TRY_ON) {
-    const display = toHovered ?? toModel;
-    const info = TRY_ON_MODELS.find((m) => m.id === display);
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2.5 flex items-stretch min-h-0">
-        {/* Left 40%: controls */}
-        <div className="w-[40%] min-w-0 flex flex-col gap-1.5 pr-3">
-          <div className={row}>
-            <span className={`${lbl} w-9`}>Loại:</span>
-            {TRY_ON_CATEGORIES.map((c) => (
-              <button key={c.value} onClick={() => onToCategoryChange(c.value)} className={pill(toCategory === c.value)}>
-                {c.label}
-              </button>
-            ))}
-          </div>
-          <div className={row}>
-            <span className={`${lbl} w-9`}>AI:</span>
-            {TRY_ON_MODELS.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => onToModelChange(m.id)}
-                onMouseEnter={() => onToHoveredChange(m.id)}
-                onMouseLeave={() => onToHoveredChange(null)}
-                className={`flex items-center gap-1.5 ${pill(toModel === m.id)}`}
-              >
-                {m.name}
-                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
-                  toModel === m.id ? "bg-background/15 text-background/80" : "bg-primary/10 text-primary"
-                }`}>
-                  {m.id === "v1.6" ? "1 cr" : `${computeTryOnCost("max", "balanced", toResolution)} cr`}
-                </span>
-              </button>
-            ))}
-            {toModel === "max" && TRY_ON_RESOLUTIONS.map((r) => (
-              <button key={r.value} onClick={() => onToResolutionChange(r.value)} className={pill(toResolution === r.value)}>
-                {r.label}
-              </button>
-            ))}
-          </div>
-          {info && (
-            <p className="text-[10px] text-muted-foreground leading-tight">
-              <span className="text-foreground font-medium">{info.tagline}</span>
-              {" · "}{info.speed}
-            </p>
-          )}
-        </div>
-        <Divider />
-        {/* Right 60%: prompt when max, hint when v1.6 */}
-        <div className="flex-1 min-w-0 pl-3 flex items-center">
+      <div className="px-4 pt-3 pb-3 flex flex-col">
+        <div className="min-h-[40px] flex items-center mb-2">
           {toModel === "max" ? (
             <input
-              value={toPrompt ?? ""}
+              value={toPrompt}
               onChange={(e) => onToPromptChange(e.target.value)}
               placeholder='Tuỳ chỉnh (tuỳ chọn): "remove scarf", "tuck in shirt", "roll up sleeves"...'
               className={inputCls}
             />
           ) : (
-            <p className="text-[11px] text-muted-foreground/50 italic">Chọn Try-On Max để thêm prompt tuỳ chỉnh</p>
+            <p className="text-[11px] text-muted-foreground/40 italic">
+              Chọn Try-On Max để thêm prompt tuỳ chỉnh
+            </p>
           )}
         </div>
+        <BottomRow
+          left={
+            <DropdownBtn label="Loại" value={toCategory} options={TRY_ON_CAT_OPTS} onChange={onToCategoryChange} />
+          }
+          right={
+            <>
+              <DropdownBtn label="Model" value={toModel} options={TRY_ON_MODEL_OPTS} onChange={onToModelChange} />
+              {toModel === "max" && (
+                <DropdownBtn value={toResolution} options={TRY_ON_RES_OPTS} onChange={onToResolutionChange} />
+              )}
+              <RunBtn onClick={handleRun} disabled={!canRun} isProcessing={isProcessing} />
+            </>
+          }
+        />
       </div>
     );
   }
 
-  // ── Product to Model ──────────────────────────────────────────────────────
+  // ── Product to Model ───────────────────────────────────────────────────────
   if (selectedTool === AIToolType.PRODUCT_TO_MODEL) {
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2 flex items-stretch min-h-0">
-        {/* Left 40%: controls */}
-        <div className="w-[40%] min-w-0 flex flex-col gap-1.5 pr-3">
-          <div className={row}>
-            <span className={lbl}>Tỉ lệ:</span>
-            {ASPECT_RATIOS.map((r) => (
-              <button key={r} onClick={() => onP2mAspectChange(r)} className={pill(p2mAspect === r)}>{r}</button>
-            ))}
-          </div>
-          <div className={row}>
-            <span className={lbl}>Res:</span>
-            {RESOLUTIONS.map((r) => (
-              <button key={r} onClick={() => onP2mResChange(r)} className={pill(p2mRes === r)}>{r}</button>
-            ))}
-          </div>
-          <div className={row}>
-            <span className={lbl}>Mode:</span>
-            {GEN_MODES.map((m) => (
-              <button key={m} onClick={() => onP2mGenModeChange(m)} className={pill(p2mGenMode === m)}>{m}</button>
-            ))}
-          </div>
-          {p2mHasFaceRef && (
-            <div className={row}>
-              <span className={lbl}>Face:</span>
-              {FACE_REF_MODES.map((m) => (
-                <button key={m.value} onClick={() => onP2mFaceModeChange(m.value)} className={pill(p2mFaceMode === m.value)}>{m.label}</button>
-              ))}
-            </div>
-          )}
-        </div>
-        <Divider />
-        {/* Right 60%: prompt */}
-        <div className="flex-1 min-w-0 pl-3 flex items-center">
+      <div className="px-4 pt-3 pb-3 flex flex-col">
+        <div className="min-h-[40px] flex items-center mb-2">
           <input
             value={p2mPrompt}
             onChange={(e) => onP2mPromptChange(e.target.value)}
-            placeholder='Mô tả thêm: "professional office", "man casual", "studio white background"... (tuỳ chọn)'
+            placeholder='Tùy chọn: "Blonde hair, studio photoshoot", "office setting", "casual outdoor"...'
             className={inputCls}
           />
         </div>
+        <BottomRow
+          left={
+            <>
+              <ActionBtn
+                icon={ScanFace}
+                label="Face Reference"
+                active={!!p2mFaceRef}
+                onClick={() => openGallery((url) => onP2mFaceRefChange({ id: uid(), url }))}
+              />
+              <ActionBtn
+                icon={ImageIcon}
+                label="Image Prompt"
+                active={!!p2mPromptImg}
+                onClick={() => openGallery((url) => onP2mPromptImgChange({ id: uid(), url }))}
+              />
+              <ActionBtn
+                icon={Mountain}
+                label="Background"
+                active={!!p2mBgRef}
+                onClick={() => openGallery((url) => onP2mBgRefChange({ id: uid(), url }))}
+              />
+            </>
+          }
+          right={
+            <>
+              <DropdownBtn label="Ratio" value={p2mAspect} options={RATIO_OPTS} onChange={onP2mAspectChange} />
+              <DropdownBtn value={p2mRes} options={RES_OPTS} onChange={onP2mResChange} />
+              <DropdownBtn value={p2mGenMode} options={MODE_OPTS} onChange={onP2mGenModeChange} />
+              {!!p2mFaceRef && (
+                <DropdownBtn value={p2mFaceMode} options={FACE_MODE_OPTS} onChange={onP2mFaceModeChange} />
+              )}
+              <RunBtn onClick={handleRun} disabled={!canRun} isProcessing={isProcessing} />
+            </>
+          }
+        />
       </div>
     );
   }
 
-  // ── Model Swap ────────────────────────────────────────────────────────────
+  // ── Model Swap ─────────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.MODEL_SWAP) {
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2 flex items-stretch min-h-0">
-        {/* Left 40%: controls */}
-        <div className="w-[40%] min-w-0 flex flex-col gap-1.5 pr-3">
-          <div className={row}>
-            <span className={lbl}>Res:</span>
-            {RESOLUTIONS.map((r) => (
-              <button key={r} onClick={() => onMsResChange(r)} className={pill(msRes === r)}>{r}</button>
-            ))}
-          </div>
-          <div className={row}>
-            <span className={lbl}>Mode:</span>
-            {GEN_MODES.map((m) => (
-              <button key={m} onClick={() => onMsGenModeChange(m)} className={pill(msGenMode === m)}>{m}</button>
-            ))}
-          </div>
-          {msHasFaceRef && (
-            <div className={row}>
-              <span className={lbl}>Face:</span>
-              {FACE_REF_MODES.map((m) => (
-                <button key={m.value} onClick={() => onMsFaceModeChange(m.value)} className={pill(msFaceMode === m.value)}>{m.label}</button>
-              ))}
-            </div>
-          )}
-        </div>
-        <Divider />
-        {/* Right 60%: prompt */}
-        <div className="flex-1 min-w-0 pl-3 flex items-center">
+      <div className="px-4 pt-3 pb-3 flex flex-col">
+        <div className="min-h-[40px] flex items-center mb-2">
           <input
             value={msPrompt}
             onChange={(e) => onMsPromptChange(e.target.value)}
-            placeholder='Mô tả thêm: "same pose", "outdoor", "studio lighting"... (tuỳ chọn)'
+            placeholder='Tùy chọn: "same pose", "outdoor", "studio lighting"...'
             className={inputCls}
           />
         </div>
+        <BottomRow
+          right={
+            <>
+              <DropdownBtn value={msRes} options={RES_OPTS} onChange={onMsResChange} />
+              <DropdownBtn value={msGenMode} options={MODE_OPTS} onChange={onMsGenModeChange} />
+              {msHasFaceRef && (
+                <DropdownBtn value={msFaceMode} options={FACE_MODE_OPTS} onChange={onMsFaceModeChange} />
+              )}
+              <RunBtn onClick={handleRun} disabled={!canRun} isProcessing={isProcessing} />
+            </>
+          }
+        />
       </div>
     );
   }
 
-  // ── Face to Model ─────────────────────────────────────────────────────────
+  // ── Face to Model ──────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.FACE_TO_MODEL) {
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2 flex items-stretch min-h-0">
-        <div className="w-[40%] min-w-0 flex flex-col gap-1.5 pr-3">
-          <div className={row}>
-            <span className={lbl}>Res:</span>
-            {RESOLUTIONS.map((r) => (
-              <button key={r} onClick={() => onF2mResChange(r)} className={pill(f2mRes === r)}>{r}</button>
-            ))}
-          </div>
-          <div className={row}>
-            <span className={lbl}>Mode:</span>
-            {GEN_MODES.map((m) => (
-              <button key={m} onClick={() => onF2mGenModeChange(m)} className={pill(f2mGenMode === m)}>{m}</button>
-            ))}
-          </div>
-          <div className={row}>
-            <span className={lbl}>Ảnh:</span>
-            {([1, 2, 3, 4] as const).map((n) => (
-              <button key={n} onClick={() => onF2mNumImagesChange(n)} className={pill(f2mNumImages === n)}>{n}</button>
-            ))}
-            <span className={`${lbl} ml-2`}>Seed:</span>
-            <input
-              type="number" value={f2mSeed} onChange={(e) => onF2mSeedChange(e.target.value)}
-              placeholder="42"
-              className="w-14 px-1.5 py-0.5 rounded-md text-[11px] bg-secondary/40 border-0 focus:outline-none focus:ring-1 focus:ring-primary/40"
-            />
-          </div>
-          <div className={row}>
-            <span className={lbl}>Ratio:</span>
-            {["1:1","4:5","3:4","2:3","9:16"].map((a) => (
-              <button key={a} onClick={() => onF2mAspectChange(a)} className={pill(f2mAspect === a)}>{a}</button>
-            ))}
-          </div>
-        </div>
-        <Divider />
-        <div className="flex-1 min-w-0 pl-3 flex items-center">
+      <div className="px-4 pt-3 pb-3 flex flex-col">
+        <div className="min-h-[40px] flex items-center mb-2">
           <input
             value={f2mPrompt}
             onChange={(e) => onF2mPromptChange(e.target.value)}
-            placeholder='Mô tả body (tuỳ chọn): "athletic build", "slender frame", "curvy figure"...'
+            placeholder='Tùy chọn: "athletic build", "slender frame", "curvy figure"...'
             className={inputCls}
           />
         </div>
+        <BottomRow
+          right={
+            <>
+              <DropdownBtn
+                label="Ratio"
+                value={f2mAspect}
+                options={["1:1", "4:5", "3:4", "2:3", "9:16"].map((v) => ({ value: v, label: v }))}
+                onChange={onF2mAspectChange}
+              />
+              <DropdownBtn value={f2mRes} options={RES_OPTS} onChange={onF2mResChange} />
+              <DropdownBtn value={f2mGenMode} options={MODE_OPTS} onChange={onF2mGenModeChange} />
+              <DropdownBtn value={f2mNumImages} options={COUNT_OPTS} onChange={onF2mNumImagesChange} />
+              <RunBtn onClick={handleRun} disabled={!canRun} isProcessing={isProcessing} />
+            </>
+          }
+        />
       </div>
     );
   }
 
-  // ── Edit ──────────────────────────────────────────────────────────────────
+  // ── Edit ───────────────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.EDIT) {
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2 flex items-stretch min-h-0">
-        {/* Left 40%: controls */}
-        <div className="w-[40%] min-w-0 flex flex-col gap-1.5 pr-3">
-          <div className={row}>
-            <span className={lbl}>Res:</span>
-            {RESOLUTIONS.map((r) => (
-              <button key={r} onClick={() => onEditResChange(r)} className={pill(editRes === r)}>{r}</button>
-            ))}
-          </div>
-          <div className={row}>
-            <span className={lbl}>Mode:</span>
-            {GEN_MODES.map((m) => (
-              <button key={m} onClick={() => onEditGenModeChange(m)} className={pill(editGenMode === m)}>{m}</button>
-            ))}
-          </div>
-          <div className={row}>
-            <span className={lbl}>Ảnh:</span>
-            {([1, 2, 3, 4] as const).map((n) => (
-              <button key={n} onClick={() => onEditNumImagesChange(n)} className={pill(editNumImages === n)}>{n}</button>
-            ))}
-            <span className={`${lbl} ml-2`}>Seed:</span>
-            <input
-              type="number"
-              value={editSeed}
-              onChange={(e) => onEditSeedChange(e.target.value)}
-              placeholder="42"
-              className="w-14 px-1.5 py-0.5 rounded-md text-[11px] bg-secondary/40 border border-border/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
-            />
-          </div>
-        </div>
-        <Divider />
-        {/* Right 60%: prompt (required) */}
-        <div className="flex-1 min-w-0 pl-3 flex items-center">
+      <div className="px-4 pt-3 pb-3 flex flex-col">
+        <div className="min-h-[40px] flex items-center mb-2">
           <input
             value={genericPrompt}
             onChange={(e) => onGenericPromptChange(e.target.value)}
@@ -387,46 +465,25 @@ export function ToolContextBar({
             className={inputCls}
           />
         </div>
+        <BottomRow
+          right={
+            <>
+              <DropdownBtn value={editRes} options={RES_OPTS} onChange={onEditResChange} />
+              <DropdownBtn value={editGenMode} options={MODE_OPTS} onChange={onEditGenModeChange} />
+              <DropdownBtn value={editNumImages} options={COUNT_OPTS} onChange={onEditNumImagesChange} />
+              <RunBtn onClick={handleRun} disabled={!canRun} isProcessing={isProcessing} />
+            </>
+          }
+        />
       </div>
     );
   }
 
-  // ── Create Model ──────────────────────────────────────────────────────────
+  // ── Create Model ───────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.CREATE_MODEL) {
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2 flex items-stretch min-h-0">
-        {/* Left 40%: controls */}
-        <div className="w-[40%] min-w-0 flex flex-col gap-1.5 pr-3">
-          <div className={row}>
-            <span className={lbl}>Res:</span>
-            {RESOLUTIONS.map((r) => (
-              <button key={r} onClick={() => onCreateResChange(r)} className={pill(createRes === r)}>{r}</button>
-            ))}
-          </div>
-          <div className={row}>
-            <span className={lbl}>Mode:</span>
-            {GEN_MODES.map((m) => (
-              <button key={m} onClick={() => onCreateGenModeChange(m)} className={pill(createGenMode === m)}>{m}</button>
-            ))}
-          </div>
-          <div className={row}>
-            <span className={lbl}>Ảnh:</span>
-            {([1, 2, 3, 4] as const).map((n) => (
-              <button key={n} onClick={() => onCreateNumImagesChange(n)} className={pill(createNumImages === n)}>{n}</button>
-            ))}
-            <span className={`${lbl} ml-2`}>Seed:</span>
-            <input
-              type="number"
-              value={createSeed}
-              onChange={(e) => onCreateSeedChange(e.target.value)}
-              placeholder="42"
-              className="w-14 px-1.5 py-0.5 rounded-md text-[11px] bg-secondary/40 border border-border/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
-            />
-          </div>
-        </div>
-        <Divider />
-        {/* Right 60%: prompt (required) */}
-        <div className="flex-1 min-w-0 pl-3 flex items-center">
+      <div className="px-4 pt-3 pb-3 flex flex-col">
+        <div className="min-h-[40px] flex items-center mb-2">
           <input
             value={genericPrompt}
             onChange={(e) => onGenericPromptChange(e.target.value)}
@@ -434,108 +491,105 @@ export function ToolContextBar({
             className={inputCls}
           />
         </div>
+        <BottomRow
+          right={
+            <>
+              <DropdownBtn value={createRes} options={RES_OPTS} onChange={onCreateResChange} />
+              <DropdownBtn value={createGenMode} options={MODE_OPTS} onChange={onCreateGenModeChange} />
+              <DropdownBtn value={createNumImages} options={COUNT_OPTS} onChange={onCreateNumImagesChange} />
+              <RunBtn onClick={handleRun} disabled={!canRun} isProcessing={isProcessing} />
+            </>
+          }
+        />
       </div>
     );
   }
 
-  // ── Image to Video ────────────────────────────────────────────────────────
+  // ── Image to Video ─────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.IMAGE_TO_VIDEO) {
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2 flex items-stretch min-h-0">
-        {/* Left 40%: controls */}
-        <div className="w-[40%] min-w-0 flex flex-col gap-1.5 pr-3">
-          <div className={row}>
-            <span className={lbl}>Thời lượng:</span>
-            {([5, 10] as const).map((d) => (
-              <button key={d} onClick={() => onVideoDurationChange(d)} className={pill(videoDuration === d)}>{d}s</button>
-            ))}
-          </div>
-          <div className={row}>
-            <span className={lbl}>Chất lượng:</span>
-            {(["480p", "720p", "1080p"] as const).map((r) => (
-              <button key={r} onClick={() => onVideoResChange(r)} className={pill(videoRes === r)}>{r}</button>
-            ))}
-          </div>
-        </div>
-        <Divider />
-        {/* Right 60%: prompt (optional) */}
-        <div className="flex-1 min-w-0 pl-3 flex items-center">
+      <div className="px-4 pt-3 pb-3 flex flex-col">
+        <div className="min-h-[40px] flex items-center mb-2">
           <input
             value={genericPrompt}
             onChange={(e) => onGenericPromptChange(e.target.value)}
-            placeholder="Mô tả chuyển động (tuỳ chọn — để trống để AI tự quyết)"
+            placeholder="Mô tả chuyển động (tùy chọn — để trống để AI tự quyết)"
             className={inputCls}
           />
         </div>
+        <BottomRow
+          right={
+            <>
+              <DropdownBtn label="Thời lượng" value={videoDuration} options={VIDEO_DUR_OPTS} onChange={onVideoDurationChange} />
+              <DropdownBtn value={videoRes} options={VIDEO_RES_OPTS} onChange={onVideoResChange} />
+              <RunBtn onClick={handleRun} disabled={!canRun} isProcessing={isProcessing} />
+            </>
+          }
+        />
       </div>
     );
   }
 
-  // ── Reframe ───────────────────────────────────────────────────────────────────
+  // ── Reframe ────────────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.REFRAME) {
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2">
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-          <div className={row}>
-            <span className={lbl}>Tỉ lệ:</span>
-            {ASPECT_RATIOS.map((r) => (
-              <button key={r} onClick={() => onReframeAspectChange(r)} className={pill(reframeAspect === r)}>{r}</button>
-            ))}
-          </div>
-          <div className={row}>
-            <span className={lbl}>Res:</span>
-            {RESOLUTIONS.map((r) => (
-              <button key={r} onClick={() => onReframeResChange(r)} className={pill(reframeRes === r)}>{r}</button>
-            ))}
-          </div>
-          <div className={row}>
-            <span className={lbl}>Mode:</span>
-            {GEN_MODES.map((m) => (
-              <button key={m} onClick={() => onReframeGenModeChange(m)} className={pill(reframeGenMode === m)}>{m}</button>
-            ))}
-          </div>
-          <div className={row}>
-            <span className={lbl}>Ảnh:</span>
-            {([1, 2, 3, 4] as const).map((n) => (
-              <button key={n} onClick={() => onReframeNumImagesChange(n)} className={pill(reframeNumImages === n)}>{n}</button>
-            ))}
-          </div>
-          <div className={row}>
-            <span className={lbl}>Seed:</span>
-            <input
-              type="number"
-              value={reframeSeed}
-              onChange={(e) => onReframeSeedChange(e.target.value)}
-              placeholder="42"
-              className="w-16 px-1.5 py-0.5 rounded-md text-[11px] bg-secondary/40 border border-border/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
-            />
-          </div>
+      <div className="px-4 pt-3 pb-3 flex flex-col">
+        <div className="min-h-[40px] flex items-center mb-2">
+          <p className="text-[11px] text-muted-foreground/40 italic">
+            Mở rộng khung hình với AI outpainting
+          </p>
         </div>
+        <BottomRow
+          right={
+            <>
+              <DropdownBtn label="Ratio" value={reframeAspect} options={RATIO_OPTS} onChange={onReframeAspectChange} />
+              <DropdownBtn value={reframeRes} options={RES_OPTS} onChange={onReframeResChange} />
+              <DropdownBtn value={reframeGenMode} options={MODE_OPTS} onChange={onReframeGenModeChange} />
+              <DropdownBtn value={reframeNumImages} options={COUNT_OPTS} onChange={onReframeNumImagesChange} />
+              <RunBtn onClick={handleRun} disabled={!canRun} isProcessing={isProcessing} />
+            </>
+          }
+        />
       </div>
     );
   }
 
-  // ── Remove Background ─────────────────────────────────────────────────────────
+  // ── Remove Background ──────────────────────────────────────────────────────
   if (selectedTool === AIToolType.REMOVE_BG) {
     return (
-      <div className="border border-border/60 rounded-2xl px-4 py-2.5 flex items-center">
-        <p className="text-[11px] text-muted-foreground/60 italic">
-          AI tự động phát hiện foreground và xóa nền — xuất file PNG trong suốt · 1 credit / ảnh
-        </p>
+      <div className="px-4 pt-3 pb-3 flex flex-col">
+        <div className="min-h-[40px] flex items-center mb-2">
+          <p className="text-[11px] text-muted-foreground/40 italic">
+            AI tự động phát hiện foreground và xóa nền — xuất file PNG trong suốt · 1 credit / ảnh
+          </p>
+        </div>
+        <BottomRow
+          right={<RunBtn onClick={handleRun} disabled={!canRun} isProcessing={isProcessing} />}
+        />
       </div>
     );
   }
 
-  // ── Upscale ───────────────────────────────────────────────────────────────────
+  // ── Upscale ────────────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.UPSCALE) {
     return (
-      <div className="border border-border/60 rounded-2xl px-3 py-2">
-        <div className={row}>
-          <span className={lbl}>Scale:</span>
-          {([2, 4] as const).map((s) => (
-            <button key={s} onClick={() => onUpscaleScaleChange(s)} className={pill(upscaleScale === s)}>{s}×</button>
-          ))}
+      <div className="px-4 pt-3 pb-3 flex flex-col">
+        <div className="min-h-[40px] flex items-center mb-2">
+          <p className="text-[11px] text-muted-foreground/40 italic">
+            Nâng cao độ phân giải ảnh bằng AI
+          </p>
         </div>
+        <BottomRow
+          left={
+            <DropdownBtn
+              label="Scale"
+              value={upscaleScale}
+              options={[{ value: 2, label: "2×" }, { value: 4, label: "4×" }]}
+              onChange={onUpscaleScaleChange}
+            />
+          }
+          right={<RunBtn onClick={handleRun} disabled={!canRun} isProcessing={isProcessing} />}
+        />
       </div>
     );
   }

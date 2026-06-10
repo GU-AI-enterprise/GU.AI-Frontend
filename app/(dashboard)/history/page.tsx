@@ -317,10 +317,13 @@ export default function HistoryPage() {
     fetchHistory(page, dateFrom, dateTo);
   };
 
-  const txStatusClass = (status: string) =>
-    status === "success"
-      ? "bg-green-500/10 text-green-400 border border-green-500/20"
-      : "bg-zinc-800 text-muted-foreground border border-transparent";
+  const txStatusClass = (status: string) => {
+    if (status === "success")   return "bg-green-500/10 text-green-400 border border-green-500/20";
+    if (status === "pending")   return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+    if (status === "failed")    return "bg-red-500/10 text-red-400 border border-red-500/20";
+    if (status === "cancelled") return "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20";
+    return "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20";
+  };
 
   if (authLoading) {
     return (

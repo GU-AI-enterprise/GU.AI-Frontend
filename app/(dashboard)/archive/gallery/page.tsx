@@ -171,7 +171,7 @@ export default function GalleryPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-foreground flex items-center gap-3">
-              <ImageIcon className="size-7 text-primary" />
+              <Layers className="size-7 text-primary" />
               Ảnh & Video
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Quản lý và tổ chức thư viện ảnh và video của bạn.</p>

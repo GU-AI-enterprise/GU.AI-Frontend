@@ -27,6 +27,7 @@ import {
   ChevronUp,
   Archive,
   Plus,
+  Layers,
 } from "lucide-react";
 import Logo from "@/components/shared/logo";
 import SupportChatWidget from "@/components/support/support-chat-widget";
@@ -44,7 +45,7 @@ const mainNav = [
 ];
 
 const archiveNav = [
-  { href: "/archive/gallery", label: "Ảnh & Video", Icon: ImageIcon },
+  { href: "/archive/gallery", label: "Ảnh & Video", Icon: Layers },
   { href: "/archive/models", label: "Người mẫu", Icon: FolderOpen },
   { href: "/archive/collections", label: "Bộ sưu tập", Icon: FolderHeart },
   { href: "/archive/upload", label: "Upload hàng loạt", Icon: UploadCloud },

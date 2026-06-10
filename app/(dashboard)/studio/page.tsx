@@ -706,81 +706,74 @@ function StudioPageInner() {
       </div>
 
       {/* ── Bottom Tool Bar ── */}
-      <div className="shrink-0 border-t border-border/40 bg-background/80 backdrop-blur-xl px-3 py-2.5 sm:px-6 sm:py-3 sm:pb-4">
-        <div className="flex items-center justify-between gap-4">
+      <div className="shrink-0 bg-background/80 backdrop-blur-xl px-3 py-3 sm:px-6 sm:pb-4">
+        <div className="border border-border/60 rounded-2xl overflow-hidden">
 
-          <button
-            onClick={() => scrollToolbar("left")}
-            className={`shrink-0 flex items-center justify-center size-7 rounded-lg bg-secondary text-muted-foreground hover:text-foreground transition-all ${canScrollLeft ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-          >
-            <ChevronLeft className="size-3.5" />
-          </button>
-
-          <div
-            ref={toolbarRef}
-            onScroll={checkScroll}
-            className="flex-1 flex items-center gap-1 overflow-x-auto"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
-          >
-            {TOOLS.map((tool) => (
+          {/* Tool tabs */}
+          <div className="flex items-stretch border-b border-border/40">
+            <button
+              onClick={() => scrollToolbar("left")}
+              className={`cursor-pointer shrink-0 flex items-center justify-center w-7 text-muted-foreground hover:text-foreground transition-all ${canScrollLeft ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+            >
+              <ChevronLeft className="size-3.5" />
+            </button>
+            <div
+              ref={toolbarRef}
+              onScroll={checkScroll}
+              className="flex items-center gap-1 py-2.5 overflow-x-auto flex-1 min-w-0"
+              style={{ scrollbarWidth: "none" } as React.CSSProperties}
+            >
+              {TOOLS.map((tool) => (
+                <button
+                  key={tool.id}
+                  onClick={() => switchTool(tool.id)}
+                  className={`cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                    selectedTool === tool.id
+                      ? "bg-foreground text-background"
+                      : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  }`}
+                >
+                  <tool.Icon className="size-3.5" />
+                  {tool.name}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => scrollToolbar("right")}
+              className={`cursor-pointer shrink-0 flex items-center justify-center w-7 text-muted-foreground hover:text-foreground transition-all ${canScrollRight ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+            >
+              <ChevronRight className="size-3.5" />
+            </button>
+            <div className="shrink-0 flex items-center gap-2 px-3 py-2.5 border-l border-border/40">
+              <span className="hidden sm:block text-[11px] font-semibold text-foreground">
+                {isFakeAI ? "0 credits (Fake AI)" : `${currentCost} credit${currentCost > 1 ? "s" : ""}`}
+              </span>
               <button
-                key={tool.id}
-                onClick={() => switchTool(tool.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                  selectedTool === tool.id
-                    ? "bg-foreground text-background"
-                    : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
-                }`}
+                onClick={() => setGuideToolId(selectedTool)}
+                className="cursor-pointer flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-secondary/60 text-muted-foreground text-xs font-medium hover:text-foreground hover:bg-secondary transition-colors whitespace-nowrap"
               >
-                <tool.Icon className="size-4" />
-                {tool.name}
+                <BookOpen className="size-3.5" /> Hướng dẫn
               </button>
-            ))}
+            </div>
           </div>
 
-          <button
-            onClick={() => scrollToolbar("right")}
-            className={`shrink-0 flex items-center justify-center size-7 rounded-lg bg-secondary text-muted-foreground hover:text-foreground transition-all ${canScrollRight ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-          >
-            <ChevronRight className="size-3.5" />
-          </button>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <span className="hidden sm:block text-[11px] font-semibold text-foreground">
-              {isFakeAI ? "0 credits (Fake AI)" : `${currentCost} credit${currentCost > 1 ? "s" : ""}`}
-            </span>
-
-            <button
-              onClick={() => setGuideToolId(selectedTool)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary/60 text-muted-foreground text-xs font-medium hover:text-foreground hover:bg-secondary transition-colors"
-              title="Xem hướng dẫn"
-            >
-              <BookOpen className="size-3.5" /> Hướng dẫn
-            </button>
-
-            <button
-              onClick={handleRun}
-              disabled={!canRun}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-foreground text-background text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-all"
-            >
-              <Loader2 className={`size-4 animate-spin ${effectiveIsProcessing ? "" : "hidden"}`} />
-              <Sparkles className={`size-4 ${effectiveIsProcessing ? "hidden" : ""}`} />
-              {effectiveIsProcessing ? "Đang xử lý" : "Chạy"}
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-2 pt-2 border-t border-border/30 w-full">
+          {/* Tool controls */}
           <ToolContextBar
             selectedTool={selectedTool}
+            handleRun={handleRun}
+            canRun={canRun}
+            isProcessing={effectiveIsProcessing}
+            openGallery={openGallery}
             toCategory={toCategory} toModel={toModel} toResolution={toResolution} toHovered={toHovered} toPrompt={toPrompt}
             onToCategoryChange={setToCategory} onToModelChange={setToModel}
             onToResolutionChange={setToResolution} onToHoveredChange={setToHovered} onToPromptChange={setToPrompt}
             p2mPrompt={p2mPrompt} p2mAspect={p2mAspect} p2mRes={p2mRes}
-            p2mGenMode={p2mGenMode} p2mFaceMode={p2mFaceMode} p2mHasFaceRef={!!p2mFaceRef}
+            p2mGenMode={p2mGenMode} p2mFaceMode={p2mFaceMode}
+            p2mFaceRef={p2mFaceRef} p2mPromptImg={p2mPromptImg} p2mBgRef={p2mBgRef}
             onP2mPromptChange={setP2mPrompt} onP2mAspectChange={setP2mAspect}
             onP2mResChange={setP2mRes} onP2mGenModeChange={setP2mGenMode}
             onP2mFaceModeChange={setP2mFaceMode}
+            onP2mFaceRefChange={setP2mFaceRef} onP2mPromptImgChange={setP2mPromptImg} onP2mBgRefChange={setP2mBgRef}
             msPrompt={msPrompt} msRes={msRes} msGenMode={msGenMode}
             msFaceMode={msFaceMode} msHasFaceRef={!!msFaceRef}
             onMsPromptChange={setMsPrompt} onMsResChange={setMsRes}
@@ -791,13 +784,14 @@ function StudioPageInner() {
             onF2mResChange={setF2mRes} onF2mGenModeChange={setF2mGenMode}
             onF2mNumImagesChange={setF2mNumImages} onF2mSeedChange={setF2mSeed}
             editRes={editRes} editGenMode={editGenMode} editNumImages={editNumImages} editSeed={editSeed}
+            genericPrompt={genericPrompt}
             onEditResChange={setEditRes} onEditGenModeChange={setEditGenMode}
             onEditNumImagesChange={setEditNumImages} onEditSeedChange={setEditSeed}
+            onGenericPromptChange={setGenericPrompt}
             createRes={createRes} createGenMode={createGenMode} createNumImages={createNumImages} createSeed={createSeed}
             onCreateResChange={setCreateRes} onCreateGenModeChange={setCreateGenMode}
             onCreateNumImagesChange={setCreateNumImages} onCreateSeedChange={setCreateSeed}
-            genericPrompt={genericPrompt} videoDuration={videoDuration} videoRes={videoRes}
-            onGenericPromptChange={setGenericPrompt}
+            videoDuration={videoDuration} videoRes={videoRes}
             onVideoDurationChange={setVideoDuration} onVideoResChange={setVideoRes}
             reframeAspect={reframeAspect} reframeRes={reframeRes} reframeGenMode={reframeGenMode}
             reframeNumImages={reframeNumImages} reframeSeed={reframeSeed}
