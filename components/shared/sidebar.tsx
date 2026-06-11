@@ -29,6 +29,7 @@ import {
   Plus,
   Layers,
   Workflow,
+  GitCompare,
 } from "lucide-react";
 import Logo from "@/components/shared/logo";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -43,7 +44,7 @@ import { useSidebar } from "@/contexts/SidebarContext";
 const mainNav = [
   { href: "/dashboard", label: "Tổng quan", Icon: LayoutDashboard, iconSrc: null },
   { href: "/studio", label: "Studio", Icon: null, iconSrc: "/icons/logo_only.png" },
-  { href: "/workflow", label: "Workflow AI", Icon: Workflow, iconSrc: null },
+  { href: "/workflow", label: "Workflow AI", Icon: GitCompare, iconSrc: null },
   { href: "/library", label: "Thư viện", Icon: BookOpen, iconSrc: null },
 ];
 
@@ -192,12 +193,12 @@ export default function Sidebar() {
       <aside
         className={
           isMobile
-            ? `fixed left-0 top-0 h-screen z-50 bg-sidebar border-r border-border flex flex-col w-[280px] shadow-2xl transition-transform duration-300 ease-in-out ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`
-            : `border-r border-border bg-sidebar h-screen sticky top-0 flex flex-col transition-[width] duration-300 ${isCollapsed ? "w-[70px]" : "w-[260px]"}`
+            ? `fixed left-0 top-0 h-screen z-50 bg-sidebar border-r border-border flex flex-col w-[260px] shadow-2xl transition-transform duration-300 ease-in-out ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`
+            : `border-r border-border bg-sidebar h-screen sticky top-0 flex flex-col transition-[width] duration-300 ${isCollapsed ? "w-[60px]" : "w-[220px]"}`
         }
       >
         {/* ── Logo ── */}
-        <div className="flex h-16 items-center px-4 border-b border-sidebar-border">
+        <div className="flex h-14 items-center px-4 border-b border-sidebar-border">
           <div className="flex-1">
             <Logo iconOnly={isCollapsed} />
           </div>
@@ -225,15 +226,15 @@ export default function Sidebar() {
                         setTooltip({ label, top: rect.top + rect.height / 2 });
                       }
                     }}
-                    className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${active
+                    className={`flex items-center ${isCollapsed ? "justify-center" : "gap-2.5 px-2.5"} h-9 rounded-lg text-sm font-medium transition-all ${active
                         ? "bg-sidebar-accent text-sidebar-accent-foreground"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                       }`}
                   >
                     {iconSrc ? (
-                      <img src={iconSrc} alt={label} className="size-[18px] flex-shrink-0 object-contain" />
+                      <img src={iconSrc} alt={label} className="size-4 flex-shrink-0 object-contain" />
                     ) : Icon ? (
-                      <Icon className={`size-[18px] flex-shrink-0 ${active ? "text-primary" : ""}`} />
+                      <Icon className={`size-4 flex-shrink-0 ${active ? "text-primary" : ""}`} />
                     ) : null}
                     {!isCollapsed && <span>{label}</span>}
                   </Link>
@@ -259,13 +260,13 @@ export default function Sidebar() {
               <button
                 onClick={() => !isCollapsed && setArchiveOpen(!archiveOpen)}
                 onMouseLeave={() => setTooltip(null)}
-                className={`cursor-pointer w-full flex items-center ${isCollapsed ? "justify-center" : "justify-between px-3"} h-10 rounded-lg text-sm font-medium transition-all ${isActive("/archive")
+                className={`cursor-pointer w-full flex items-center ${isCollapsed ? "justify-center" : "justify-between px-2.5"} h-9 rounded-lg text-sm font-medium transition-all ${isActive("/archive")
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   }`}
               >
-                <div className="flex items-center gap-3">
-                  <FolderOpen className={`size-[18px] flex-shrink-0 ${isActive("/archive") ? "text-primary" : ""}`} />
+                <div className="flex items-center gap-2.5">
+                  <FolderOpen className={`size-4 flex-shrink-0 ${isActive("/archive") ? "text-primary" : ""}`} />
                   {!isCollapsed && <span>Kho lưu trữ</span>}
                 </div>
                 {!isCollapsed && <ChevronRight className={`size-4 transition-transform ${archiveOpen ? "rotate-90" : ""}`} />}
@@ -296,12 +297,12 @@ export default function Sidebar() {
                     setTooltip({ label: "Lịch sử tác vụ", top: rect.top + rect.height / 2 });
                   }
                 }}
-                className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${isActive("/history")
+                className={`flex items-center ${isCollapsed ? "justify-center" : "gap-2.5 px-2.5"} h-9 rounded-lg text-sm font-medium transition-all ${isActive("/history")
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   }`}
               >
-                <History className={`size-[18px] flex-shrink-0 ${isActive("/history") ? "text-primary" : ""}`} />
+                <History className={`size-4 flex-shrink-0 ${isActive("/history") ? "text-primary" : ""}`} />
                 {!isCollapsed && <span>Lịch sử tác vụ</span>}
               </Link>
             </div>
@@ -317,13 +318,13 @@ export default function Sidebar() {
                       setTooltip({ label: "Hỗ trợ khách hàng", top: rect.top + rect.height / 2 });
                     }
                   }}
-                  className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3"} h-10 rounded-lg text-sm font-medium transition-all ${isActive("/admin/support")
+                  className={`flex items-center ${isCollapsed ? "justify-center" : "gap-2.5 px-2.5"} h-9 rounded-lg text-sm font-medium transition-all ${isActive("/admin/support")
                       ? "bg-sidebar-accent text-sidebar-accent-foreground"
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     }`}
                 >
                   <span className="relative flex-shrink-0">
-                    <MessageCircle className={`size-[18px] ${isActive("/admin/support") ? "text-primary" : ""}`} />
+                    <MessageCircle className={`size-4 ${isActive("/admin/support") ? "text-primary" : ""}`} />
                     {unreadCount > 0 && (
                       <span className="absolute -top-1 -right-1.5 flex size-[14px] items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white leading-none">
                         {unreadCount > 9 ? "9+" : unreadCount}
@@ -479,7 +480,7 @@ export default function Sidebar() {
         <button
           onClick={toggle}
           className="cursor-pointer fixed z-50 p-1.5 rounded-md bg-background border border-border shadow-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-          style={{ left: isCollapsed ? "62px" : "252px", top: "20px" }}
+          style={{ left: isCollapsed ? "60px" : "220px", top: "20px", transform: "translateX(-50%)" }}
         >
           {isCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
         </button>
@@ -489,7 +490,7 @@ export default function Sidebar() {
       {isCollapsed && tooltip && !archiveFlyout && !userMenuOpen && (
         <div
           className="fixed z-50 px-2.5 py-1.5 rounded-md bg-popover text-popover-foreground text-xs font-medium shadow-md border border-border pointer-events-none"
-          style={{ left: "78px", top: tooltip.top, transform: "translateY(-50%)" }}
+          style={{ left: "68px", top: tooltip.top, transform: "translateY(-50%)" }}
         >
           {tooltip.label}
         </div>
