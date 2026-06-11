@@ -23,6 +23,7 @@ import {
 import GuaiLoader from "@/components/shared/guai-loader";
 import { supabase } from "@/lib/supabase";
 import { getHistory, type AIJob, type Transaction } from "@/features/history/historyService";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -399,7 +400,8 @@ export default function HistoryPage() {
           </div>
 
           {/* List */}
-          <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-2.5">
+          <ScrollArea className="flex-1 min-h-0">
+          <div className="px-5 py-4 space-y-2.5">
             {loading ? (
               <div className="flex h-full items-center justify-center py-10">
                 <GuaiLoader size="sm" text="Đang tải..." />
@@ -415,6 +417,7 @@ export default function HistoryPage() {
               aiJobs.map((job) => <JobCard key={job.id} job={job} />)
             )}
           </div>
+          </ScrollArea>
 
           {/* Pagination */}
           <div className="flex-shrink-0 px-5 py-3 border-t border-border">
@@ -444,7 +447,8 @@ export default function HistoryPage() {
           </div>
 
           {/* List */}
-          <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-2.5">
+          <ScrollArea className="flex-1 min-h-0">
+          <div className="px-5 py-4 space-y-2.5">
             {transactions.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center py-10 text-center">
                 <DollarSign className="size-9 mb-2 text-muted-foreground/40" />
@@ -480,6 +484,7 @@ export default function HistoryPage() {
               ))
             )}
           </div>
+          </ScrollArea>
         </motion.div>
       </div>
     </div>

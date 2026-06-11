@@ -3,6 +3,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, CheckCircle2, AlertCircle, Coins, Clock, Lightbulb } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export interface ToolGuideInput {
   label: string;
@@ -61,7 +62,8 @@ export function ToolGuideModal({ guide, onClose }: Props) {
                 </button>
               </div>
 
-              <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
+              <ScrollArea className="max-h-[70vh]">
+              <div className="px-6 py-5 space-y-5">
                 {/* Description */}
                 <p className="text-sm text-muted-foreground leading-relaxed">{guide.description}</p>
 
@@ -116,6 +118,7 @@ export function ToolGuideModal({ guide, onClose }: Props) {
                   </div>
                 </div>
               </div>
+              </ScrollArea>
             </div>
           </motion.div>
         </>

@@ -11,6 +11,7 @@ import {
 import GuaiLoader from "@/components/shared/guai-loader";
 import { supabase } from "@/lib/supabase";
 import { syncImage } from "@/features/archive/imageService";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 
 interface UploadingFile {
@@ -244,7 +245,8 @@ export default function UploadPage() {
               </button>
             </div>
 
-            <div className="space-y-3 max-h-96 overflow-y-auto">
+            <ScrollArea className="max-h-96">
+            <div className="space-y-3">
               {uploadFiles.map((item) => (
                 <div
                   key={item.id}
@@ -294,6 +296,7 @@ export default function UploadPage() {
                 </div>
               ))}
             </div>
+            </ScrollArea>
           </motion.div>
         )}
       </div>

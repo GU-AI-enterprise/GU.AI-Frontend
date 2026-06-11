@@ -31,6 +31,7 @@ import {
   Workflow,
 } from "lucide-react";
 import Logo from "@/components/shared/logo";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import SupportChatWidget from "@/components/support/support-chat-widget";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { fetchCredit, selectCreditBalance, setPlanType, selectPlanType } from "@/features/credit/creditSlice";
@@ -203,7 +204,8 @@ export default function Sidebar() {
         </div>
 
         {/* ── Main Nav ── */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+        <ScrollArea className="flex-1 min-h-0">
+        <nav className="px-3 py-4 space-y-6">
           <div className="space-y-1">
             {!isCollapsed && (
               <div className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
@@ -345,6 +347,7 @@ export default function Sidebar() {
 
 
         </nav>
+        </ScrollArea>
 
         {/* ── Credit + Plan ── */}
         {credit !== null && (

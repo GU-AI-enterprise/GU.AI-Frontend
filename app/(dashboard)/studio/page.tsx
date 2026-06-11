@@ -19,6 +19,7 @@ import { ToolContextBar } from "./components/ToolContextBar";
 import { Lightbox } from "@/components/shared/lightbox";
 import { SaveToAlbumModal } from "@/components/shared/save-to-album-modal";
 import { supabase } from "@/lib/supabase";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { getImages } from "@/features/archive/imageService";
 import { AIToolType } from "@/constants/ai";
 import { toast } from "sonner";
@@ -828,7 +829,7 @@ function StudioPageInner() {
                 <X className="size-4" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <ScrollArea className="flex-1 min-h-0">
               {galleryImages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <ImageIcon className="size-10 mb-2 opacity-50" />
@@ -850,7 +851,7 @@ function StudioPageInner() {
                   ))}
                 </div>
               )}
-            </div>
+            </ScrollArea>
           </div>
         </div>,
         document.body

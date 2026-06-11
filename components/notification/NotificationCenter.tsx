@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Bell, CheckCheck, Sparkles, Info, AlertTriangle, X, CreditCard, Wand2, MessageCircle, Settings } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { NotificationStatus, NotificationType } from "@/constants/notification";
@@ -143,7 +144,7 @@ export default function NotificationCenter({ variant = "sidebar", collapsed = fa
           </div>
 
           {/* List */}
-          <div className="max-h-80 overflow-y-auto">
+          <ScrollArea className="max-h-80">
             {loading ? (
               <div className="flex items-center justify-center py-10 text-xs text-muted-foreground">Đang tải…</div>
             ) : items.length === 0 ? (
@@ -178,7 +179,7 @@ export default function NotificationCenter({ variant = "sidebar", collapsed = fa
                 </button>
               ))
             )}
-          </div>
+          </ScrollArea>
         </motion.div>
       )}
     </AnimatePresence>

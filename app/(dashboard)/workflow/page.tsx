@@ -2,10 +2,10 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Sparkles, Upload, X, Loader2, Check,
-  AlertCircle, ImageIcon, Download, FolderHeart, ArrowLeft,
-  Workflow, Zap,
+  Sparkles, Upload, X, Loader2, Check, AlertCircle, ImageIcon,
+  Download, FolderHeart, Workflow, Zap, Send, Plus,
 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { apiClient } from "@/lib/apiFetch";
 import { uploadFile, getImages, type DBAsset } from "@/features/archive/imageService";
 import { useAppSelector } from "@/store/hooks";
@@ -41,9 +41,9 @@ const TOOL_CREDIT: Record<string, number> = {
 };
 
 const IMAGE_SLOTS = [
-  { key: "product_image", label: "Sản phẩm / trang phục", hint: "Áo, quần, váy..." },
+  { key: "product_image", label: "Sản phẩm", hint: "Áo, quần, váy..." },
   { key: "model_image",   label: "Người mẫu", hint: "Ảnh người mặc thử" },
-  { key: "face_image",    label: "Khuôn mặt", hint: "Tham chiếu khuôn mặt" },
+  { key: "face_image",    label: "Khuôn mặt", hint: "Tham chiếu mặt" },
 ];
 
 const EXAMPLE_PROMPTS = [
@@ -53,12 +53,14 @@ const EXAMPLE_PROMPTS = [
   "Đặt sản phẩm lên người mẫu rồi chuyển thành video",
 ];
 
-type PageState = "setup" | "planning" | "plan_ready" | "executing" | "completed" | "failed";
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+type PageState = "idle" | "planning" | "plan_ready" | "executing" | "done";
 
 interface PlanStep {
   tool: string;
   inputs: Record<string, string>;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
   reason?: string;
 }
 
@@ -78,15 +80,22 @@ interface StepData {
   error_message?: string | null;
 }
 
-// ── Gallery Modal — NO portal, renders at page root with position:fixed ────────
+type MessageKind = "user" | "thinking" | "plan" | "executing" | "result" | "error_msg";
 
-function GalleryModal({
-  onSelect,
-  onClose,
-}: {
-  onSelect: (url: string) => void;
-  onClose: () => void;
-}) {
+interface ChatMessage {
+  id: string;
+  kind: MessageKind;
+  text?: string;
+  images?: Array<{ key: string; url: string; label: string }>;
+  plan?: WorkflowPlan;
+  steps?: StepData[];
+  finalUrl?: string | null;
+  error?: string;
+}
+
+// ── Gallery Modal ──────────────────────────────────────────────────────────────
+
+function GalleryModal({ onSelect, onClose }: { onSelect: (url: string) => void; onClose: () => void }) {
   const [galleryImages, setGalleryImages] = useState<DBAsset[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -98,24 +107,16 @@ function GalleryModal({
   }, []);
 
   return (
-    <div
-      className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[70vh] flex flex-col shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[70vh] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-border shrink-0">
           <span className="font-semibold text-sm">Chọn từ thư viện</span>
-          <button
-            onClick={onClose}
-            className="cursor-pointer p-1.5 rounded-lg hover:bg-secondary transition-colors"
-          >
+          <button onClick={onClose} className="cursor-pointer p-1.5 rounded-lg hover:bg-secondary transition-colors">
             <X className="size-4" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-3">
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="p-3">
           {loading ? (
             <div className="flex items-center justify-center h-40">
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -128,42 +129,26 @@ function GalleryModal({
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {galleryImages.map((img) => (
-                <button
-                  key={img.id}
-                  onClick={() => onSelect(img.url)}
-                  className="cursor-pointer aspect-square rounded-xl overflow-hidden border-2 border-transparent hover:border-primary transition-all group"
-                >
-                  <img
-                    src={img.thumbnail_url || img.url}
-                    alt=""
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                  />
+                <button key={img.id} onClick={() => onSelect(img.url)} className="cursor-pointer aspect-square rounded-xl overflow-hidden border-2 border-transparent hover:border-primary transition-all group">
+                  <img src={img.thumbnail_url || img.url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
                 </button>
               ))}
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// ── Image Input Slot — gallery state is owned by parent (WorkflowPage) ────────
+// ── Compact Image Slot (chat input bar) ───────────────────────────────────────
 
-function ImageInputSlot({
-  label,
-  hint,
-  url,
-  onSet,
-  onClear,
-  onOpenGallery,
+function CompactImageSlot({
+  label, url, disabled, onSet, onClear, onOpenGallery,
 }: {
-  label: string;
-  hint: string;
-  url: string | null;
-  onSet: (url: string) => void;
-  onClear: () => void;
-  onOpenGallery: () => void;
+  label: string; url: string | null; disabled: boolean;
+  onSet: (url: string) => void; onClear: () => void; onOpenGallery: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -177,121 +162,290 @@ function ImageInputSlot({
   };
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
-
-      <div className="relative aspect-square rounded-xl border-2 border-dashed border-border bg-secondary/20 hover:border-primary/40 transition-colors">
-
-        {/* Loaded image */}
-        <div className={`absolute inset-0 group transition-opacity duration-150 ${url ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
-          {url && <img src={url} alt={label} className="w-full h-full object-cover rounded-[10px]" />}
-          <button
-            onClick={onClear}
-            className="cursor-pointer absolute top-1.5 right-1.5 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <X className="size-3" />
-          </button>
-        </div>
-
-        {/* Uploading spinner */}
-        <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-150 ${uploading && !url ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-          <Loader2 className="size-5 animate-spin text-muted-foreground" />
-        </div>
-
-        {/* Empty state */}
-        <div className={`absolute inset-0 flex flex-col items-center justify-center gap-1.5 p-2 transition-opacity duration-150 ${!url && !uploading ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
-          <ImageIcon className="size-5 text-muted-foreground/50" />
-          <span className="text-[10px] text-muted-foreground text-center leading-tight">{hint}</span>
-          <div className="flex gap-1 mt-0.5">
+    <div className="shrink-0">
+      {/* Upload slot — always mounted, inline style display để tránh mọi insertBefore */}
+      <div style={{ display: url ? "none" : undefined }}>
+        <div className={`flex flex-col items-center gap-1 ${disabled ? "opacity-40 pointer-events-none" : ""}`}>
+          <div className="flex gap-0.5">
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="cursor-pointer flex items-center gap-1 px-2 py-1 rounded-md bg-secondary text-xs font-medium hover:bg-secondary/80 transition-colors"
+              className="cursor-pointer flex items-center gap-0.5 px-2 py-1 rounded-lg border border-dashed border-border bg-secondary/40 text-[11px] text-muted-foreground hover:border-primary/50 hover:text-foreground transition-all"
             >
-              <Upload className="size-3" />Upload
+              {/* Icon luôn mount — tránh insertBefore khi swap Loader2 ↔ Upload */}
+              <span style={{ display: uploading ? "inline-flex" : "none" }}><Loader2 className="size-3 animate-spin" /></span>
+              <span style={{ display: uploading ? "none" : "inline-flex" }}><Upload className="size-3" /></span>
+              {label}
             </button>
             <button
               type="button"
               onClick={onOpenGallery}
-              className="cursor-pointer flex items-center gap-1 px-2 py-1 rounded-md bg-secondary text-xs font-medium hover:bg-secondary/80 transition-colors"
+              className="cursor-pointer p-1 rounded-lg border border-dashed border-border bg-secondary/40 hover:border-primary/50 transition-all"
+              title="Chọn từ thư viện"
             >
-              <FolderHeart className="size-3" />Thư viện
+              <FolderHeart className="size-3 text-muted-foreground" />
             </button>
           </div>
         </div>
-
-        <input
-          type="file"
-          accept="image/*"
-          ref={fileRef}
-          className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-        />
       </div>
+      {/* Preview slot — always mounted */}
+      <div style={{ display: url ? undefined : "none" }}>
+        <div className="relative group">
+          <img src={url ?? undefined} alt={label} className="size-12 rounded-xl object-cover border-2 border-primary/40" />
+          <span className="absolute bottom-0 left-0 right-0 text-[9px] text-center bg-black/60 text-white rounded-b-[10px] px-0.5 py-0.5 truncate">{label}</span>
+          <button onClick={onClear} style={{ display: disabled ? "none" : undefined }} className="cursor-pointer absolute -top-1.5 -right-1.5 size-4 rounded-full bg-background border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+            <X className="size-2.5" />
+          </button>
+        </div>
+      </div>
+      <input type="file" accept="image/*" ref={fileRef} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }} />
     </div>
   );
 }
 
-// ── Step Row ───────────────────────────────────────────────────────────────────
+// ── Assistant Avatar ───────────────────────────────────────────────────────────
 
-function StepRow({
-  step,
-  index,
-  total,
-  plan,
-}: {
-  step: StepData;
-  index: number;
-  total: number;
-  plan: WorkflowPlan | null;
-}) {
-  const planStep = plan?.steps[index];
-  const credit   = TOOL_CREDIT[step.tool_name] ?? 0;
+function AssistantAvatar() {
+  return (
+    <div className="size-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+      <Sparkles className="size-3.5 text-primary" />
+    </div>
+  );
+}
+
+// ── Mini Step Row (inside chat bubble) ────────────────────────────────────────
+
+function MiniStepRow({ step, index, total }: { step: StepData; index: number; total: number }) {
   const isActive = step.status === "processing";
   const isDone   = step.status === "completed";
   const isFailed = step.status === "failed";
 
   return (
-    <div className={`flex gap-3 items-start transition-opacity duration-300 ${step.status === "pending" ? "opacity-40" : "opacity-100"}`}>
+    <div className={`flex gap-2.5 items-start transition-opacity duration-300 ${step.status === "pending" ? "opacity-40" : "opacity-100"}`}>
       <div className="flex flex-col items-center shrink-0">
-        <div className={`size-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300 ${
+        <div className={`size-5 rounded-full flex items-center justify-center border transition-all duration-300 ${
           isDone   ? "bg-green-500/20 border-green-500 text-green-500" :
           isFailed ? "bg-red-500/20 border-red-500 text-red-500" :
           isActive ? "bg-primary/20 border-primary text-primary" :
                      "bg-secondary border-border text-muted-foreground"
         }`}>
-          {isDone   ? <Check className="size-3.5" /> :
-           isFailed ? <X className="size-3.5" /> :
-           isActive ? <Loader2 className="size-3.5 animate-spin" /> :
-           <span>{index + 1}</span>}
+          {isDone   ? <Check className="size-2.5" /> :
+           isFailed ? <X className="size-2.5" /> :
+           isActive ? <Loader2 className="size-2.5 animate-spin" /> :
+           <span className="text-[9px] font-bold">{index + 1}</span>}
         </div>
-        <div className={`w-0.5 mt-1 rounded-full transition-colors duration-300 ${isDone ? "bg-green-500/40" : "bg-border"}`}
-          style={{ height: index < total - 1 ? "2rem" : "0" }} />
+        {index < total - 1 && (
+          <div className={`w-0.5 h-5 mt-0.5 rounded-full ${isDone ? "bg-green-500/40" : "bg-border"}`} />
+        )}
       </div>
 
-      <div className="flex-1 min-w-0 pb-4">
+      <div className="flex-1 min-w-0 pb-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-medium">{TOOL_LABELS[step.tool_name] ?? step.tool_name}</span>
-          <span className="text-[11px] text-muted-foreground shrink-0">{credit} credits</span>
+          <span className="text-xs font-medium">{TOOL_LABELS[step.tool_name] ?? step.tool_name}</span>
+          <span className="text-[10px] text-muted-foreground shrink-0">{TOOL_CREDIT[step.tool_name] ?? 0} credits</span>
         </div>
-        {planStep?.reason && (
-          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{planStep.reason}</p>
-        )}
         {isFailed && step.error_message && (
-          <p className="text-xs text-red-500 mt-1">{step.error_message}</p>
+          <p className="text-[11px] text-red-500 mt-0.5">{step.error_message}</p>
         )}
         {isDone && step.output_url && (
-          <div className="mt-2">
-            <img
-              src={step.output_url}
-              alt={`Kết quả bước ${index + 1}`}
-              className="max-h-36 rounded-lg border border-border shadow-sm"
-            />
+          <div className="mt-1.5">
+            <img src={step.output_url} alt={`Kết quả bước ${index + 1}`} className="max-h-28 rounded-lg border border-border shadow-sm" />
           </div>
         )}
       </div>
     </div>
   );
+}
+
+// ── Message Bubble ─────────────────────────────────────────────────────────────
+
+function MessageBubble({
+  msg, pageState, onConfirm, onReject,
+}: {
+  msg: ChatMessage;
+  pageState: PageState;
+  onConfirm: () => void;
+  onReject: () => void;
+}) {
+  // User bubble
+  if (msg.kind === "user") {
+    return (
+      <div className="flex justify-end">
+        <div className="max-w-[80%] flex flex-col items-end gap-2">
+          {msg.images && msg.images.length > 0 && (
+            <div className="flex gap-2 flex-wrap justify-end">
+              {msg.images.map(({ key, url, label }) => (
+                <div key={key} className="relative">
+                  <img src={url} alt={label} className="size-16 rounded-xl object-cover border border-border shadow-sm" />
+                  <span className="absolute bottom-0 left-0 right-0 text-[9px] text-center bg-black/60 text-white rounded-b-[10px] px-0.5 py-0.5">{label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {msg.text && (
+            <div className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-4 py-2.5 text-sm leading-relaxed">
+              {msg.text}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Thinking bubble
+  if (msg.kind === "thinking") {
+    return (
+      <div className="flex items-start gap-2">
+        <AssistantAvatar />
+        <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-3.5 animate-spin" />
+          Đang phân tích và lên kế hoạch…
+        </div>
+      </div>
+    );
+  }
+
+  // Plan bubble
+  if (msg.kind === "plan" && msg.plan) {
+    const canAct = pageState === "plan_ready";
+    return (
+      <div className="flex items-start gap-2">
+        <AssistantAvatar />
+        <div className="flex-1 max-w-[90%] bg-card border border-border rounded-2xl rounded-bl-sm overflow-hidden">
+          <div className="px-4 py-3 bg-primary/5 border-b border-border/60">
+            <div className="flex items-center gap-2 mb-0.5">
+              <Sparkles className="size-3.5 text-primary" />
+              <span className="text-sm font-semibold">Kế hoạch AI đề xuất</span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">{msg.plan.goal}</p>
+          </div>
+
+          <div className="p-4">
+            {msg.plan.steps.map((step, i) => (
+              <div key={i} className="flex gap-3 items-start">
+                <div className="flex flex-col items-center shrink-0">
+                  <div className="size-5 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-[10px] font-bold text-primary">
+                    {i + 1}
+                  </div>
+                  {i < msg.plan!.steps.length - 1 && <div className="w-0.5 h-6 mt-1 bg-border rounded-full" />}
+                </div>
+                <div className="flex-1 pb-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium">{TOOL_LABELS[step.tool] ?? step.tool}</span>
+                    <span className="text-[10px] font-semibold text-primary shrink-0">{TOOL_CREDIT[step.tool] ?? 0} credits</span>
+                  </div>
+                  {step.reason && <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{step.reason}</p>}
+                  {step.params?.prompt ? (
+                    <p className="text-[11px] text-muted-foreground/70 mt-0.5 italic">"{String(step.params.prompt)}"</p>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="px-4 pb-4 pt-1 border-t border-border/40">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-muted-foreground">Tổng ước tính</span>
+              <span className="text-sm font-bold">{msg.plan.totalEstimatedCredit} credits</span>
+            </div>
+            {msg.plan.estimatedNote && (
+              <p className="text-[11px] text-muted-foreground mb-3">{msg.plan.estimatedNote}</p>
+            )}
+            {canAct && (
+              <div className="flex gap-2">
+                <button onClick={onReject} className="cursor-pointer flex-1 h-9 rounded-xl border border-border text-xs font-medium hover:bg-secondary transition-colors">
+                  Làm lại
+                </button>
+                <button onClick={onConfirm} className="cursor-pointer flex-[2] h-9 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-all flex items-center justify-center gap-1.5">
+                  <Sparkles className="size-3" />
+                  Xác nhận & Chạy ({msg.plan.totalEstimatedCredit} credits)
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Executing / result bubble
+  if (msg.kind === "executing" || msg.kind === "result") {
+    const isComplete = msg.kind === "result";
+    return (
+      <div className="flex items-start gap-2">
+        <AssistantAvatar />
+        <div className="flex-1 max-w-[90%] bg-card border border-border rounded-2xl rounded-bl-sm overflow-hidden">
+          <div className={`px-4 py-2.5 border-b border-border/60 flex items-center gap-2 ${isComplete ? "bg-green-500/10" : "bg-primary/5"}`}>
+            {isComplete
+              ? <Check className="size-3.5 text-green-500" />
+              : <Loader2 className="size-3.5 animate-spin text-primary" />}
+            <span className="text-xs font-semibold">
+              {isComplete ? "Workflow hoàn thành!" : "Đang xử lý workflow…"}
+            </span>
+          </div>
+
+          <div className="p-4">
+            {(msg.steps ?? []).map((step, i) => (
+              <MiniStepRow key={step.step_index} step={step} index={i} total={(msg.steps ?? []).length} />
+            ))}
+          </div>
+
+          {isComplete && msg.finalUrl && (
+            <div className="px-4 pb-4 space-y-2.5">
+              <div className="rounded-xl overflow-hidden border border-border">
+                {msg.finalUrl.match(/\.(mp4|webm|mov)$/i) ? (
+                  <video src={msg.finalUrl} controls className="w-full max-h-80" />
+                ) : (
+                  <img src={msg.finalUrl} alt="Kết quả cuối" className="w-full" />
+                )}
+              </div>
+              <a
+                href={msg.finalUrl}
+                download
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-1.5 h-9 rounded-xl bg-foreground text-background text-xs font-medium hover:opacity-90 transition-opacity"
+              >
+                <Download className="size-3.5" />Tải về
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Error bubble
+  if (msg.kind === "error_msg") {
+    return (
+      <div className="flex items-start gap-2">
+        <AssistantAvatar />
+        <div className="flex-1 max-w-[90%] bg-card border border-red-500/20 rounded-2xl rounded-bl-sm overflow-hidden">
+          {msg.steps && msg.steps.length > 0 && (
+            <>
+              <div className="px-4 py-2.5 bg-red-500/10 border-b border-border/60 flex items-center gap-2">
+                <AlertCircle className="size-3.5 text-red-500" />
+                <span className="text-xs font-semibold text-red-500">Workflow thất bại</span>
+              </div>
+              <div className="p-4">
+                {msg.steps.map((step, i) => (
+                  <MiniStepRow key={step.step_index} step={step} index={i} total={msg.steps!.length} />
+                ))}
+              </div>
+            </>
+          )}
+          {msg.error && (
+            <div className="flex items-start gap-2 px-4 py-3 text-red-500 text-xs">
+              <AlertCircle className="size-3.5 shrink-0 mt-0.5" />
+              {msg.error}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
@@ -299,21 +453,19 @@ function StepRow({
 export default function WorkflowPage() {
   const credit = useAppSelector(selectCreditBalance);
 
-  const [state, setState]           = useState<PageState>("setup");
-  const [images, setImages]         = useState<Record<string, string | null>>({
+  const [pageState, setPageState] = useState<PageState>("idle");
+  const [messages, setMessages]   = useState<ChatMessage[]>([]);
+  const [images, setImages]       = useState<Record<string, string | null>>({
     product_image: null, model_image: null, face_image: null,
   });
-  const [prompt, setPrompt]         = useState("");
-  const [plan, setPlan]             = useState<WorkflowPlan | null>(null);
-  const [workflowId, setWorkflowId] = useState<string | null>(null);
-  const [steps, setSteps]           = useState<StepData[]>([]);
-  const [finalUrl, setFinalUrl]     = useState<string | null>(null);
-  const [error, setError]           = useState<string | null>(null);
-
-  // Gallery state lives here — GalleryModal is rendered at page root, never inside conditionals
+  const [prompt, setPrompt]       = useState("");
   const [gallerySlot, setGallerySlot] = useState<string | null>(null);
 
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const planRef        = useRef<WorkflowPlan | null>(null);
+  const sentPromptRef  = useRef<string>("");
+  const sentImagesRef  = useRef<Record<string, string>>({});
+  const pollRef        = useRef<ReturnType<typeof setInterval> | null>(null);
+  const bottomRef      = useRef<HTMLDivElement>(null);
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
@@ -321,108 +473,167 @@ export default function WorkflowPage() {
 
   useEffect(() => () => stopPolling(), [stopPolling]);
 
-  const userInputUrls = Object.fromEntries(
-    Object.entries(images).filter(([, url]) => url !== null)
-  ) as Record<string, string>;
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-  // ── Handlers ──────────────────────────────────────────────────────────────────
+  const appendMessage = (msg: Omit<ChatMessage, "id">): string => {
+    const id = crypto.randomUUID();
+    setMessages((prev) => [...prev, { ...msg, id }]);
+    return id;
+  };
 
-  const handleAnalyze = async () => {
-    if (!prompt.trim()) { toast.error("Hãy nhập mô tả yêu cầu trước."); return; }
-    setState("planning");
-    setError(null);
-    setPlan(null);
+  const updateMessage = (id: string, updates: Partial<ChatMessage>) => {
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...updates } : m)));
+  };
+
+  // ── Send ───────────────────────────────────────────────────────────────────
+
+  const handleSend = async () => {
+    if (!prompt.trim() || pageState !== "idle") return;
+
+    const currentPrompt = prompt.trim();
+    const currentImages = Object.fromEntries(
+      Object.entries(images).filter(([, url]) => url !== null)
+    ) as Record<string, string>;
+
+    // Store for execute call later
+    sentPromptRef.current  = currentPrompt;
+    sentImagesRef.current  = currentImages;
+
+    const attachedImages = Object.entries(images)
+      .filter(([, url]) => url !== null)
+      .map(([key, url]) => ({
+        key,
+        url: url!,
+        label: IMAGE_SLOTS.find((s) => s.key === key)?.label ?? key,
+      }));
+
+    appendMessage({ kind: "user", text: currentPrompt, images: attachedImages });
+    setPrompt("");
+    setPageState("planning");
+
+    const thinkId = appendMessage({ kind: "thinking" });
+
     try {
-      const res = await apiClient.post("/api/workflow/plan", { prompt: prompt.trim(), userInputUrls });
+      const res = await apiClient.post("/api/workflow/plan", {
+        prompt: currentPrompt,
+        userInputUrls: currentImages,
+      });
       if (!res.data.success) throw new Error(res.data.error ?? "Lỗi không xác định");
-      setPlan(res.data.data.plan);
-      setState("plan_ready");
-    } catch (err: any) {
-      setError(err.message);
-      setState("setup");
-      toast.error("Không thể lên kế hoạch: " + err.message);
+
+      const plan: WorkflowPlan = res.data.data.plan;
+      planRef.current = plan;
+      updateMessage(thinkId, { kind: "plan", plan });
+      setPageState("plan_ready");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      updateMessage(thinkId, { kind: "error_msg", error: message });
+      setPageState("idle");
+      toast.error("Không thể lên kế hoạch: " + message);
     }
   };
 
-  const handleExecute = async () => {
+  // ── Confirm plan ──────────────────────────────────────────────────────────
+
+  const handleConfirm = async () => {
+    const plan = planRef.current;
     if (!plan) return;
+
     const totalCredit = plan.totalEstimatedCredit;
     if (credit !== null && credit < totalCredit) {
       toast.error(`Không đủ credits. Cần ${totalCredit}, hiện có ${credit}.`);
       return;
     }
-    setError(null);
+
+    appendMessage({ kind: "user", text: `Xác nhận chạy (${totalCredit} credits)` });
+    setPageState("executing");
+
+    const initialSteps: StepData[] = plan.steps.map((s, i) => ({
+      id: String(i),
+      step_index: i,
+      tool_name: s.tool,
+      status: "pending" as const,
+    }));
+    const execId = appendMessage({ kind: "executing", steps: initialSteps });
+
     try {
-      const res = await apiClient.post("/api/workflow/execute", { prompt: prompt.trim(), plan, userInputUrls });
+      const res = await apiClient.post("/api/workflow/execute", {
+        prompt: sentPromptRef.current,
+        plan,
+        userInputUrls: sentImagesRef.current,
+      });
       if (!res.data.success) throw new Error(res.data.error ?? "Lỗi không xác định");
 
-      const id: string = res.data.data.workflowId;
-      const initialSteps: StepData[] = plan.steps.map((s, i) => ({
-        id:         String(i),
-        step_index: i,
-        tool_name:  s.tool,
-        status:     "pending" as const,
-      }));
-
-      // Batch all state updates together before starting poll
-      setWorkflowId(id);
-      setSteps(initialSteps);
-      setState("executing");
+      const workflowId: string = res.data.data.workflowId;
 
       pollRef.current = setInterval(async () => {
         try {
-          const r = await apiClient.get(`/api/workflow/${id}`);
+          const r = await apiClient.get(`/api/workflow/${workflowId}`);
           if (!r.data.success) return;
           const { workflow, steps: stepsData } = r.data.data;
-          setSteps(stepsData);
+
+          updateMessage(execId, { steps: stepsData });
+
           if (workflow.status === "completed") {
             stopPolling();
             const last = [...stepsData].reverse().find((s: StepData) => s.output_url);
-            setFinalUrl(last?.output_url ?? null);
-            setState("completed");
+            updateMessage(execId, { kind: "result", steps: stepsData, finalUrl: last?.output_url ?? null });
+            setPageState("done");
             toast.success("Workflow hoàn thành!");
           } else if (workflow.status === "failed") {
             stopPolling();
-            setError(workflow.error_message ?? "Workflow thất bại");
-            setState("failed");
+            updateMessage(execId, {
+              kind: "error_msg",
+              steps: stepsData,
+              error: workflow.error_message ?? "Workflow thất bại",
+            });
+            setPageState("done");
           }
         } catch { /* ignore transient poll errors */ }
       }, 3000);
-    } catch (err: any) {
-      setError(err.message);
-      toast.error("Không thể chạy workflow: " + err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      updateMessage(execId, { kind: "error_msg", error: message });
+      setPageState("done");
+      toast.error("Không thể chạy workflow: " + message);
     }
   };
 
-  const handleReset = () => {
-    stopPolling();
-    setState("setup");
-    setPlan(null);
-    setWorkflowId(null);
-    setSteps([]);
-    setFinalUrl(null);
-    setError(null);
+  // ── Reject plan ───────────────────────────────────────────────────────────
+
+  const handleReject = () => {
+    planRef.current = null;
+    setPageState("idle");
+    appendMessage({ kind: "user", text: "Làm lại từ đầu" });
   };
+
+  // ── New workflow ──────────────────────────────────────────────────────────
 
   const handleNewWorkflow = () => {
-    handleReset();
+    stopPolling();
+    setMessages([]);
     setImages({ product_image: null, model_image: null, face_image: null });
     setPrompt("");
+    planRef.current = null;
+    setPageState("idle");
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────────
+  const isInputDisabled = pageState !== "idle";
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+    <div className="flex flex-col h-[calc(100vh-64px)] max-w-3xl mx-auto">
 
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <Workflow className="size-5 text-primary" />
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
+        <div className="size-8 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Workflow className="size-4 text-primary" />
         </div>
         <div>
-          <h1 className="text-xl font-bold">AI Workflow</h1>
-          <p className="text-sm text-muted-foreground">Kết hợp nhiều AI tool trong 1 lần chạy</p>
+          <h1 className="text-base font-bold leading-tight">AI Workflow</h1>
+          <p className="text-xs text-muted-foreground">Kết hợp nhiều AI tool trong 1 lần chạy</p>
         </div>
         {credit !== null && (
           <div className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/60 text-sm">
@@ -433,223 +644,112 @@ export default function WorkflowPage() {
         )}
       </div>
 
-      {/* ── SETUP / PLANNING ── */}
-      {(state === "setup" || state === "planning") && (
-        <>
-          <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold">Ảnh đầu vào</span>
-              <span className="text-xs text-muted-foreground">(không bắt buộc — AI suy luận từ prompt)</span>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              {IMAGE_SLOTS.map(({ key, label, hint }) => (
-                <ImageInputSlot
-                  key={key}
-                  label={label}
-                  hint={hint}
-                  url={images[key]}
-                  onSet={(url) => setImages((prev) => ({ ...prev, [key]: url }))}
-                  onClear={() => setImages((prev) => ({ ...prev, [key]: null }))}
-                  onOpenGallery={() => setGallerySlot(key)}
-                />
-              ))}
-            </div>
-          </div>
+      {/* Chat area */}
+      <ScrollArea className="flex-1 min-h-0">
+      <div className="px-4 py-6 space-y-4">
 
-          <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-            <span className="text-sm font-semibold">Mô tả yêu cầu</span>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Ví dụ: Xóa nền ảnh sản phẩm rồi đặt lên người mẫu AI đẹp..."
-              rows={3}
-              className="w-full resize-none rounded-xl border border-border bg-secondary/30 px-3 py-2.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/60 focus:bg-card transition-colors"
-            />
-            <div className="flex flex-wrap gap-2">
+        {/* Welcome / empty state */}
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full gap-5 text-center">
+            <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <Sparkles className="size-7 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold text-base mb-1.5">Chào mừng đến AI Workflow!</p>
+              <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
+                Mô tả yêu cầu của bạn và AI sẽ tự động lên kế hoạch rồi chạy các bước xử lý ảnh.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 w-full max-w-sm">
               {EXAMPLE_PROMPTS.map((ex) => (
                 <button
                   key={ex}
-                  type="button"
                   onClick={() => setPrompt(ex)}
-                  className="cursor-pointer text-[11px] px-2.5 py-1 rounded-full border border-border hover:border-primary/40 hover:bg-primary/5 text-muted-foreground hover:text-foreground transition-all"
+                  className="cursor-pointer text-left text-sm px-4 py-2.5 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 text-muted-foreground hover:text-foreground transition-all"
                 >
-                  {ex.length > 42 ? ex.slice(0, 40) + "…" : ex}
+                  {ex}
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Messages */}
+        {messages.map((msg) => (
+          <MessageBubble
+            key={msg.id}
+            msg={msg}
+            pageState={pageState}
+            onConfirm={handleConfirm}
+            onReject={handleReject}
+          />
+        ))}
+
+        {/* New workflow button */}
+        {pageState === "done" && (
+          <div className="flex justify-center pt-2">
             <button
-              type="button"
-              onClick={handleAnalyze}
-              disabled={!prompt.trim() || state === "planning"}
-              className="cursor-pointer w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-foreground text-background text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              onClick={handleNewWorkflow}
+              className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-secondary transition-colors"
             >
-              {state === "planning"
-                ? <><Loader2 className="size-4 animate-spin" />Đang phân tích…</>
-                : <><Sparkles className="size-4" />Phân tích & lên kế hoạch</>}
+              <Plus className="size-3.5" />Workflow mới
             </button>
           </div>
+        )}
 
-          {error && (
-            <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
-              <AlertCircle className="size-4 shrink-0 mt-0.5" />
-              {error}
-            </div>
-          )}
-        </>
-      )}
+        <div ref={bottomRef} />
+      </div>
+      </ScrollArea>
 
-      {/* ── PLAN READY ── */}
-      {state === "plan_ready" && plan && (
-        <div className="rounded-2xl border border-border bg-card overflow-hidden">
-          <div className="px-5 py-4 border-b border-border/60 bg-primary/5">
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="size-4 text-primary" />
-              <span className="font-semibold text-sm">Kế hoạch AI đề xuất</span>
-            </div>
-            <p className="text-sm text-muted-foreground">{plan.goal}</p>
-          </div>
+      {/* Input area */}
+      <div className="border-t border-border bg-card/80 backdrop-blur-sm px-4 pt-3 pb-4 space-y-2.5 shrink-0">
 
-          <div className="p-5">
-            {plan.steps.map((step, i) => (
-              <div key={i} className="flex gap-3 items-start">
-                <div className="flex flex-col items-center shrink-0">
-                  <div className="size-6 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-[11px] font-bold text-primary">
-                    {i + 1}
-                  </div>
-                  {i < plan.steps.length - 1 && (
-                    <div className="w-0.5 h-8 mt-1 bg-border rounded-full" />
-                  )}
-                </div>
-                <div className="flex-1 pb-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{TOOL_LABELS[step.tool] ?? step.tool}</span>
-                    <span className="text-[11px] font-semibold text-primary">
-                      {TOOL_CREDIT[step.tool] ?? 0} credits
-                    </span>
-                  </div>
-                  {step.reason && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{step.reason}</p>
-                  )}
-                  {step.params?.prompt && (
-                    <p className="text-xs text-muted-foreground/70 mt-0.5 italic">"{step.params.prompt}"</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="px-5 pb-5 pt-1 border-t border-border/40">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-muted-foreground">Tổng ước tính</span>
-              <span className="text-base font-bold">{plan.totalEstimatedCredit} credits</span>
-            </div>
-            {plan.estimatedNote && (
-              <p className="text-xs text-muted-foreground mb-3">{plan.estimatedNote}</p>
-            )}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleReset}
-                className="cursor-pointer flex-1 h-10 rounded-xl border border-border text-sm font-medium hover:bg-secondary transition-colors flex items-center justify-center gap-1.5"
-              >
-                <ArrowLeft className="size-3.5" />Làm lại
-              </button>
-              <button
-                type="button"
-                onClick={handleExecute}
-                className="cursor-pointer flex-[2] h-10 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-all flex items-center justify-center gap-1.5"
-              >
-                <Sparkles className="size-4" />
-                Xác nhận & Chạy ({plan.totalEstimatedCredit} credits)
-              </button>
-            </div>
-          </div>
+        {/* Image attachment row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[11px] text-muted-foreground mr-0.5">Ảnh đính kèm:</span>
+          {IMAGE_SLOTS.map(({ key, label }) => (
+            <CompactImageSlot
+              key={key}
+              label={label}
+              url={images[key]}
+              disabled={isInputDisabled}
+              onSet={(url) => setImages((prev) => ({ ...prev, [key]: url }))}
+              onClear={() => setImages((prev) => ({ ...prev, [key]: null }))}
+              onOpenGallery={() => setGallerySlot(key)}
+            />
+          ))}
         </div>
-      )}
 
-      {/* ── EXECUTING / COMPLETED / FAILED ── */}
-      {(state === "executing" || state === "completed" || state === "failed") && (
-        <div className="rounded-2xl border border-border bg-card overflow-hidden">
-          <div className={`px-5 py-3.5 border-b border-border/60 ${
-            state === "completed" ? "bg-green-500/10" :
-            state === "failed"    ? "bg-red-500/10"   : "bg-primary/5"
-          }`}>
-            <div className="flex items-center gap-2">
-              {state === "executing" && <Loader2 className="size-4 animate-spin text-primary" />}
-              {state === "completed" && <Check className="size-4 text-green-500" />}
-              {state === "failed"    && <AlertCircle className="size-4 text-red-500" />}
-              <span className="font-semibold text-sm">
-                {state === "executing" ? "Đang xử lý workflow…"
-                 : state === "completed" ? "Workflow hoàn thành!"
-                 : "Workflow thất bại"}
-              </span>
-            </div>
-          </div>
-
-          <div className="p-5">
-            {steps.map((step, i) => (
-              <StepRow
-                key={step.step_index}
-                step={step}
-                index={i}
-                total={steps.length}
-                plan={plan}
-              />
-            ))}
-          </div>
-
-          {state === "completed" && finalUrl && (
-            <div className="px-5 pb-5 space-y-3">
-              <div className="rounded-xl overflow-hidden border border-border">
-                {finalUrl.match(/\.(mp4|webm|mov)$/i) ? (
-                  <video src={finalUrl} controls className="w-full max-h-96" />
-                ) : (
-                  <img src={finalUrl} alt="Kết quả cuối" className="w-full" />
-                )}
-              </div>
-              <div className="flex gap-2">
-                <a
-                  href={finalUrl}
-                  download
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
-                >
-                  <Download className="size-4" />Tải về
-                </a>
-                <button
-                  type="button"
-                  onClick={handleNewWorkflow}
-                  className="cursor-pointer flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl border border-border text-sm font-medium hover:bg-secondary transition-colors"
-                >
-                  <Sparkles className="size-3.5" />Workflow mới
-                </button>
-              </div>
-            </div>
-          )}
-
-          {state === "failed" && (
-            <div className="px-5 pb-5 space-y-3">
-              {error && (
-                <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
-                  <AlertCircle className="size-4 shrink-0 mt-0.5" />
-                  {error}
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={handleNewWorkflow}
-                className="cursor-pointer w-full flex items-center justify-center gap-1.5 h-10 rounded-xl border border-border text-sm font-medium hover:bg-secondary transition-colors"
-              >
-                <ArrowLeft className="size-3.5" />Thử lại từ đầu
-              </button>
-            </div>
-          )}
+        {/* Text input + send button */}
+        <div className="flex gap-2 items-end">
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder={isInputDisabled ? "Đang xử lý…" : "Mô tả yêu cầu… (Enter để gửi, Shift+Enter xuống dòng)"}
+            rows={2}
+            disabled={isInputDisabled}
+            className="flex-1 resize-none rounded-xl border border-border bg-secondary/30 px-3.5 py-2.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/60 focus:bg-card transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!prompt.trim() || isInputDisabled}
+            className="cursor-pointer size-10 rounded-xl bg-foreground text-background flex items-center justify-center hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 self-end"
+          >
+            {pageState === "planning"
+              ? <Loader2 className="size-4 animate-spin" />
+              : <Send className="size-4" />}
+          </button>
         </div>
-      )}
+      </div>
 
-      {/* Gallery modal — rendered at page root, outside all conditional sections.
-          No createPortal needed: position:fixed escapes layout flow naturally. */}
+      {/* Gallery modal */}
       {gallerySlot !== null && (
         <GalleryModal
           onSelect={(url) => {

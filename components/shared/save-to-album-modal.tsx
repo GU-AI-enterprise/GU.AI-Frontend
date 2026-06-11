@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FolderHeart, X, Folder, FolderPlus, Check } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { getCollections, addItemToCollection, type Collection } from "@/features/archive/collectionService";
@@ -95,7 +96,8 @@ export function SaveToAlbumModal({ assetId, onClose }: SaveToAlbumModalProps) {
             </Button>
           </div>
         ) : (
-          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+          <ScrollArea className="max-h-72">
+          <div className="space-y-2 pr-1">
             {collections.map((col) => (
               <button
                 key={col.id}
@@ -123,6 +125,7 @@ export function SaveToAlbumModal({ assetId, onClose }: SaveToAlbumModalProps) {
               </button>
             ))}
           </div>
+          </ScrollArea>
         )}
 
         {collections.length > 0 && (
