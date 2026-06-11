@@ -46,6 +46,26 @@ const IMAGE_SLOTS = [
   { key: "face_image",    label: "Khuôn mặt", hint: "Tham chiếu mặt" },
 ];
 
+const INPUT_KEY_LABELS: Record<string, string> = {
+  image:            "Ảnh",
+  garment_image:    "Trang phục",
+  model_image:      "Người mẫu",
+  face_image:       "Khuôn mặt",
+  product_image:    "Sản phẩm",
+  background_image: "Nền",
+  target_image:     "Ảnh đích",
+  source_image:     "Ảnh nguồn",
+};
+
+function formatInputVal(val: string): string {
+  if (val === "$product_image") return "ảnh sản phẩm";
+  if (val === "$model_image")   return "ảnh người mẫu";
+  if (val === "$face_image")    return "ảnh khuôn mặt";
+  const m = val.match(/^\$step_(\d+)_output$/);
+  if (m) return `kết quả bước ${parseInt(m[1]) + 1}`;
+  return val;
+}
+
 const EXAMPLE_PROMPTS = [
   "Xóa nền ảnh sản phẩm rồi đặt lên người mẫu AI",
   "Tạo người mẫu từ khuôn mặt rồi mặc thử trang phục",
@@ -267,6 +287,7 @@ function MessageBubble({
   onConfirm: () => void;
   onReject: () => void;
 }) {
+  const [showJson, setShowJson] = React.useState(false);
   // User bubble
   if (msg.kind === "user") {
     return (
@@ -338,9 +359,38 @@ function MessageBubble({
                   {step.params?.prompt ? (
                     <p className="text-[11px] text-muted-foreground/70 mt-0.5 italic">"{String(step.params.prompt)}"</p>
                   ) : null}
+                  {Object.keys(step.inputs ?? {}).length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {Object.entries(step.inputs).map(([k, v]) => (
+                        <span key={k} className="inline-flex items-center gap-1 text-[10px] bg-secondary/60 border border-border/60 px-1.5 py-0.5 rounded-md text-muted-foreground">
+                          <span className="text-foreground/70">{INPUT_KEY_LABELS[k] ?? k}</span>
+                          <span className="text-border">→</span>
+                          {formatInputVal(v)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Raw JSON toggle */}
+          <div className="border-t border-border/40">
+            <button
+              onClick={() => setShowJson((v) => !v)}
+              className="cursor-pointer w-full flex items-center justify-between px-4 py-2 text-[11px] text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors"
+            >
+              <span>Raw JSON</span>
+              <span className="font-mono text-[10px]">{showJson ? "▲" : "▼"}</span>
+            </button>
+            {showJson && (
+              <div className="px-4 pb-3">
+                <pre className="text-[10px] leading-relaxed bg-secondary/40 border border-border/60 rounded-xl p-3 overflow-x-auto text-muted-foreground whitespace-pre-wrap break-all">
+                  {JSON.stringify(msg.plan, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
 
           <div className="px-4 pb-4 pt-1 border-t border-border/40">
