@@ -29,6 +29,7 @@ import {
   type TryOnCategory,
 } from "@/features/studio/studioService";
 import { useAIJob } from "@/hooks/useAIJob";
+import { useFashnToolCredits } from "@/hooks/useFashnTools";
 import {
   setActiveJob as reduxSetActiveJob,
   clearActiveJob,
@@ -61,6 +62,7 @@ function StudioPageInner() {
   const searchParams  = useSearchParams();
   const dispatch      = useAppDispatch();
   const creditBalance = useAppSelector(selectCreditBalance);
+  const dbCredits     = useFashnToolCredits();
   const [authLoading, setAuthLoading] = useState(true);
 
   // Derive selectedTool from ?tool= search param
@@ -536,7 +538,7 @@ function StudioPageInner() {
     ? computeVariableCost(msGenMode, msRes, 1, !!msFaceRef)
     : isFaceToModel
     ? computeVariableCost(f2mGenMode, f2mRes, f2mNumImages, false)
-    : (toolData?.credit ?? 0);
+    : (dbCredits[selectedTool] ?? toolData?.credit ?? 0);
 
   const canRun = effectiveIsProcessing ? false
     : isTryOn ? (!!toModelImage && !!toGarment)
@@ -800,6 +802,7 @@ function StudioPageInner() {
             onReframeGenModeChange={setReframeGenMode} onReframeNumImagesChange={setReframeNumImages}
             onReframeSeedChange={setReframeSeed}
             upscaleScale={upscaleScale} onUpscaleScaleChange={setUpscaleScale}
+            removeBgCredit={dbCredits[AIToolType.REMOVE_BG]}
           />
         </div>
       </div>

@@ -38,6 +38,7 @@ export default function WorkflowPage() {
 
   const [history, setHistory]               = useState<WorkflowHistory[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [toolMeta, setToolMeta]             = useState<Record<string, { label: string; credit: number }>>({});
 
   const planRef       = useRef<WorkflowPlan | null>(null);
   const sentImagesRef = useRef<Record<string, string>>({});
@@ -63,6 +64,17 @@ export default function WorkflowPage() {
   }, []);
 
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
+
+  useEffect(() => {
+    apiClient.get("/api/workflow/tools").then((res) => {
+      if (!res.data.success) return;
+      const map: Record<string, { label: string; credit: number }> = {};
+      for (const t of res.data.data) {
+        if (t.tool_key) map[t.tool_key] = { label: t.display_name, credit: t.base_credit };
+      }
+      setToolMeta(map);
+    }).catch(() => { /* fall back to static constants */ });
+  }, []);
 
   const appendMessage = (msg: Omit<ChatMessage, "id">): string => {
     const id = crypto.randomUUID();
@@ -349,6 +361,7 @@ export default function WorkflowPage() {
                     pageState={pageState}
                     onConfirm={handleConfirm}
                     onReject={handleReject}
+                    toolMeta={toolMeta}
                   />
                 ))}
                 <div ref={bottomRef} />

@@ -277,6 +277,9 @@ export interface ToolContextBarProps {
   // Upscale
   upscaleScale: number;
   onUpscaleScaleChange: (v: number) => void;
+
+  // DB-driven credit overrides
+  removeBgCredit?: number;
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -304,6 +307,7 @@ export function ToolContextBar({
   reframeAspect, reframeRes, reframeGenMode, reframeNumImages, reframeSeed,
   onReframeAspectChange, onReframeResChange, onReframeGenModeChange, onReframeNumImagesChange, onReframeSeedChange,
   upscaleScale, onUpscaleScaleChange,
+  removeBgCredit,
 }: ToolContextBarProps) {
 
   // ── Try-On ─────────────────────────────────────────────────────────────────
@@ -560,7 +564,7 @@ export function ToolContextBar({
       <div className="px-4 pt-3 pb-3 flex flex-col">
         <div className="min-h-[40px] flex items-center mb-2">
           <p className="text-[11px] text-muted-foreground/40 italic">
-            AI tự động phát hiện foreground và xóa nền — xuất file PNG trong suốt · 1 credit / ảnh
+            AI tự động phát hiện foreground và xóa nền — xuất file PNG trong suốt · {removeBgCredit ?? 1} credit / ảnh
           </p>
         </div>
         <BottomRow

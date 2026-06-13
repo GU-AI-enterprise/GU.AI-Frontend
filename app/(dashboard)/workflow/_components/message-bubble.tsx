@@ -31,7 +31,11 @@ export function StatusBadge({ status }: { status: string }) {
 
 // ── Mini Step Row ──────────────────────────────────────────────────────────────
 
-function MiniStepRow({ step, index, total }: { step: StepData; index: number; total: number }) {
+function MiniStepRow({ step, index, total, toolLabel, toolCredit }: {
+  step: StepData; index: number; total: number;
+  toolLabel: (k: string) => string;
+  toolCredit: (k: string) => number;
+}) {
   const isActive = step.status === "processing";
   const isDone   = step.status === "completed";
   const isFailed = step.status === "failed";
@@ -56,8 +60,8 @@ function MiniStepRow({ step, index, total }: { step: StepData; index: number; to
       </div>
       <div className="flex-1 min-w-0 pb-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium">{TOOL_LABELS[step.tool_name] ?? step.tool_name}</span>
-          <span className="text-[10px] text-muted-foreground shrink-0">{TOOL_CREDIT[step.tool_name] ?? 0} credits</span>
+          <span className="text-xs font-medium">{toolLabel(step.tool_name)}</span>
+          <span className="text-[10px] text-muted-foreground shrink-0">{toolCredit(step.tool_name)} credits</span>
         </div>
         {isFailed && step.error_message && (
           <p className="text-[11px] text-red-500 mt-0.5">{step.error_message}</p>
@@ -74,14 +78,19 @@ function MiniStepRow({ step, index, total }: { step: StepData; index: number; to
 
 // ── Message Bubble ─────────────────────────────────────────────────────────────
 
+interface ToolMetaEntry { label: string; credit: number }
+
 interface Props {
   msg: ChatMessage;
   pageState: PageState;
   onConfirm: () => void;
   onReject: () => void;
+  toolMeta?: Record<string, ToolMetaEntry>;
 }
 
-export function MessageBubble({ msg, pageState, onConfirm, onReject }: Props) {
+export function MessageBubble({ msg, pageState, onConfirm, onReject, toolMeta }: Props) {
+  const toolLabel = (key: string) => toolMeta?.[key]?.label ?? TOOL_LABELS[key] ?? key;
+  const toolCredit = (key: string) => toolMeta?.[key]?.credit ?? TOOL_CREDIT[key] ?? 0;
   const [showJson, setShowJson] = React.useState(false);
 
   if (msg.kind === "user") {
@@ -160,8 +169,8 @@ export function MessageBubble({ msg, pageState, onConfirm, onReject }: Props) {
                 </div>
                 <div className="flex-1 pb-3">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-medium">{TOOL_LABELS[step.tool] ?? step.tool}</span>
-                    <span className="text-[10px] font-semibold text-primary shrink-0">{TOOL_CREDIT[step.tool] ?? 0} credits</span>
+                    <span className="text-xs font-medium">{toolLabel(step.tool)}</span>
+                    <span className="text-[10px] font-semibold text-primary shrink-0">{toolCredit(step.tool)} credits</span>
                   </div>
                   {step.reason && <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{step.reason}</p>}
                   {step.params?.prompt != null && (
@@ -248,7 +257,7 @@ export function MessageBubble({ msg, pageState, onConfirm, onReject }: Props) {
           </div>
           <div className="p-4">
             {(msg.steps ?? []).map((step, i) => (
-              <MiniStepRow key={step.step_index} step={step} index={i} total={(msg.steps ?? []).length} />
+              <MiniStepRow key={step.step_index} step={step} index={i} total={(msg.steps ?? []).length} toolLabel={toolLabel} toolCredit={toolCredit} />
             ))}
           </div>
           {isComplete && msg.finalUrl && (
@@ -289,7 +298,7 @@ export function MessageBubble({ msg, pageState, onConfirm, onReject }: Props) {
               </div>
               <div className="p-4">
                 {msg.steps.map((step, i) => (
-                  <MiniStepRow key={step.step_index} step={step} index={i} total={msg.steps!.length} />
+                  <MiniStepRow key={step.step_index} step={step} index={i} total={msg.steps!.length} toolLabel={toolLabel} toolCredit={toolCredit} />
                 ))}
               </div>
             </>
