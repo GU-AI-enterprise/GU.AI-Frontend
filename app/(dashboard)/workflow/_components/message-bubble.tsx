@@ -110,6 +110,17 @@ export function MessageBubble({ msg, pageState, onConfirm, onReject }: Props) {
     );
   }
 
+  if (msg.kind === "assistant") {
+    return (
+      <div className="flex items-start gap-2">
+        <AssistantAvatar />
+        <div className="max-w-[85%] bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3">
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+        </div>
+      </div>
+    );
+  }
+
   if (msg.kind === "thinking") {
     return (
       <div className="flex items-start gap-2">

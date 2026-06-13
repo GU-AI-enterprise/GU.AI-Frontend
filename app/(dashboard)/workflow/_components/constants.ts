@@ -1,3 +1,33 @@
+import type { ReasoningModelId } from "./types";
+
+export const REASONING_MODELS: Array<{
+  id: ReasoningModelId;
+  label: string;
+  badge: string;
+  description: string;
+}> = [
+  {
+    id: "gemini-2.5-flash",
+    label: "2.5 Flash",
+    badge: "Nhanh",
+    description: "Phân tích nhanh · Tiết kiệm",
+  },
+  {
+    id: "gemini-2.5-pro",
+    label: "2.5 Pro",
+    badge: "Tốt nhất",
+    description: "Suy luận sâu · Chính xác cao",
+  },
+  {
+    id: "gemini-2.0-flash",
+    label: "2.0 Flash",
+    badge: "Ổn định",
+    description: "Tốc độ cao · Ổn định",
+  },
+];
+
+export const DEFAULT_REASONING_MODEL: ReasoningModelId = "gemini-2.5-flash";
+
 export const TOOL_LABELS: Record<string, string> = {
   remove_background: "Xóa nền",
   product_to_model:  "Tạo người mẫu",

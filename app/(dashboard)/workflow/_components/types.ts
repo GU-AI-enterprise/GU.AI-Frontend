@@ -1,5 +1,7 @@
 export type PageState = "idle" | "planning" | "plan_ready" | "executing" | "done";
 
+export type ReasoningModelId = "gemini-2.5-flash" | "gemini-2.5-pro" | "gemini-2.0-flash";
+
 export interface PlanStep {
   tool: string;
   inputs: Record<string, string>;
@@ -23,7 +25,12 @@ export interface StepData {
   error_message?: string | null;
 }
 
-export type MessageKind = "user" | "thinking" | "plan" | "executing" | "result" | "error_msg";
+export type MessageKind = "user" | "thinking" | "assistant" | "plan" | "executing" | "result" | "error_msg";
+
+export interface ConversationTurn {
+  role: "user" | "assistant";
+  text: string;
+}
 
 export interface ChatMessage {
   id: string;

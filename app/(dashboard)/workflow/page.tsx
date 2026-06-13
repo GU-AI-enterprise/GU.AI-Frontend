@@ -10,11 +10,12 @@ import { toast } from "sonner";
 import { GalleryModal }  from "./_components/gallery-modal";
 import { CompactImageSlot } from "./_components/image-slot";
 import { MessageBubble } from "./_components/message-bubble";
-import { InputBar }      from "./_components/input-bar";
+import { InputBar, ModelPicker } from "./_components/input-bar";
 import { HistoryPanel }  from "./_components/history-panel";
-import { IMAGE_SLOTS, EXAMPLE_PROMPTS } from "./_components/constants";
+import { IMAGE_SLOTS, EXAMPLE_PROMPTS, DEFAULT_REASONING_MODEL } from "./_components/constants";
 import type {
   PageState, ChatMessage, WorkflowPlan, StepData, WorkflowHistory,
+  ReasoningModelId, ConversationTurn,
 } from "./_components/types";
 
 export default function WorkflowPage() {
@@ -33,12 +34,12 @@ export default function WorkflowPage() {
   });
   const [prompt, setPrompt]           = useState("");
   const [gallerySlot, setGallerySlot] = useState<string | null>(null);
+  const [model, setModel]             = useState<ReasoningModelId>(DEFAULT_REASONING_MODEL);
 
   const [history, setHistory]               = useState<WorkflowHistory[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
 
   const planRef       = useRef<WorkflowPlan | null>(null);
-  const sentPromptRef = useRef<string>("");
   const sentImagesRef = useRef<Record<string, string>>({});
   const pollRef       = useRef<ReturnType<typeof setInterval> | null>(null);
   const bottomRef     = useRef<HTMLDivElement>(null);
@@ -73,7 +74,24 @@ export default function WorkflowPage() {
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...updates } : m)));
   };
 
-  // ── Send / Plan ────────────────────────────────────────────────────────────
+  // ── Build conversation history for Gemini ─────────────────────────────────
+
+  const buildHistory = (msgs: ChatMessage[]): ConversationTurn[] => {
+    const turns: ConversationTurn[] = [];
+    for (const m of msgs) {
+      if (m.kind === "user" && m.text) {
+        turns.push({ role: "user", text: m.text });
+      } else if (m.kind === "assistant" && m.text) {
+        turns.push({ role: "assistant", text: m.text });
+      } else if (m.kind === "plan" && m.plan) {
+        // Represent the plan as an assistant turn so Gemini has context
+        turns.push({ role: "assistant", text: `Tôi đã lên kế hoạch: ${m.plan.goal}` });
+      }
+    }
+    return turns;
+  };
+
+  // ── Send ───────────────────────────────────────────────────────────────────
 
   const handleSend = async () => {
     if (!prompt.trim() || pageState !== "idle") return;
@@ -83,7 +101,6 @@ export default function WorkflowPage() {
       Object.entries(images).filter(([, url]) => url !== null),
     ) as Record<string, string>;
 
-    sentPromptRef.current = currentPrompt;
     sentImagesRef.current = currentImages;
 
     const attachedImages = Object.entries(images)
@@ -93,6 +110,9 @@ export default function WorkflowPage() {
         label: IMAGE_SLOTS.find((s) => s.key === key)?.label ?? key,
       }));
 
+    // Snapshot history before appending the new user message
+    const history = buildHistory(messages);
+
     appendMessage({ kind: "user", text: currentPrompt, images: attachedImages });
     setPrompt("");
     setPageState("planning");
@@ -100,21 +120,40 @@ export default function WorkflowPage() {
     const thinkId = appendMessage({ kind: "thinking" });
 
     try {
-      const res = await apiClient.post("/api/workflow/plan", {
-        prompt: currentPrompt,
+      const res = await apiClient.post("/api/workflow/chat", {
+        message: currentPrompt,
         userInputUrls: currentImages,
+        model,
+        history,
       });
       if (!res.data.success) throw new Error(res.data.error ?? "Lỗi không xác định");
 
-      const plan: WorkflowPlan = res.data.data.plan;
-      planRef.current = plan;
-      updateMessage(thinkId, { kind: "plan", plan });
-      setPageState("plan_ready");
+      const { message: aiMessage, plan } = res.data.data as {
+        message: string;
+        plan: WorkflowPlan | null;
+      };
+
+      if (plan) {
+        // AI produced a plan — show assistant message (if any) then plan bubble
+        if (aiMessage) {
+          updateMessage(thinkId, { kind: "assistant", text: aiMessage });
+          planRef.current = plan;
+          appendMessage({ kind: "plan", plan });
+        } else {
+          updateMessage(thinkId, { kind: "plan", plan });
+          planRef.current = plan;
+        }
+        setPageState("plan_ready");
+      } else {
+        // Pure conversation — show assistant reply, go back to idle
+        updateMessage(thinkId, { kind: "assistant", text: aiMessage || "…" });
+        setPageState("idle");
+      }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      updateMessage(thinkId, { kind: "error_msg", error: message });
+      const errMsg = err instanceof Error ? err.message : String(err);
+      updateMessage(thinkId, { kind: "error_msg", error: errMsg });
       setPageState("idle");
-      toast.error("Không thể lên kế hoạch: " + message);
+      toast.error("Lỗi: " + errMsg);
     }
   };
 
@@ -140,7 +179,7 @@ export default function WorkflowPage() {
 
     try {
       const res = await apiClient.post("/api/workflow/execute", {
-        prompt: sentPromptRef.current,
+        prompt: plan.goal,
         plan,
         userInputUrls: sentImagesRef.current,
       });
@@ -219,19 +258,22 @@ export default function WorkflowPage() {
 
               {/* Input card */}
               <div className="rounded-2xl border border-border bg-card shadow-sm p-4 mb-5">
-                <div className="flex items-center gap-2 flex-wrap mb-3">
-                  <span className="text-[11px] text-muted-foreground">Ảnh đính kèm:</span>
-                  {IMAGE_SLOTS.map(({ key, label }) => (
-                    <CompactImageSlot
-                      key={key}
-                      label={label}
-                      url={images[key]}
-                      disabled={false}
-                      onSet={(url) => setImages((prev) => ({ ...prev, [key]: url }))}
-                      onClear={() => setImages((prev) => ({ ...prev, [key]: null }))}
-                      onOpenGallery={() => setGallerySlot(key)}
-                    />
-                  ))}
+                <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] text-muted-foreground">Ảnh đính kèm:</span>
+                    {IMAGE_SLOTS.map(({ key, label }) => (
+                      <CompactImageSlot
+                        key={key}
+                        label={label}
+                        url={images[key]}
+                        disabled={false}
+                        onSet={(url) => setImages((prev) => ({ ...prev, [key]: url }))}
+                        onClear={() => setImages((prev) => ({ ...prev, [key]: null }))}
+                        onOpenGallery={() => setGallerySlot(key)}
+                      />
+                    ))}
+                  </div>
+                  <ModelPicker value={model} onChange={setModel} disabled={false} />
                 </div>
                 <div className="flex gap-2 items-end">
                   <textarea
@@ -320,6 +362,8 @@ export default function WorkflowPage() {
               setImages={setImages}
               isInputDisabled={isInputDisabled}
               pageState={pageState}
+              model={model}
+              setModel={setModel}
               onSend={handleSend}
               onOpenGallery={(key) => setGallerySlot(key)}
             />
