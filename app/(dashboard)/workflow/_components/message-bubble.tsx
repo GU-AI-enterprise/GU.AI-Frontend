@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Sparkles, Check, X, Loader2, AlertCircle, Download,
 } from "lucide-react";
+import { Lightbox } from "@/components/shared/lightbox";
 import { TOOL_LABELS, TOOL_CREDIT, INPUT_KEY_LABELS, formatInputVal } from "./constants";
 import type { ChatMessage, PageState, StepData } from "./types";
 
@@ -91,7 +92,8 @@ interface Props {
 export function MessageBubble({ msg, pageState, onConfirm, onReject, toolMeta }: Props) {
   const toolLabel = (key: string) => toolMeta?.[key]?.label ?? TOOL_LABELS[key] ?? key;
   const toolCredit = (key: string) => toolMeta?.[key]?.credit ?? TOOL_CREDIT[key] ?? 0;
-  const [showJson, setShowJson] = React.useState(false);
+  const [showJson, setShowJson] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   if (msg.kind === "user") {
     return (
@@ -262,11 +264,16 @@ export function MessageBubble({ msg, pageState, onConfirm, onReject, toolMeta }:
           </div>
           {isComplete && msg.finalUrl && (
             <div className="px-4 pb-4 space-y-2.5">
-              <div className="rounded-xl overflow-hidden border border-border">
+              <div className="rounded-xl overflow-hidden border border-border bg-muted/20">
                 {msg.finalUrl.match(/\.(mp4|webm|mov)$/i) ? (
-                  <video src={msg.finalUrl} controls className="w-full max-h-80" />
+                  <video src={msg.finalUrl} controls className="w-full max-h-56" />
                 ) : (
-                  <img src={msg.finalUrl} alt="Kết quả cuối" className="w-full" />
+                  <img
+                    src={msg.finalUrl}
+                    alt="Kết quả cuối"
+                    className="w-full max-h-56 object-contain cursor-zoom-in"
+                    onClick={() => setLightboxUrl(msg.finalUrl!)}
+                  />
                 )}
               </div>
               <a
@@ -280,6 +287,7 @@ export function MessageBubble({ msg, pageState, onConfirm, onReject, toolMeta }:
               </a>
             </div>
           )}
+          <Lightbox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />
         </div>
       </div>
     );

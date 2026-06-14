@@ -13,7 +13,7 @@ interface Props {
 export function HistoryPanel({ history, loading }: Props) {
   return (
     <div className="w-[272px] shrink-0 border-l border-border flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3.5 border-b border-border shrink-0">
+      <div className="flex items-center justify-between px-4 h-12 border-b border-border shrink-0">
         <div className="flex items-center gap-2">
           <Clock className="size-3.5 text-muted-foreground" />
           <span className="text-sm font-semibold">Lịch sử</span>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Sparkles, Zap, Send, Plus, Workflow } from "lucide-react";
+import { Sparkles, Zap, Send, Plus, Workflow, GitBranch, GitCommit, GitMerge, GitGraph, GitFork, BotMessageSquare } from "lucide-react";
 import { apiClient } from "@/lib/apiFetch";
 import { useAppSelector } from "@/store/hooks";
 import { selectCreditBalance } from "@/features/credit/creditSlice";
@@ -210,13 +210,13 @@ export default function WorkflowPage() {
             stopPolling();
             const last = [...stepsData].reverse().find((s: StepData) => s.output_url);
             updateMessage(execId, { kind: "result", steps: stepsData, finalUrl: last?.output_url ?? null });
-            setPageState("done");
+            setPageState("idle");
             fetchHistory();
             toast.success("Workflow hoàn thành!");
           } else if (workflow.status === "failed") {
             stopPolling();
             updateMessage(execId, { kind: "error_msg", steps: stepsData, error: workflow.error_message ?? "Workflow thất bại" });
-            setPageState("done");
+            setPageState("idle");
             fetchHistory();
           }
         } catch { /* ignore transient poll errors */ }
@@ -224,7 +224,7 @@ export default function WorkflowPage() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       updateMessage(execId, { kind: "error_msg", error: message });
-      setPageState("done");
+      setPageState("idle");
       toast.error("Không thể chạy workflow: " + message);
     }
   };
@@ -331,10 +331,10 @@ export default function WorkflowPage() {
         ) : (
           /* Active chat state */
           <>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+            <div className="flex items-center justify-between px-4 h-12 border-b border-border shrink-0">
               <div className="flex items-center gap-2">
-                <Workflow className="size-4 text-primary" />
-                <span className="text-sm font-semibold">AI Workflow</span>
+                <BotMessageSquare className="size-4 text-primary" />
+                <span className="text-sm font-semibold">Trợ lý ảo</span>
                 {credit !== null && (
                   <span className="flex items-center gap-1 text-xs text-muted-foreground ml-2">
                     <Zap className="size-3 text-primary" />
@@ -342,7 +342,7 @@ export default function WorkflowPage() {
                   </span>
                 )}
               </div>
-              {pageState === "done" && (
+              {messages.length > 0 && (
                 <button
                   onClick={handleNewWorkflow}
                   className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border text-xs font-medium hover:bg-secondary transition-colors"

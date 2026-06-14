@@ -30,6 +30,7 @@ import {
   Layers,
   Workflow,
   GitCompare,
+  BotMessageSquare,
 } from "lucide-react";
 import Logo from "@/components/shared/logo";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -44,7 +45,7 @@ import { useSidebar } from "@/contexts/SidebarContext";
 const mainNav = [
   { href: "/dashboard", label: "Tổng quan", Icon: LayoutDashboard, iconSrc: null },
   { href: "/studio", label: "Studio", Icon: null, iconSrc: "/icons/logo_only.png" },
-  { href: "/workflow", label: "Workflow AI", Icon: GitCompare, iconSrc: null },
+  { href: "/workflow", label: "Trợ lý ảo", Icon: BotMessageSquare, iconSrc: null },
   { href: "/library", label: "Thư viện", Icon: BookOpen, iconSrc: null },
 ];
 

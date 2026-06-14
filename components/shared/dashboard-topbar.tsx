@@ -6,18 +6,19 @@ import NotificationCenter from "@/components/notification/NotificationCenter";
 import { useSidebar } from "@/contexts/SidebarContext";
 
 const ROUTE_MAP: Record<string, [string, string]> = {
-  "/dashboard":                 ["Studio", "Tổng quan"],
-  "/studio":               ["Studio", "AI Studio"],
-  "/archive/gallery":      ["Kho lưu trữ", "Tất cả ảnh"],
-  "/archive/models":       ["Kho lưu trữ", "Người mẫu"],
-  "/archive/collections":  ["Kho lưu trữ", "Bộ sưu tập"],
-  "/archive/upload":       ["Kho lưu trữ", "Upload hàng loạt"],
-  "/archive/trash":        ["Kho lưu trữ", "Archive"],
-  "/history":              ["Studio", "Lịch sử tác vụ"],
-  "/profile":              ["Tài khoản", "Hồ sơ"],
-  "/profile/edit":         ["Tài khoản", "Chỉnh sửa hồ sơ"],
-  "/profile/password":     ["Tài khoản", "Đổi mật khẩu"],
-  "/settings":             ["Tài khoản", "Cài đặt"],
+  "/dashboard": ["Studio", "Tổng quan"],
+  "/studio": ["Studio", "AI Studio"],
+  "/archive/gallery": ["Kho lưu trữ", "Tất cả ảnh"],
+  "/archive/models": ["Kho lưu trữ", "Người mẫu"],
+  "/archive/collections": ["Kho lưu trữ", "Bộ sưu tập"],
+  "/archive/upload": ["Kho lưu trữ", "Upload hàng loạt"],
+  "/archive/trash": ["Kho lưu trữ", "Archive"],
+  "/history": ["Studio", "Lịch sử tác vụ"],
+  "/profile": ["Tài khoản", "Hồ sơ"],
+  "/profile/edit": ["Tài khoản", "Chỉnh sửa hồ sơ"],
+  "/profile/password": ["Tài khoản", "Đổi mật khẩu"],
+  "/settings": ["Tài khoản", "Cài đặt"],
+  "/workflow": ["Studio", "Trợ lý ảo"],
 };
 
 function getRoute(pathname: string): [string, string] {
