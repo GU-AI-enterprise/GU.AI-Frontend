@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
-import { io, Socket } from "socket.io-client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
@@ -19,8 +18,7 @@ import {
   type AppNotification,
 } from "@/features/notification/notificationService";
 import { NotificationStatus } from "@/constants/notification";
-
-const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/api$/, "");
+import { useSocket } from "@/contexts/SocketContext";
 
 export interface AIJobUpdatePayload {
   jobId: string;
@@ -40,9 +38,7 @@ interface NotificationContextValue {
   loadItems: () => Promise<void>;
   markRead: (id: string) => Promise<void>;
   markAllRead: () => Promise<void>;
-  /** Subscribe to Socket.IO `ai_job_update` events for a specific jobId. */
   subscribeAIJob: (jobId: string, cb: AIJobCallback) => void;
-  /** Unsubscribe a previously registered AI job callback. */
   unsubscribeAIJob: (jobId: string) => void;
 }
 
@@ -59,14 +55,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const router = useRouter();
   const { session } = useAppSelector((s) => s.auth);
   const token = session?.access_token;
+  const socket = useSocket();
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [items, setItems] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(false);
-  const socketRef  = useRef<Socket | null>(null);
-  const audioRef   = useRef<HTMLAudioElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const aiJobCallbacksRef = useRef<Map<string, AIJobCallback>>(new Map());
 
-  const playSound = () => {
+  const playSound = useCallback(() => {
     try {
       if (!audioRef.current) {
         audioRef.current = new Audio("/sounds/notification.mp3");
@@ -75,28 +72,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(() => {});
     } catch {}
-  };
+  }, []);
 
-  // Map of jobId → callback for AI job subscriptions
-  const aiJobCallbacksRef = useRef<Map<string, AIJobCallback>>(new Map());
-
-  // Single socket connection for the entire dashboard
+  // Attach/detach event handlers on the shared socket
   useEffect(() => {
-    if (!token) return;
-    const socket = io(SOCKET_URL, {
-      auth: { token },
-      transports: ["websocket", "polling"],
-      reconnection: true,
-    });
-    socketRef.current = socket;
+    if (!socket) return;
 
-    socket.on("notification", (payload: any) => {
-      // Credit sync — dispatched exactly once per notification
+    const onNotification = (payload: any) => {
       if (typeof payload.data?.newBalance === "number") {
         dispatch(setBalance(payload.data.newBalance));
       }
       setUnreadCount((n) => n + 1);
-      // Use domain category (payment/ai_job/…) from data; fall back to socket alert type
       const category = payload.data?.category ?? payload.type;
       setItems((prev) => [
         {
@@ -111,14 +97,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         } as AppNotification,
         ...prev,
       ]);
-    });
+    };
 
-    // AI job completion/failure events
-    socket.on("ai_job_update", (payload: AIJobUpdatePayload) => {
+    const onAIJobUpdate = (payload: AIJobUpdatePayload) => {
       const cb = aiJobCallbacksRef.current.get(payload.jobId);
 
       if (payload.status === "completed" || payload.status === "failed") {
-        // Update Redux + clear localStorage (always, regardless of page)
         dispatch(patchActiveJob({
           jobId:    payload.jobId,
           status:   payload.status,
@@ -127,14 +111,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           error:    payload.error,
         }));
         removeJobFromStorage();
-
         playSound();
 
-        // Only show global toast when the page-level callback is gone (user navigated away)
         if (!cb) {
           if (payload.status === "completed") {
-            const imageUrl = payload.imageUrl;
-            const assetId  = payload.assetId;
+            const { imageUrl, assetId } = payload;
             toast.success("Tác vụ AI hoàn thành!", {
               description: "Ảnh của bạn đã được tạo xong.",
               style: { borderLeft: "4px solid #22c55e", background: "rgba(34,197,94,0.06)" },
@@ -160,13 +141,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       }
 
       if (cb) cb(payload);
-    });
-
-    return () => {
-      socket.disconnect();
-      socketRef.current = null;
     };
-  }, [token, dispatch]);
+
+    socket.on("notification", onNotification);
+    socket.on("ai_job_update", onAIJobUpdate);
+    return () => {
+      socket.off("notification", onNotification);
+      socket.off("ai_job_update", onAIJobUpdate);
+    };
+  }, [socket, dispatch, router, playSound]);
 
   // Fetch initial unread count
   useEffect(() => {

@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { SocketProvider } from "@/contexts/SocketContext";
 import { Toaster } from "@/components/ui/sonner";
 import StoreProvider from "@/store/StoreProvider";
 
@@ -51,10 +52,12 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <StoreProvider>
             <AuthProvider>
-              <NotificationProvider>
-                {children}
-                <Toaster position="top-center" />
-              </NotificationProvider>
+              <SocketProvider>
+                <NotificationProvider>
+                  {children}
+                  <Toaster position="top-center" />
+                </NotificationProvider>
+              </SocketProvider>
             </AuthProvider>
           </StoreProvider>
         </ThemeProvider>
