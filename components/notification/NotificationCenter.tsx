@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { NotificationStatus, NotificationType } from "@/constants/notification";
-import { cn } from "@/lib/utils";
+import { cn, timeAgo } from "@/lib/utils";
 
 const NOTIF_META: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
   [NotificationType.PAYMENT]:   { icon: <CreditCard className="size-4" />,    label: "Thanh toán", color: "text-emerald-500" },
@@ -34,15 +34,6 @@ function NotifLabel({ type }: { type: string }) {
   );
 }
 
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "Vừa xong";
-  if (m < 60) return `${m} phút trước`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h} giờ trước`;
-  return new Date(iso).toLocaleDateString("vi-VN");
-}
 
 interface DropdownPos { top: number; left: number; width: number; openUp: boolean }
 

@@ -15,7 +15,7 @@ import {
 import { ToolGuideModal } from "@/components/shared/tool-guide-modal";
 import { TOOL_GUIDES } from "@/constants/toolGuides";
 import GuaiLoader from "@/components/shared/guai-loader";
-import { ToolContextBar } from "./components/ToolContextBar";
+import { ToolContextBar } from "@/features/studio/components/ToolContextBar";
 import { Lightbox } from "@/components/shared/lightbox";
 import { SaveToAlbumModal } from "@/components/shared/save-to-album-modal";
 import { supabase } from "@/lib/supabase";
@@ -39,21 +39,21 @@ import {
   selectActiveJob,
 } from "@/features/aiJob/aiJobSlice";
 
-import { TOOLS, TOOL_SLUG, SLUG_TO_TOOL } from "./constants";
-import { computeTryOnCost, computeEditCost, computeModelCreateCost, computeVideoCost, computeReframeCost, computeVariableCost } from "./helpers";
+import { TOOLS, TOOL_SLUG, SLUG_TO_TOOL } from "@/features/studio/constants";
+import { computeTryOnCost, computeEditCost, computeModelCreateCost, computeVideoCost, computeReframeCost, computeVariableCost } from "@/features/studio/helpers";
 import type {
   StudioImage, TryOnModel, TryOnResolution,
   GenResolution, GenMode, FaceRefMode, VideoDuration, VideoResolution,
-} from "./types";
+} from "@/features/studio/types";
 
-import { ProcessingPanel } from "./components/ProcessingPanel";
-import { ComparisonSlider } from "./components/ComparisonSlider";
-import { TryOnPanel } from "./components/TryOnPanel";
-import { ProductToModelPanel } from "./components/ProductToModelPanel";
-import { ModelSwapPanel } from "./components/ModelSwapPanel";
-import { FaceToModelPanel } from "./components/FaceToModelPanel";
-import { EditPanel } from "./components/EditPanel";
-import { GenericPanel } from "./components/GenericPanel";
+import { ProcessingPanel } from "@/features/studio/components/ProcessingPanel";
+import { ComparisonSlider } from "@/features/studio/components/ComparisonSlider";
+import { TryOnPanel } from "@/features/studio/components/TryOnPanel";
+import { ProductToModelPanel } from "@/features/studio/components/ProductToModelPanel";
+import { ModelSwapPanel } from "@/features/studio/components/ModelSwapPanel";
+import { FaceToModelPanel } from "@/features/studio/components/FaceToModelPanel";
+import { EditPanel } from "@/features/studio/components/EditPanel";
+import { GenericPanel } from "@/features/studio/components/GenericPanel";
 
 // ─── Inner page (needs Suspense because of useSearchParams) ───────────────────
 

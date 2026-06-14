@@ -1,22 +1,26 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Sparkles, Zap, Send, Plus, Workflow, GitBranch, GitCommit, GitMerge, GitGraph, GitFork, BotMessageSquare } from "lucide-react";
-import { apiClient } from "@/lib/apiFetch";
+import { Zap, Send, Plus, BotMessageSquare } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import { selectCreditBalance } from "@/features/credit/creditSlice";
 import { toast } from "sonner";
 
-import { GalleryModal }  from "./_components/gallery-modal";
-import { CompactImageSlot } from "./_components/image-slot";
-import { MessageBubble } from "./_components/message-bubble";
-import { InputBar, ModelPicker } from "./_components/input-bar";
-import { HistoryPanel }  from "./_components/history-panel";
-import { IMAGE_SLOTS, EXAMPLE_PROMPTS, DEFAULT_REASONING_MODEL } from "./_components/constants";
+import { GalleryModal }  from "@/features/workflow/components/gallery-modal";
+import { CompactImageSlot } from "@/features/workflow/components/image-slot";
+import { MessageBubble } from "@/features/workflow/components/message-bubble";
+import { InputBar, ModelPicker } from "@/features/workflow/components/input-bar";
+import { HistoryPanel }  from "@/features/workflow/components/history-panel";
+import { IMAGE_SLOTS, EXAMPLE_PROMPTS, DEFAULT_REASONING_MODEL } from "@/features/workflow/constants";
+import { buildHistory } from "@/features/workflow/helpers";
+import {
+  fetchWorkflowHistory, fetchWorkflowTools,
+  chatWithWorkflow, executeWorkflow, getWorkflowStatus,
+} from "@/features/workflow/workflowService";
 import type {
   PageState, ChatMessage, WorkflowPlan, StepData, WorkflowHistory,
-  ReasoningModelId, ConversationTurn,
-} from "./_components/types";
+  ReasoningModelId,
+} from "@/features/workflow/types";
 
 export default function WorkflowPage() {
   const { user } = useAppSelector((s) => s.auth);
@@ -55,25 +59,18 @@ export default function WorkflowPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const fetchHistory = useCallback(async () => {
+  const loadHistory = useCallback(async () => {
     try {
-      const res = await apiClient.get("/api/workflow");
-      if (res.data.success) setHistory(res.data.data ?? []);
+      const data = await fetchWorkflowHistory();
+      setHistory(data);
     } catch { /* non-critical */ }
     finally { setHistoryLoading(false); }
   }, []);
 
-  useEffect(() => { fetchHistory(); }, [fetchHistory]);
+  useEffect(() => { loadHistory(); }, [loadHistory]);
 
   useEffect(() => {
-    apiClient.get("/api/workflow/tools").then((res) => {
-      if (!res.data.success) return;
-      const map: Record<string, { label: string; credit: number }> = {};
-      for (const t of res.data.data) {
-        if (t.tool_key) map[t.tool_key] = { label: t.display_name, credit: t.base_credit };
-      }
-      setToolMeta(map);
-    }).catch(() => { /* fall back to static constants */ });
+    fetchWorkflowTools().then(setToolMeta).catch(() => { /* fall back to static constants */ });
   }, []);
 
   const appendMessage = (msg: Omit<ChatMessage, "id">): string => {
@@ -84,23 +81,6 @@ export default function WorkflowPage() {
 
   const updateMessage = (id: string, updates: Partial<ChatMessage>) => {
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...updates } : m)));
-  };
-
-  // ── Build conversation history for Gemini ─────────────────────────────────
-
-  const buildHistory = (msgs: ChatMessage[]): ConversationTurn[] => {
-    const turns: ConversationTurn[] = [];
-    for (const m of msgs) {
-      if (m.kind === "user" && m.text) {
-        turns.push({ role: "user", text: m.text });
-      } else if (m.kind === "assistant" && m.text) {
-        turns.push({ role: "assistant", text: m.text });
-      } else if (m.kind === "plan" && m.plan) {
-        // Represent the plan as an assistant turn so Gemini has context
-        turns.push({ role: "assistant", text: `Tôi đã lên kế hoạch: ${m.plan.goal}` });
-      }
-    }
-    return turns;
   };
 
   // ── Send ───────────────────────────────────────────────────────────────────
@@ -122,8 +102,7 @@ export default function WorkflowPage() {
         label: IMAGE_SLOTS.find((s) => s.key === key)?.label ?? key,
       }));
 
-    // Snapshot history before appending the new user message
-    const history = buildHistory(messages);
+    const conversationHistory = buildHistory(messages);
 
     appendMessage({ kind: "user", text: currentPrompt, images: attachedImages });
     setPrompt("");
@@ -132,21 +111,14 @@ export default function WorkflowPage() {
     const thinkId = appendMessage({ kind: "thinking" });
 
     try {
-      const res = await apiClient.post("/api/workflow/chat", {
+      const { message: aiMessage, plan } = await chatWithWorkflow({
         message: currentPrompt,
         userInputUrls: currentImages,
         model,
-        history,
+        history: conversationHistory,
       });
-      if (!res.data.success) throw new Error(res.data.error ?? "Lỗi không xác định");
-
-      const { message: aiMessage, plan } = res.data.data as {
-        message: string;
-        plan: WorkflowPlan | null;
-      };
 
       if (plan) {
-        // AI produced a plan — show assistant message (if any) then plan bubble
         if (aiMessage) {
           updateMessage(thinkId, { kind: "assistant", text: aiMessage });
           planRef.current = plan;
@@ -157,7 +129,6 @@ export default function WorkflowPage() {
         }
         setPageState("plan_ready");
       } else {
-        // Pure conversation — show assistant reply, go back to idle
         updateMessage(thinkId, { kind: "assistant", text: aiMessage || "…" });
         setPageState("idle");
       }
@@ -190,20 +161,15 @@ export default function WorkflowPage() {
     const execId = appendMessage({ kind: "executing", steps: initialSteps });
 
     try {
-      const res = await apiClient.post("/api/workflow/execute", {
+      const { workflowId } = await executeWorkflow({
         prompt: plan.goal,
         plan,
         userInputUrls: sentImagesRef.current,
       });
-      if (!res.data.success) throw new Error(res.data.error ?? "Lỗi không xác định");
-
-      const workflowId: string = res.data.data.workflowId;
 
       pollRef.current = setInterval(async () => {
         try {
-          const r = await apiClient.get(`/api/workflow/${workflowId}`);
-          if (!r.data.success) return;
-          const { workflow, steps: stepsData } = r.data.data;
+          const { workflow, steps: stepsData } = await getWorkflowStatus(workflowId);
           updateMessage(execId, { steps: stepsData });
 
           if (workflow.status === "completed") {
@@ -211,13 +177,13 @@ export default function WorkflowPage() {
             const last = [...stepsData].reverse().find((s: StepData) => s.output_url);
             updateMessage(execId, { kind: "result", steps: stepsData, finalUrl: last?.output_url ?? null });
             setPageState("idle");
-            fetchHistory();
+            loadHistory();
             toast.success("Workflow hoàn thành!");
           } else if (workflow.status === "failed") {
             stopPolling();
             updateMessage(execId, { kind: "error_msg", steps: stepsData, error: workflow.error_message ?? "Workflow thất bại" });
             setPageState("idle");
-            fetchHistory();
+            loadHistory();
           }
         } catch { /* ignore transient poll errors */ }
       }, 3000);

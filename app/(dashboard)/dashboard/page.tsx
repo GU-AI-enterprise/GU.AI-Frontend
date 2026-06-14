@@ -13,6 +13,7 @@ import { selectCreditBalance } from "@/features/credit/creditSlice";
 import { getImages } from "@/features/archive/imageService";
 import { getCollections } from "@/features/archive/collectionService";
 import { getHistory, type AIJob } from "@/features/history/historyService";
+import { timeAgo } from "@/lib/utils";
 
 const JOB_TYPE_LABEL: Record<string, string> = {
   try_on:           "Virtual Try-On",
@@ -34,16 +35,6 @@ const JOB_TYPE_ICON: Record<string, React.ReactNode> = {
   default:          <Sparkles className="size-4 text-muted-foreground" />,
 };
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1)  return "Vừa xong";
-  if (m < 60) return `${m} phút trước`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h} giờ trước`;
-  const d = Math.floor(h / 24);
-  return `${d} ngày trước`;
-}
 
 export default function DashboardPage() {
   const { user } = useAppSelector((s) => s.auth);

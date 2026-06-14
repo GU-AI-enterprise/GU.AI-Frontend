@@ -1,4 +1,5 @@
 import type { ReasoningModelId } from "./types";
+export { timeAgo } from "@/lib/utils";
 
 export const REASONING_MODELS: Array<{
   id: ReasoningModelId;
@@ -86,5 +87,3 @@ export function formatInputVal(val: string): string {
   if (m) return `kết quả bước ${parseInt(m[1]) + 1}`;
   return val;
 }
-
-export { timeAgo } from "@/lib/utils";
