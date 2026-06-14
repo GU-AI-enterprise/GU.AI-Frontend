@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { SocketProvider } from "@/contexts/SocketContext";
+import { SupportUnreadProvider } from "@/contexts/SupportUnreadContext";
 import { Toaster } from "@/components/ui/sonner";
 import StoreProvider from "@/store/StoreProvider";
 
@@ -54,8 +55,10 @@ export default function RootLayout({
             <AuthProvider>
               <SocketProvider>
                 <NotificationProvider>
-                  {children}
-                  <Toaster position="top-center" />
+                  <SupportUnreadProvider>
+                    {children}
+                    <Toaster position="top-center" />
+                  </SupportUnreadProvider>
                 </NotificationProvider>
               </SocketProvider>
             </AuthProvider>
