@@ -11,8 +11,9 @@ import { Button } from "@/components/ui/button";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { Lightbox } from "@/components/shared/lightbox";
 import { SaveToAlbumModal } from "@/components/shared/save-to-album-modal";
-import { supabase } from "@/lib/supabase";
 import { getImages, archiveImage, bulkArchive, type DBAsset } from "@/features/archive/imageService";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useGallery } from "@/features/archive/hooks";
 import { toast } from "sonner";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectPendingLightbox, clearPendingLightbox } from "@/features/aiJob/aiJobSlice";
@@ -23,9 +24,8 @@ export default function GalleryPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const pendingLightbox = useAppSelector(selectPendingLightbox);
-  const [assets, setAssets] = useState<DBAsset[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [authLoading, setAuthLoading] = useState(true);
+  const authReady = useRequireAuth();
+  const { assets, setAssets, loading, refresh: fetchImages } = useGallery();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("image");
 
@@ -37,32 +37,6 @@ export default function GalleryPage() {
 
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    let isMounted = true;
-    const initAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (!isMounted) return;
-        if (error || !session?.user) { router.push("/login"); return; }
-        setAuthLoading(false);
-        fetchImages();
-      } catch { if (isMounted) router.push("/login"); }
-    };
-    initAuth();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!isMounted) return;
-      if (event === "SIGNED_OUT" || !session?.user) router.push("/login");
-    });
-    return () => { isMounted = false; subscription.unsubscribe(); };
-  }, [router]);
-
-  const fetchImages = async () => {
-    try {
-      setLoading(true);
-      setAssets(await getImages());
-    } catch { } finally { setLoading(false); }
-  };
 
   // Open lightbox for a completed AI job when navigated from toast
   useEffect(() => {
@@ -157,9 +131,9 @@ export default function GalleryPage() {
 
   const isVideo = activeTab === "video";
 
-  if (authLoading) return (
+  if (!authReady) return (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
-      <GuaiLoader size="lg" text="Đang xác thực..." />
+      <GuaiLoader size="lg" text="Đang xác thực tài khoản..." />
     </div>
   );
 

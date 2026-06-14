@@ -1,18 +1,15 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import {
   Sparkles, Image as ImageIcon, FolderHeart, Clock,
   ArrowRight, Coins, Upload, CheckCircle2, XCircle,
   Loader2, Shirt, Wand2,
 } from "lucide-react";
-import { apiClient } from "@/lib/apiFetch";
 import { useAppSelector } from "@/store/hooks";
 import { selectCreditBalance } from "@/features/credit/creditSlice";
-import { getImages } from "@/features/archive/imageService";
-import { getCollections } from "@/features/archive/collectionService";
-import { getHistory, type AIJob } from "@/features/history/historyService";
+import { useDashboardStats } from "@/features/dashboard/hooks";
 import { timeAgo } from "@/lib/utils";
 
 const JOB_TYPE_LABEL: Record<string, string> = {
@@ -40,32 +37,12 @@ export default function DashboardPage() {
   const { user } = useAppSelector((s) => s.auth);
   const credit   = useAppSelector(selectCreditBalance);
 
-  const [imageCount,      setImageCount]      = useState<number | null>(null);
-  const [collectionCount, setCollectionCount] = useState<number | null>(null);
-  const [recentJobs,      setRecentJobs]      = useState<AIJob[]>([]);
-  const [statsLoading,    setStatsLoading]    = useState(true);
+  const { imageCount, collectionCount, recentJobs, loading: statsLoading } = useDashboardStats();
 
   const displayName = user?.user_metadata?.full_name
     || user?.user_metadata?.name
     || user?.email?.split("@")[0]
     || "bạn";
-
-  useEffect(() => {
-    let cancelled = false;
-    setStatsLoading(true);
-    Promise.all([
-      getImages().catch(() => []),
-      getCollections().catch(() => []),
-      getHistory().catch(() => ({ aiJobs: [], transactions: [] })),
-    ]).then(([imgs, cols, hist]) => {
-      if (cancelled) return;
-      setImageCount(imgs.length);
-      setCollectionCount(cols.length);
-      setRecentJobs(hist.aiJobs.slice(0, 6));
-      setStatsLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, []);
 
   const completedJobs = recentJobs.filter(j => j.status === "completed").length;
 

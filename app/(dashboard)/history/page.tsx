@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   History,
@@ -21,8 +20,9 @@ import {
   X,
 } from "lucide-react";
 import GuaiLoader from "@/components/shared/guai-loader";
-import { supabase } from "@/lib/supabase";
-import { getHistory, type AIJob, type Transaction } from "@/features/history/historyService";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useHistoryData } from "@/features/history/hooks";
+import type { AIJob, Transaction } from "@/features/history/historyService";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -243,56 +243,15 @@ function Pagination({
 const PAGE_SIZE = 10;
 
 export default function HistoryPage() {
-  const router = useRouter();
-  const [authLoading, setAuthLoading] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [aiJobs, setAiJobs] = useState<AIJob[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const authReady = useRequireAuth();
+  const { aiJobs, transactions, loading, totalPages: jobTotalPages, total: jobTotal, fetch: fetchHistory } = useHistoryData();
   const [jobPage, setJobPage] = useState(1);
-  const [jobTotalPages, setJobTotalPages] = useState(1);
-  const [jobTotal, setJobTotal] = useState(0);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const authedRef = useRef(false);
-
-  const fetchHistory = useCallback(async (page: number, from: string, to: string) => {
-    setLoading(true);
-    try {
-      const data = await getHistory({
-        jobPage: page,
-        jobLimit: PAGE_SIZE,
-        jobDateFrom: from || undefined,
-        jobDateTo: to || undefined,
-      });
-      setAiJobs(data.aiJobs);
-      setJobTotalPages(data.aiJobsTotalPages);
-      setJobTotal(data.aiJobsTotal);
-      setTransactions(data.transactions);
-    } catch (err) {
-      console.error("Lỗi lấy lịch sử:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
-    let mounted = true;
-
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (!mounted) return;
-      if (error || !session?.user) { router.push("/login"); return; }
-      setAuthLoading(false);
-      authedRef.current = true;
-      fetchHistory(1, "", "");
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!mounted) return;
-      if (event === "SIGNED_OUT" || !session?.user) router.push("/login");
-    });
-
-    return () => { mounted = false; subscription.unsubscribe(); };
-  }, [router, fetchHistory]);
+    if (authReady) fetchHistory(1, "", "");
+  }, [authReady, fetchHistory]);
 
   const handleDateFrom = (val: string) => {
     setDateFrom(val);
@@ -326,7 +285,7 @@ export default function HistoryPage() {
     return "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20";
   };
 
-  if (authLoading) {
+  if (!authReady) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <GuaiLoader size="lg" text="Đang xác thực tài khoản..." />
