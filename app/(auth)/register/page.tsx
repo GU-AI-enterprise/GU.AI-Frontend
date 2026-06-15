@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button";
 import { apiClient } from "@/lib/apiFetch";
 
 export default function RegisterPage() {
-  // Keep both UIs in the DOM at all times — toggling CSS only.
-  // Conditional unmounting causes removeChild crashes when browser extensions
-  // inject extra DOM nodes into password inputs.
+  // Both UIs always in DOM — toggled via CSS only to prevent removeChild
+  // crashes caused by browser extensions injecting into password inputs.
   const [isPending, setIsPending] = useState(false);
 
   const [name, setName] = useState("");
@@ -32,7 +31,6 @@ export default function RegisterPage() {
       setIsLoading(false);
       return;
     }
-
     if (password.length < 6) {
       setError("Mật khẩu phải có ít nhất 6 ký tự.");
       setIsLoading(false);
@@ -41,14 +39,11 @@ export default function RegisterPage() {
 
     try {
       const res = await apiClient.post("/api/auth/register", { email, password, name });
-
       if (res.status >= 400) {
         setError(res.data?.error || "Đăng ký thất bại. Vui lòng thử lại.");
         setIsLoading(false);
         return;
       }
-
-      // Switch to verification view via CSS — form stays in DOM, no unmount
       setIsPending(true);
     } catch {
       setError("Đăng ký thất bại. Vui lòng thử lại.");
@@ -61,11 +56,11 @@ export default function RegisterPage() {
     setResendMessage("");
     try {
       const res = await apiClient.post("/api/auth/resend-verification", { email });
-      if (res.status >= 400) {
-        setResendMessage(res.data?.error || "Không thể gửi lại email.");
-      } else {
-        setResendMessage("Email xác nhận đã được gửi lại! Kiểm tra hộp thư của bạn.");
-      }
+      setResendMessage(
+        res.status >= 400
+          ? res.data?.error || "Không thể gửi lại email."
+          : "Email xác nhận đã được gửi lại! Kiểm tra hộp thư."
+      );
     } catch {
       setResendMessage("Lỗi kết nối, vui lòng thử lại.");
     } finally {
@@ -86,7 +81,7 @@ export default function RegisterPage() {
 
   return (
     <div>
-      {/* ── Pending verification (CSS-visible only when isPending) ──────────── */}
+      {/* ── Pending verification — always in DOM, CSS-toggled ────────────── */}
       <div className={isPending ? "space-y-6 text-center" : "hidden"}>
         <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-primary">
           <svg className="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -97,9 +92,7 @@ export default function RegisterPage() {
 
         <div className="space-y-2">
           <h3 className="font-serif text-2xl font-light text-foreground">Kiểm tra email của bạn</h3>
-          <p className="text-sm font-light text-muted-foreground leading-relaxed">
-            Chúng tôi đã gửi link xác nhận đến
-          </p>
+          <p className="text-sm font-light text-muted-foreground">Chúng tôi đã gửi link xác nhận đến</p>
           <p className="text-sm font-semibold text-primary">{email}</p>
           <p className="text-xs text-muted-foreground/70 leading-relaxed pt-1">
             Nhấn vào link trong email để kích hoạt tài khoản.<br />
@@ -109,13 +102,13 @@ export default function RegisterPage() {
 
         <div className="rounded-xl border border-border bg-card/50 p-4 text-left space-y-2.5">
           {[
-            { n: "1", text: "Mở email từ GU.AI trong hộp thư của bạn" },
-            { n: "2", text: 'Nhấn nút "Xác nhận Email" trong email' },
-            { n: "3", text: "Quay lại trang đăng nhập và đăng nhập vào tài khoản" },
-          ].map(({ n, text }) => (
-            <div key={n} className="flex items-start gap-3">
+            "Mở email từ GU.AI trong hộp thư của bạn",
+            'Nhấn nút "Xác nhận Email" trong email',
+            "Quay lại trang đăng nhập và đăng nhập vào tài khoản",
+          ].map((text, i) => (
+            <div key={i} className="flex items-start gap-3">
               <span className="flex-shrink-0 flex size-5 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-bold">
-                {n}
+                {i + 1}
               </span>
               <span className="text-xs text-muted-foreground leading-relaxed">{text}</span>
             </div>
@@ -126,45 +119,38 @@ export default function RegisterPage() {
           Không thấy email? Kiểm tra thư mục <strong>Spam / Junk</strong>.
         </p>
 
-        {resendMessage && (
-          <p className={`text-xs font-medium ${resendMessage.includes("Lỗi") || resendMessage.includes("thể") ? "text-destructive" : "text-emerald-500"}`}>
-            {resendMessage}
-          </p>
-        )}
+        <div className={resendMessage ? "text-xs font-medium " + (resendMessage.includes("Lỗi") || resendMessage.includes("thể") ? "text-destructive" : "text-emerald-500") : "hidden"}>
+          {resendMessage}
+        </div>
 
-        <button
-          onClick={handleResend}
-          disabled={isResending}
-          className="inline-flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
-        >
+        <button onClick={handleResend} disabled={isResending}
+          className="inline-flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50">
           <RefreshCw className={`size-3 ${isResending ? "animate-spin" : ""}`} />
           {isResending ? "Đang gửi..." : "Gửi lại email xác nhận"}
         </button>
 
-        <div className="pt-2">
+        <div>
           <Link href="/login" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
             ← Quay lại đăng nhập
           </Link>
         </div>
       </div>
 
-      {/* ── Register form (CSS-visible only when !isPending) ─────────────────── */}
-      <div className={isPending ? "hidden" : "space-y-6"}>
-        <div className="space-y-2">
+      {/* ── Register form — always in DOM, CSS-toggled ───────────────────── */}
+      <div className={isPending ? "hidden" : "space-y-5"}>
+        <div className="space-y-1">
           <h2 className="font-serif text-3xl font-light tracking-tight text-foreground">
             Đăng ký <span className="font-normal italic text-primary">tài khoản</span>
           </h2>
           <p className="text-sm font-light text-muted-foreground">
-            Bắt đầu hành trình tạo ảnh mẫu ảo đột phá cho thương hiệu của bạn.
+            Bắt đầu hành trình tạo ảnh mẫu ảo với GU.AI.
           </p>
         </div>
 
-        <button
-          onClick={handleGoogleSignup}
-          type="button"
-          className="cursor-pointer group relative flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition-all duration-300 hover:bg-secondary hover:border-primary/30 hover:shadow-sm active:scale-[0.98]"
-        >
-          <svg className="size-5 transition-transform duration-300 group-hover:scale-105" viewBox="0 0 24 24">
+        {/* Google */}
+        <button onClick={handleGoogleSignup} type="button"
+          className="cursor-pointer group relative flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition-all duration-300 hover:bg-secondary hover:border-primary/30 hover:shadow-sm active:scale-[0.98]">
+          <svg className="size-5" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.77c-.98.66-2.23 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
@@ -173,19 +159,19 @@ export default function RegisterPage() {
           Đăng ký bằng Google
         </button>
 
-        <div className="flex items-center gap-4 py-1">
+        <div className="flex items-center gap-4">
           <div className="h-px flex-1 bg-border" />
           <span className="text-xs uppercase tracking-wider text-muted-foreground/40 font-mono">hoặc</span>
           <div className="h-px flex-1 bg-border" />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
-          {error && (
-            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="space-y-3.5" autoComplete="off">
+          {/* Error — always in DOM, CSS-toggled */}
+          <div className={error ? "rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive" : "hidden"}>
+            {error}
+          </div>
 
+          {/* Name */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Họ và tên / Thương hiệu</label>
             <div className="relative">
@@ -196,6 +182,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
+          {/* Email */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Email liên hệ</label>
             <div className="relative">
@@ -206,6 +193,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
+          {/* Password */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Mật khẩu</label>
             <div className="relative">
@@ -213,47 +201,48 @@ export default function RegisterPage() {
                 onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" autoComplete="new-password"
                 className="w-full rounded-xl border border-border bg-background py-3 pr-11 pl-11 text-sm text-foreground placeholder-muted-foreground/40 outline-none transition-all duration-300 focus:border-primary/50 focus:bg-card focus:ring-1 focus:ring-primary/50" />
               <Lock className="absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground/60" />
+              {/* Both icons always in DOM — CSS-toggled to avoid removeChild crash */}
               <button type="button" onClick={() => setShowPassword(!showPassword)}
                 className="cursor-pointer absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors">
-                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                <Eye className={showPassword ? "hidden" : "size-4"} />
+                <EyeOff className={showPassword ? "size-4" : "hidden"} />
               </button>
             </div>
           </div>
 
+          {/* Confirm password */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Xác nhận mật khẩu</label>
             <div className="relative">
               <input type={showPassword ? "text" : "password"} required value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" autoComplete="new-password"
-                className="w-full rounded-xl border border-border bg-background py-3 pr-11 pl-11 text-sm text-foreground placeholder-muted-foreground/40 outline-none transition-all duration-300 focus:border-primary/50 focus:bg-card focus:ring-1 focus:ring-primary/50" />
+                className="w-full rounded-xl border border-border bg-background py-3 pr-4 pl-11 text-sm text-foreground placeholder-muted-foreground/40 outline-none transition-all duration-300 focus:border-primary/50 focus:bg-card focus:ring-1 focus:ring-primary/50" />
               <Lock className="absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground/60" />
             </div>
           </div>
 
-          <div className="flex items-start gap-2.5 pt-1">
+          {/* Terms */}
+          <div className="flex items-start gap-2.5">
             <input type="checkbox" required id="terms"
-              className="mt-0.5 size-4 rounded border-border bg-background text-primary focus:ring-primary/50" />
+              className="mt-0.5 size-4 rounded border-border bg-background text-primary focus:ring-primary/50 flex-shrink-0" />
             <label htmlFor="terms" className="text-xs font-light text-muted-foreground leading-normal select-none cursor-pointer">
               Tôi đồng ý với{" "}
-              <Link href="/terms" className="text-primary hover:underline font-normal">Điều khoản Dịch vụ</Link>{" "}
-              và{" "}
+              <Link href="/terms" className="text-primary hover:underline font-normal">Điều khoản Dịch vụ</Link>{" "}và{" "}
               <Link href="/privacy" className="text-primary hover:underline font-normal">Chính sách Bảo mật</Link>
             </label>
           </div>
 
+          {/* Submit */}
           <Button type="submit" disabled={isLoading}
             className="relative w-full rounded-xl bg-primary py-6 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:bg-primary/95 hover:shadow-[0_0_20px_rgba(var(--color-primary),0.15)] disabled:opacity-50">
-            {isLoading ? (
-              <div className="flex items-center gap-2">
-                <span className="size-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                Đang đăng ký...
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 justify-center">
-                Đăng ký
-                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-              </div>
-            )}
+            <div className={isLoading ? "flex items-center gap-2" : "hidden"}>
+              <span className="size-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+              Đang đăng ký...
+            </div>
+            <div className={isLoading ? "hidden" : "flex items-center gap-1.5 justify-center"}>
+              Đăng ký
+              <ArrowRight className="size-4" />
+            </div>
           </Button>
         </form>
 
