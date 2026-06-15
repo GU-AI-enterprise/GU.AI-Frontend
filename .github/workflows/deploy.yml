@@ -1,0 +1,61 @@
+name: CI / CD — Frontend
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # CI: chỉ type-check (không full build) vì Next.js cần NEXT_PUBLIC_* lúc build
+  # ────────────────────────────────────────────────────────────────────────────
+  ci:
+    name: Type-check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type-check
+        run: npx tsc --noEmit   # không cần env vars, chỉ check types
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # CD: full build trên server (có .env.production với NEXT_PUBLIC_* đúng)
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to production
+    needs: ci
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: SSH & deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          command_timeout: 15m
+          script: |
+            set -e
+            cd ~/apps/guai-frontend
+            git fetch --all
+            git reset --hard origin/main
+            npm ci
+            npm run build
+            cp -r public .next/standalone/
+            cp -r .next/static .next/standalone/.next/
+            pm2 restart guai-frontend \
+              || PORT=3000 pm2 start .next/standalone/server.js \
+                              --name guai-frontend \
+                              --env-file .env.production
+            pm2 save
