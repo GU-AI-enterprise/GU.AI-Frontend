@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase";
+import { apiClient } from "@/lib/apiFetch";
 
 function LoginContent() {
   const router = useRouter();
@@ -13,11 +14,33 @@ function LoginContent() {
   const redirect = searchParams.get('redirect') || '/dashboard';
   const supabase = createClient();
   
+  const emailVerified = searchParams.get("verified") === "true";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
+
+  const handleResendVerification = async () => {
+    setIsResending(true);
+    setResendMessage("");
+    try {
+      const res = await apiClient.post("/api/auth/resend-verification", { email });
+      if (res.status >= 400) {
+        setResendMessage(res.data?.error || "Không thể gửi lại email.");
+      } else {
+        setResendMessage("Email xác nhận đã được gửi! Kiểm tra hộp thư của bạn.");
+      }
+    } catch {
+      setResendMessage("Lỗi kết nối, vui lòng thử lại.");
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +54,14 @@ function LoginContent() {
       });
 
       if (error) {
-        setError(error.message);
+        // Supabase returns "Email not confirmed" when user hasn't verified their email
+        if (error.message.toLowerCase().includes('email not confirmed') ||
+            error.message.toLowerCase().includes('email_not_confirmed')) {
+          setEmailNotConfirmed(true);
+          setError("");
+        } else {
+          setError(error.message);
+        }
         setIsLoading(false);
         return;
       }
@@ -65,6 +95,16 @@ function LoginContent() {
 
   return (
     <div className="space-y-6">
+      {/* Email verified success banner */}
+      {emailVerified && (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 flex items-center gap-2.5">
+          <span className="text-emerald-500 text-base leading-none">✓</span>
+          <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+            Email đã được xác nhận thành công! Bạn có thể đăng nhập ngay bây giờ.
+          </p>
+        </div>
+      )}
+
       {/* Title & Description */}
       <div className="space-y-2">
         <h2 className="font-serif text-3xl font-light tracking-tight text-foreground">
@@ -115,6 +155,39 @@ function LoginContent() {
         {error && (
           <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
             {error}
+          </div>
+        )}
+
+        {emailNotConfirmed && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2.5">
+            <div className="flex items-start gap-2.5">
+              <span className="text-amber-500 text-base leading-none mt-0.5">⚠️</span>
+              <div>
+                <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-0.5">
+                  Email chưa được xác nhận
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Vui lòng kiểm tra hộp thư <strong>{email}</strong> và nhấn link xác nhận để đăng nhập.
+                </p>
+              </div>
+            </div>
+            {resendMessage && (
+              <p className={`text-xs font-medium pl-7 ${resendMessage.includes("Lỗi") || resendMessage.includes("thể") ? "text-destructive" : "text-emerald-500"}`}>
+                {resendMessage}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={handleResendVerification}
+              disabled={isResending}
+              className="pl-7 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {isResending ? (
+                <><span className="size-3 animate-spin rounded-full border-2 border-primary border-t-transparent" /> Đang gửi...</>
+              ) : (
+                "→ Gửi lại email xác nhận"
+              )}
+            </button>
           </div>
         )}
 
