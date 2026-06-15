@@ -7,30 +7,18 @@ on:
     branches: [main]
 
 jobs:
-  # ────────────────────────────────────────────────────────────────────────────
-  # CI: chỉ type-check (không full build) vì Next.js cần NEXT_PUBLIC_* lúc build
-  # ────────────────────────────────────────────────────────────────────────────
   ci:
     name: Type-check
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: TypeScript type-check
-        run: npx tsc --noEmit   # không cần env vars, chỉ check types
-
-  # ────────────────────────────────────────────────────────────────────────────
-  # CD: full build trên server (có .env.production với NEXT_PUBLIC_* đúng)
-  # ────────────────────────────────────────────────────────────────────────────
   deploy:
     name: Deploy to production
     needs: ci
@@ -45,15 +33,30 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           command_timeout: 15m
+          envs: GIT_TOKEN,REPO
+          env:
+            GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+            REPO: ${{ github.repository }}
           script: |
             set -e
-            cd ~/apps/guai-frontend
+
+            APP_DIR=~/guai-enterprise/GU.AI-Frontend
+
+            if [ ! -d "$APP_DIR/.git" ]; then
+              mkdir -p ~/guai-enterprise
+              git clone "https://x-access-token:${GIT_TOKEN}@github.com/${REPO}.git" "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
             git fetch --all
             git reset --hard origin/main
+
             npm ci
             npm run build
+
             cp -r public .next/standalone/
             cp -r .next/static .next/standalone/.next/
+
             pm2 restart guai-frontend \
               || PORT=3000 pm2 start .next/standalone/server.js \
                               --name guai-frontend \
