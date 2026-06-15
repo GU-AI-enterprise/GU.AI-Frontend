@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
@@ -11,9 +11,9 @@ import { apiClient } from "@/lib/apiFetch";
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/dashboard';
+  const redirect = searchParams.get("redirect") || "/dashboard";
   const supabase = createClient();
-  
+
   const emailVerified = searchParams.get("verified") === "true";
 
   const [email, setEmail] = useState("");
@@ -48,17 +48,14 @@ function LoginContent() {
     setError("");
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
-        // Supabase returns "Email not confirmed" when user hasn't verified their email
-        if (error.message.toLowerCase().includes('email not confirmed') ||
-            error.message.toLowerCase().includes('email_not_confirmed')) {
+        if (
+          error.message.toLowerCase().includes("email not confirmed") ||
+          error.message.toLowerCase().includes("email_not_confirmed")
+        ) {
           setEmailNotConfirmed(true);
-          setError("");
         } else {
           setError(error.message);
         }
@@ -66,10 +63,9 @@ function LoginContent() {
         return;
       }
 
-      // Redirect to the page user was trying to access or dashboard
       router.push(redirect);
       router.refresh();
-    } catch (err: any) {
+    } catch {
       setError("Đăng nhập thất bại. Vui lòng thử lại.");
       setIsLoading(false);
     }
@@ -77,33 +73,22 @@ function LoginContent() {
 
   const handleGoogleLogin = async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
-
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
-    if (data.url) {
-      window.location.href = data.url;
-    }
+    if (error) { setError(error.message); return; }
+    if (data.url) window.location.href = data.url;
   };
 
   return (
     <div className="space-y-6">
-      {/* Email verified success banner */}
-      {emailVerified && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 flex items-center gap-2.5">
-          <span className="text-emerald-500 text-base leading-none">✓</span>
-          <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-            Email đã được xác nhận thành công! Bạn có thể đăng nhập ngay bây giờ.
-          </p>
-        </div>
-      )}
+      {/* Email verified success banner — always in DOM, CSS-toggled */}
+      <div className={emailVerified ? "rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 flex items-center gap-2.5" : "hidden"}>
+        <span className="text-emerald-500 text-base leading-none">✓</span>
+        <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          Email đã được xác nhận thành công! Bạn có thể đăng nhập ngay bây giờ.
+        </p>
+      </div>
 
       {/* Title & Description */}
       <div className="space-y-2">
@@ -121,24 +106,11 @@ function LoginContent() {
         type="button"
         className="cursor-pointer group relative flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition-all duration-300 hover:bg-secondary hover:border-primary/30 hover:shadow-sm active:scale-[0.98]"
       >
-        {/* Google Icon */}
         <svg className="size-5 transition-transform duration-300 group-hover:scale-105" viewBox="0 0 24 24">
-          <path
-            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-            fill="#4285F4"
-          />
-          <path
-            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.77c-.98.66-2.23 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-            fill="#34A853"
-          />
-          <path
-            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-            fill="#FBBC05"
-          />
-          <path
-            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-            fill="#EA4335"
-          />
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.77c-.98.66-2.23 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335" />
         </svg>
         Đăng nhập với Google
       </button>
@@ -151,45 +123,39 @@ function LoginContent() {
       </div>
 
       {/* Login Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
-            {error}
-          </div>
-        )}
+      <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
 
-        {emailNotConfirmed && (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2.5">
-            <div className="flex items-start gap-2.5">
-              <span className="text-amber-500 text-base leading-none mt-0.5">⚠️</span>
-              <div>
-                <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-0.5">
-                  Email chưa được xác nhận
-                </p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Vui lòng kiểm tra hộp thư <strong>{email}</strong> và nhấn link xác nhận để đăng nhập.
-                </p>
-              </div>
-            </div>
-            {resendMessage && (
-              <p className={`text-xs font-medium pl-7 ${resendMessage.includes("Lỗi") || resendMessage.includes("thể") ? "text-destructive" : "text-emerald-500"}`}>
-                {resendMessage}
+        {/* Error banner — always in DOM, CSS-toggled */}
+        <div className={error ? "rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive" : "hidden"}>
+          {error}
+        </div>
+
+        {/* Email not confirmed warning — always in DOM, CSS-toggled */}
+        <div className={emailNotConfirmed ? "rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2.5" : "hidden"}>
+          <div className="flex items-start gap-2.5">
+            <span className="text-amber-500 text-base leading-none mt-0.5">⚠️</span>
+            <div>
+              <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-0.5">
+                Email chưa được xác nhận
               </p>
-            )}
-            <button
-              type="button"
-              onClick={handleResendVerification}
-              disabled={isResending}
-              className="pl-7 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50 flex items-center gap-1.5"
-            >
-              {isResending ? (
-                <><span className="size-3 animate-spin rounded-full border-2 border-primary border-t-transparent" /> Đang gửi...</>
-              ) : (
-                "→ Gửi lại email xác nhận"
-              )}
-            </button>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Vui lòng kiểm tra hộp thư <strong>{email}</strong> và nhấn link xác nhận để đăng nhập.
+              </p>
+            </div>
           </div>
-        )}
+          <div className={resendMessage ? "text-xs font-medium pl-7 " + (resendMessage.includes("Lỗi") || resendMessage.includes("thể") ? "text-destructive" : "text-emerald-500") : "hidden"}>
+            {resendMessage}
+          </div>
+          <button
+            type="button"
+            onClick={handleResendVerification}
+            disabled={isResending}
+            className="pl-7 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          >
+            <span className={isResending ? "size-3 animate-spin rounded-full border-2 border-primary border-t-transparent" : "hidden"} />
+            {isResending ? "Đang gửi..." : "→ Gửi lại email xác nhận"}
+          </button>
+        </div>
 
         {/* Email */}
         <div className="space-y-1.5">
@@ -201,6 +167,7 @@ function LoginContent() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="ten@thuonghieu.com"
+              autoComplete="email"
               className="w-full rounded-xl border border-border bg-background py-3 pr-4 pl-11 text-sm text-foreground placeholder-muted-foreground/40 outline-none transition-all duration-300 focus:border-primary/50 focus:bg-card focus:ring-1 focus:ring-primary/50"
             />
             <Mail className="absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground/60" />
@@ -211,10 +178,7 @@ function LoginContent() {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Mật khẩu</label>
-            <Link
-              href="/forgot-password"
-              className="text-xs text-primary/80 hover:text-primary transition-colors duration-200"
-            >
+            <Link href="/forgot-password" className="text-xs text-primary/80 hover:text-primary transition-colors duration-200">
               Quên mật khẩu?
             </Link>
           </div>
@@ -225,15 +189,18 @@ function LoginContent() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
+              autoComplete="current-password"
               className="w-full rounded-xl border border-border bg-background py-3 pr-11 pl-11 text-sm text-foreground placeholder-muted-foreground/40 outline-none transition-all duration-300 focus:border-primary/50 focus:bg-card focus:ring-1 focus:ring-primary/50"
             />
             <Lock className="absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground/60" />
+            {/* Both icons always in DOM — CSS-toggled to avoid unmounting near extension nodes */}
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="cursor-pointer absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
             >
-              {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              <Eye className={showPassword ? "hidden" : "size-4"} />
+              <EyeOff className={showPassword ? "size-4" : "hidden"} />
             </button>
           </div>
         </div>
@@ -256,17 +223,14 @@ function LoginContent() {
           disabled={isLoading}
           className="relative w-full rounded-xl bg-primary py-6 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:bg-primary/95 hover:shadow-[0_0_20px_rgba(var(--color-primary),0.15)] disabled:opacity-50"
         >
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <span className="size-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-              Đang xác thực...
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 justify-center">
-              Đăng nhập
-              <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-            </div>
-          )}
+          <div className={isLoading ? "flex items-center gap-2" : "hidden"}>
+            <span className="size-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+            Đang xác thực...
+          </div>
+          <div className={isLoading ? "hidden" : "flex items-center gap-1.5 justify-center"}>
+            Đăng nhập
+            <ArrowRight className="size-4" />
+          </div>
         </Button>
       </form>
 
