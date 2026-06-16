@@ -4,35 +4,47 @@ import { usePathname } from "next/navigation";
 import { ChevronRight, Menu } from "lucide-react";
 import NotificationCenter from "@/components/notification/NotificationCenter";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { useTranslations } from "next-intl";
+import { LanguageToggle } from "@/components/shared/language-toggle";
 
-const ROUTE_MAP: Record<string, [string, string]> = {
-  "/dashboard": ["Studio", "Tổng quan"],
-  "/studio": ["Studio", "AI Studio"],
-  "/archive/gallery": ["Kho lưu trữ", "Tất cả ảnh"],
-  "/archive/models": ["Kho lưu trữ", "Người mẫu"],
-  "/archive/collections": ["Kho lưu trữ", "Bộ sưu tập"],
-  "/archive/upload": ["Kho lưu trữ", "Upload hàng loạt"],
-  "/archive/trash": ["Kho lưu trữ", "Archive"],
-  "/history": ["Studio", "Lịch sử tác vụ"],
-  "/profile": ["Tài khoản", "Hồ sơ"],
-  "/profile/edit": ["Tài khoản", "Chỉnh sửa hồ sơ"],
-  "/profile/password": ["Tài khoản", "Đổi mật khẩu"],
-  "/settings": ["Tài khoản", "Cài đặt"],
-  "/workflow": ["Studio", "Trợ lý ảo"],
+type RouteKey =
+  | "overview" | "aiStudio" | "archive" | "allPhotos" | "models"
+  | "collections" | "bulkUpload" | "archiveTrash" | "taskHistory"
+  | "profile" | "editProfile" | "changePassword" | "settings"
+  | "assistant" | "library" | "defaultPage";
+
+type SectionKey = "studio" | "archive" | "account" | "defaultSection";
+
+const ROUTE_MAP: Record<string, [SectionKey, RouteKey]> = {
+  "/dashboard":          ["studio",        "overview"],
+  "/studio":             ["studio",        "aiStudio"],
+  "/archive/gallery":    ["archive",       "allPhotos"],
+  "/archive/models":     ["archive",       "models"],
+  "/archive/collections":["archive",       "collections"],
+  "/archive/upload":     ["archive",       "bulkUpload"],
+  "/archive/trash":      ["archive",       "archiveTrash"],
+  "/history":            ["studio",        "taskHistory"],
+  "/profile":            ["account",       "profile"],
+  "/profile/edit":       ["account",       "editProfile"],
+  "/profile/password":   ["account",       "changePassword"],
+  "/settings":           ["account",       "settings"],
+  "/workflow":           ["studio",        "assistant"],
+  "/library":            ["studio",        "library"],
 };
 
-function getRoute(pathname: string): [string, string] {
+function getRoute(pathname: string): [SectionKey, RouteKey] {
   if (ROUTE_MAP[pathname]) return ROUTE_MAP[pathname];
   for (const key of Object.keys(ROUTE_MAP).sort((a, b) => b.length - a.length)) {
     if (pathname.startsWith(key)) return ROUTE_MAP[key];
   }
-  return ["GU.AI", "Dashboard"];
+  return ["defaultSection", "defaultPage"];
 }
 
 export default function DashboardTopBar() {
   const pathname = usePathname();
-  const [section, title] = getRoute(pathname);
+  const [section, page] = getRoute(pathname);
   const { isMobile, toggle } = useSidebar();
+  const t = useTranslations("nav");
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/60 bg-background/80 px-4 lg:px-6 backdrop-blur-xl">
@@ -42,18 +54,21 @@ export default function DashboardTopBar() {
           <button
             onClick={toggle}
             className="cursor-pointer p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors mr-1"
-            aria-label="Mở menu"
+            aria-label={t("openMenu")}
           >
             <Menu className="size-5" />
           </button>
         )}
-        <span>{section}</span>
+        <span>{t(section)}</span>
         <ChevronRight className="size-3.5" />
-        <span className="font-semibold text-foreground">{title}</span>
+        <span className="font-semibold text-foreground">{t(page)}</span>
       </div>
 
-      {/* Notification only */}
-      <NotificationCenter variant="header" />
+      {/* Right side */}
+      <div className="flex items-center gap-2">
+        <LanguageToggle />
+        <NotificationCenter variant="header" />
+      </div>
     </header>
   );
 }

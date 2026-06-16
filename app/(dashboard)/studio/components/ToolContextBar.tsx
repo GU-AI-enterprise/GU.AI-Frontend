@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { AIToolType } from "@/constants/ai";
-import { TRY_ON_CATEGORIES, TRY_ON_MODELS, TRY_ON_RESOLUTIONS } from "../constants";
-import { computeTryOnCost } from "../helpers";
+import { TRY_ON_MODELS, TRY_ON_RESOLUTIONS } from "../constants";
 import type {
   TryOnModel, TryOnResolution, GenResolution, GenMode, FaceRefMode,
   VideoDuration, VideoResolution, StudioImage,
@@ -73,6 +73,7 @@ function RunBtn({ onClick, disabled, isProcessing }: {
   disabled: boolean;
   isProcessing: boolean;
 }) {
+  const t = useTranslations("studio");
   return (
     <button
       onClick={onClick}
@@ -83,7 +84,7 @@ function RunBtn({ onClick, disabled, isProcessing }: {
       {isProcessing
         ? <Loader2 className="size-3.5 animate-spin" />
         : <Sparkles className="size-3.5" />}
-      <span>{isProcessing ? "Đang chạy" : "Chạy"}</span>
+      <span>{isProcessing ? t("running") : t("run")}</span>
     </button>
   );
 }
@@ -143,10 +144,6 @@ const MODE_OPTS: { value: GenMode; label: string }[] = [
 ];
 const RATIO_OPTS = ["1:1", "3:4", "4:5", "9:16", "16:9"].map((v) => ({ value: v, label: v }));
 const COUNT_OPTS = [1, 2, 3, 4].map((n) => ({ value: n, label: String(n) }));
-const FACE_MODE_OPTS: { value: FaceRefMode; label: string }[] = [
-  { value: "match_reference", label: "Giống nhất" },
-  { value: "match_base",      label: "Cân bằng" },
-];
 const VIDEO_DUR_OPTS: { value: VideoDuration; label: string }[] = [
   { value: 5,  label: "5s" },
   { value: 10, label: "10s" },
@@ -159,10 +156,6 @@ const VIDEO_RES_OPTS: { value: VideoResolution; label: string }[] = [
 const TRY_ON_MODEL_OPTS: { value: TryOnModel; label: string }[] = TRY_ON_MODELS.map((m) => ({
   value: m.id,
   label: m.name,
-}));
-const TRY_ON_CAT_OPTS: { value: TryOnCategory; label: string }[] = TRY_ON_CATEGORIES.map((c) => ({
-  value: c.value,
-  label: c.label,
 }));
 const TRY_ON_RES_OPTS: { value: TryOnResolution; label: string }[] = TRY_ON_RESOLUTIONS;
 
@@ -311,6 +304,20 @@ export function ToolContextBar({
   upscaleScale, onUpscaleScaleChange,
   removeBgCredit,
 }: ToolContextBarProps) {
+  const t = useTranslations("studio");
+  const b = useTranslations("studio.bar");
+
+  // Translated dropdown options (locale-sensitive)
+  const TRY_ON_CAT_OPTS: { value: TryOnCategory; label: string }[] = [
+    { value: "auto",       label: b("catAuto") },
+    { value: "tops",       label: b("catTops") },
+    { value: "bottoms",    label: b("catBottoms") },
+    { value: "one-pieces", label: b("catOnePieces") },
+  ];
+  const FACE_MODE_OPTS: { value: FaceRefMode; label: string }[] = [
+    { value: "match_reference", label: b("faceModeClosest") },
+    { value: "match_base",      label: b("faceModeBalanced") },
+  ];
 
   // ── Try-On ─────────────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.TRY_ON) {
@@ -321,22 +328,22 @@ export function ToolContextBar({
             <input
               value={toPrompt}
               onChange={(e) => onToPromptChange(e.target.value)}
-              placeholder='Tuỳ chỉnh (tuỳ chọn): "remove scarf", "tuck in shirt", "roll up sleeves"...'
+              placeholder={b("placeholderTryOn")}
               className={inputCls}
             />
           ) : (
             <p className="text-[11px] text-muted-foreground/40 italic">
-              Chọn Try-On Max để thêm prompt tuỳ chỉnh
+              {b("tryOnMaxHint")}
             </p>
           )}
         </div>
         <BottomRow
           left={
-            <DropdownBtn label="Loại" value={toCategory} options={TRY_ON_CAT_OPTS} onChange={onToCategoryChange} />
+            <DropdownBtn label={b("labelCategory")} value={toCategory} options={TRY_ON_CAT_OPTS} onChange={onToCategoryChange} />
           }
           right={
             <>
-              <DropdownBtn label="Model" value={toModel} options={TRY_ON_MODEL_OPTS} onChange={onToModelChange} />
+              <DropdownBtn label={b("labelModel")} value={toModel} options={TRY_ON_MODEL_OPTS} onChange={onToModelChange} />
               {toModel === "max" && (
                 <DropdownBtn value={toResolution} options={TRY_ON_RES_OPTS} onChange={onToResolutionChange} />
               )}
@@ -356,7 +363,7 @@ export function ToolContextBar({
           <input
             value={p2mPrompt}
             onChange={(e) => onP2mPromptChange(e.target.value)}
-            placeholder='Tùy chọn: "Blonde hair, studio photoshoot", "office setting", "casual outdoor"...'
+            placeholder={b("placeholderP2M")}
             className={inputCls}
           />
         </div>
@@ -365,19 +372,19 @@ export function ToolContextBar({
             <>
               <ActionBtn
                 icon={ScanFace}
-                label="Face Reference"
+                label={b("faceReference")}
                 active={!!p2mFaceRef}
                 onClick={() => openGallery((url) => onP2mFaceRefChange({ id: uid(), url }))}
               />
               <ActionBtn
                 icon={ImageIcon}
-                label="Image Prompt"
+                label={b("imagePrompt")}
                 active={!!p2mPromptImg}
                 onClick={() => openGallery((url) => onP2mPromptImgChange({ id: uid(), url }))}
               />
               <ActionBtn
                 icon={Mountain}
-                label="Background"
+                label={b("background")}
                 active={!!p2mBgRef}
                 onClick={() => openGallery((url) => onP2mBgRefChange({ id: uid(), url }))}
               />
@@ -385,7 +392,7 @@ export function ToolContextBar({
           }
           right={
             <>
-              <DropdownBtn label="Ratio" value={p2mAspect} options={RATIO_OPTS} onChange={onP2mAspectChange} />
+              <DropdownBtn label={b("labelRatio")} value={p2mAspect} options={RATIO_OPTS} onChange={onP2mAspectChange} />
               <DropdownBtn value={p2mRes} options={RES_OPTS} onChange={onP2mResChange} />
               <DropdownBtn value={p2mGenMode} options={MODE_OPTS} onChange={onP2mGenModeChange} />
               {!!p2mFaceRef && (
@@ -407,7 +414,7 @@ export function ToolContextBar({
           <input
             value={msPrompt}
             onChange={(e) => onMsPromptChange(e.target.value)}
-            placeholder='Tùy chọn: "same pose", "outdoor", "studio lighting"...'
+            placeholder={b("placeholderMS")}
             className={inputCls}
           />
         </div>
@@ -435,7 +442,7 @@ export function ToolContextBar({
           <input
             value={f2mPrompt}
             onChange={(e) => onF2mPromptChange(e.target.value)}
-            placeholder='Tùy chọn: "athletic build", "slender frame", "curvy figure"...'
+            placeholder={b("placeholderF2M")}
             className={inputCls}
           />
         </div>
@@ -443,7 +450,7 @@ export function ToolContextBar({
           right={
             <>
               <DropdownBtn
-                label="Ratio"
+                label={b("labelRatio")}
                 value={f2mAspect}
                 options={["1:1", "4:5", "3:4", "2:3", "9:16"].map((v) => ({ value: v, label: v }))}
                 onChange={onF2mAspectChange}
@@ -467,7 +474,7 @@ export function ToolContextBar({
           <input
             value={genericPrompt}
             onChange={(e) => onGenericPromptChange(e.target.value)}
-            placeholder='Mô tả thay đổi: "add a black leather bag", "turn slightly left", "studio lighting"...'
+            placeholder={b("placeholderEdit")}
             className={inputCls}
           />
         </div>
@@ -493,7 +500,7 @@ export function ToolContextBar({
           <input
             value={genericPrompt}
             onChange={(e) => onGenericPromptChange(e.target.value)}
-            placeholder='Mô tả model: "Full body shot, woman wearing a white t-shirt, studio"...'
+            placeholder={b("placeholderCreateModel")}
             className={inputCls}
           />
         </div>
@@ -519,14 +526,14 @@ export function ToolContextBar({
           <input
             value={genericPrompt}
             onChange={(e) => onGenericPromptChange(e.target.value)}
-            placeholder="Mô tả chuyển động (tùy chọn — để trống để AI tự quyết)"
+            placeholder={b("placeholderVideo")}
             className={inputCls}
           />
         </div>
         <BottomRow
           right={
             <>
-              <DropdownBtn label="Thời lượng" value={videoDuration} options={VIDEO_DUR_OPTS} onChange={onVideoDurationChange} />
+              <DropdownBtn label={b("labelDuration")} value={videoDuration} options={VIDEO_DUR_OPTS} onChange={onVideoDurationChange} />
               <DropdownBtn value={videoRes} options={VIDEO_RES_OPTS} onChange={onVideoResChange} />
               <RunBtn onClick={handleRun} disabled={!canRun} isProcessing={isProcessing} />
             </>
@@ -542,13 +549,13 @@ export function ToolContextBar({
       <div className="px-4 pt-3 pb-3 flex flex-col">
         <div className="min-h-[40px] flex items-center mb-2">
           <p className="text-[11px] text-muted-foreground/40 italic">
-            Mở rộng khung hình với AI outpainting
+            {b("reframeHint")}
           </p>
         </div>
         <BottomRow
           right={
             <>
-              <DropdownBtn label="Ratio" value={reframeAspect} options={RATIO_OPTS} onChange={onReframeAspectChange} />
+              <DropdownBtn label={b("labelRatio")} value={reframeAspect} options={RATIO_OPTS} onChange={onReframeAspectChange} />
               <DropdownBtn value={reframeRes} options={RES_OPTS} onChange={onReframeResChange} />
               <DropdownBtn value={reframeGenMode} options={MODE_OPTS} onChange={onReframeGenModeChange} />
               <DropdownBtn value={reframeNumImages} options={COUNT_OPTS} onChange={onReframeNumImagesChange} />
@@ -566,7 +573,7 @@ export function ToolContextBar({
       <div className="px-4 pt-3 pb-3 flex flex-col">
         <div className="min-h-[40px] flex items-center mb-2">
           <p className="text-[11px] text-muted-foreground/40 italic">
-            AI tự động phát hiện foreground và xóa nền — xuất file PNG trong suốt · {removeBgCredit ?? 1} credit / ảnh
+            {b("removeBgHint", { credit: removeBgCredit ?? 1 })}
           </p>
         </div>
         <BottomRow
@@ -582,13 +589,13 @@ export function ToolContextBar({
       <div className="px-4 pt-3 pb-3 flex flex-col">
         <div className="min-h-[40px] flex items-center mb-2">
           <p className="text-[11px] text-muted-foreground/40 italic">
-            Nâng cao độ phân giải ảnh bằng AI
+            {b("upscaleHint")}
           </p>
         </div>
         <BottomRow
           left={
             <DropdownBtn
-              label="Scale"
+              label={b("labelScale")}
               value={upscaleScale}
               options={[{ value: 2, label: "2×" }, { value: 4, label: "4×" }]}
               onChange={onUpscaleScaleChange}

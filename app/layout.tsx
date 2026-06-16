@@ -8,6 +8,8 @@ import { SocketProvider } from "@/contexts/SocketContext";
 import { SupportUnreadProvider } from "@/contexts/SupportUnreadContext";
 import { Toaster } from "@/components/ui/sonner";
 import StoreProvider from "@/store/StoreProvider";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import { DomResilience } from "@/components/providers/DomResilience";
 
 const geistSans = Geist({
@@ -38,34 +40,39 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
     <html
-      lang="vi"
+      lang={locale}
       translate="no"
       className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary">
         <DomResilience />
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-          <StoreProvider>
-            <AuthProvider>
-              <SocketProvider>
-                <NotificationProvider>
-                  <SupportUnreadProvider>
-                    {children}
-                    <Toaster position="top-center" />
-                  </SupportUnreadProvider>
-                </NotificationProvider>
-              </SocketProvider>
-            </AuthProvider>
-          </StoreProvider>
-        </ThemeProvider>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+            <StoreProvider>
+              <AuthProvider>
+                <SocketProvider>
+                  <NotificationProvider>
+                    <SupportUnreadProvider>
+                      {children}
+                      <Toaster position="top-center" />
+                    </SupportUnreadProvider>
+                  </NotificationProvider>
+                </SocketProvider>
+              </AuthProvider>
+            </StoreProvider>
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -3,6 +3,7 @@
 import React, { Suspense, useEffect, useState, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { selectCreditBalance, setBalance } from "@/features/credit/creditSlice";
@@ -63,6 +64,7 @@ function StudioPageInner() {
   const dispatch      = useAppDispatch();
   const creditBalance = useAppSelector(selectCreditBalance);
   const dbCredits     = useFashnToolCredits();
+  const t             = useTranslations("studio");
   const [authLoading, setAuthLoading] = useState(true);
 
   // Derive selectedTool from ?tool= search param
@@ -304,7 +306,7 @@ function StudioPageInner() {
 
   // ── Job status feedback ───────────────────────────────────────────────────
   useEffect(() => {
-    if (jobState === "completed") toast.success("Xử lý thành công!");
+    if (jobState === "completed") toast.success(t("toast.success"));
     else if (jobState === "failed" && jobError) toast.error(jobError);
   }, [jobState, jobError]);
 
@@ -555,7 +557,7 @@ function StudioPageInner() {
   if (authLoading) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
-        <GuaiLoader size="lg" text="Đang xác thực..." />
+        <GuaiLoader size="lg" text={t("auth.authenticating")} />
       </div>
     );
   }
@@ -658,7 +660,8 @@ function StudioPageInner() {
                   <div className="flex items-center gap-2 p-3 border-t border-border shrink-0 flex-wrap">
                     {isMobile && (
                       <button onClick={fullReset} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
-                        <ChevronLeft className="size-3.5" /> Nhập ảnh
+                        <ChevronLeft className="size-3.5" />
+                        <span>{t("backToInput")}</span>
                       </button>
                     )}
                     {!isVideo && beforeUrl && (
@@ -670,21 +673,23 @@ function StudioPageInner() {
                             : "bg-secondary text-foreground hover:bg-secondary/70"
                         }`}
                       >
-                        <SplitSquareHorizontal className="size-3.5" /> So sánh
+                        <SplitSquareHorizontal className="size-3.5" />
+                        <span>{t("compare")}</span>
                       </button>
                     )}
                     <button
                       onClick={() => effectiveResultAssetId && setSaveAlbumAssetId(effectiveResultAssetId)}
                       disabled={!effectiveResultAssetId}
-                      title={effectiveResultAssetId ? "Lưu vào album" : "Đang lưu vào thư viện..."}
+                      title={effectiveResultAssetId ? t("saveToAlbum") : t("saving")}
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <FolderHeart className="size-3.5" />
-                      {effectiveResultAssetId ? "Lưu vào Album" : "Đang lưu..."}
+                      <span>{effectiveResultAssetId ? t("saveToAlbum") : t("saving")}</span>
                     </button>
                     {!isMobile && (
                       <button onClick={fullReset} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors ml-auto">
-                        <RefreshCw className="size-3.5" /> Thử lại
+                        <RefreshCw className="size-3.5" />
+                        <span>{t("retryBtn")}</span>
                       </button>
                     )}
                   </div>
@@ -695,10 +700,10 @@ function StudioPageInner() {
                 <div className="flex items-center gap-3 w-full rounded-3xl border border-destructive/30 bg-destructive/5 p-5">
                   <AlertCircle className="size-5 text-destructive shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-destructive">Xử lý thất bại</p>
+                    <p className="text-sm font-medium text-destructive">{t("processingFailed")}</p>
                     <p className="text-xs text-muted-foreground truncate">{jobError}</p>
                   </div>
-                  <button onClick={fullReset} className="text-xs underline text-muted-foreground hover:text-foreground">Thử lại</button>
+                  <button onClick={fullReset} className="text-xs underline text-muted-foreground hover:text-foreground">{t("retryBtn")}</button>
                 </div>
               </div>
 
@@ -737,7 +742,7 @@ function StudioPageInner() {
                   }`}
                 >
                   <tool.Icon className="size-3.5" />
-                  {tool.name}
+                  <span>{t(`tools.${tool.id}`)}</span>
                 </button>
               ))}
             </div>
@@ -749,13 +754,14 @@ function StudioPageInner() {
             </button>
             <div className="shrink-0 flex items-center gap-2 px-3 py-2.5 border-l border-border/40">
               <span className="hidden sm:block text-[11px] font-semibold text-foreground">
-                {isFakeAI ? "0 credits (Fake AI)" : `${currentCost} credit${currentCost > 1 ? "s" : ""}`}
+                {isFakeAI ? t("fakeAiCredits") : t(currentCost > 1 ? "creditPlural" : "creditSingle", { count: currentCost })}
               </span>
               <button
                 onClick={() => setGuideToolId(selectedTool)}
                 className="cursor-pointer flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-secondary/60 text-muted-foreground text-xs font-medium hover:text-foreground hover:bg-secondary transition-colors whitespace-nowrap"
               >
-                <BookOpen className="size-3.5" /> Hướng dẫn
+                <BookOpen className="size-3.5" />
+                <span>{t("guide")}</span>
               </button>
             </div>
           </div>
