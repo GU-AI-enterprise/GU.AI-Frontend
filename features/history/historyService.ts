@@ -21,7 +21,7 @@ export interface Transaction {
   provider: string;
   status: string;
   created_at: string;
-  package?: { name: string; credits: number };
+  package?: { name: string; credit_amount: number };
 }
 
 export interface HistoryData {

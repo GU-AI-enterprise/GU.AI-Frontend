@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Sparkles, Image as ImageIcon, FolderHeart, Clock,
   ArrowRight, Coins, Upload, CheckCircle2, XCircle,
-  Loader2, Shirt, Wand2,
+  Loader2, History,
 } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import { selectCreditBalance } from "@/features/credit/creditSlice";
@@ -23,15 +23,19 @@ const JOB_TYPE_LABEL: Record<string, string> = {
   generate:         "Generate",
 };
 
-const JOB_TYPE_ICON: Record<string, React.ReactNode> = {
-  try_on:           <Shirt className="size-4 text-primary" />,
-  try_on_max:       <Shirt className="size-4 text-violet-500" />,
-  product_to_model: <Wand2 className="size-4 text-amber-500" />,
-  edit:             <Sparkles className="size-4 text-blue-500" />,
-  remove_bg:        <ImageIcon className="size-4 text-emerald-500" />,
-  default:          <Sparkles className="size-4 text-muted-foreground" />,
+const STATUS_PILL: Record<string, { icon: React.ReactNode; cls: string; label: string }> = {
+  completed:  { icon: <CheckCircle2 className="size-3" />,        cls: "bg-emerald-500/10 text-emerald-500", label: "Hoàn thành" },
+  failed:     { icon: <XCircle className="size-3" />,              cls: "bg-red-500/10 text-red-500",         label: "Thất bại" },
+  processing: { icon: <Loader2 className="size-3 animate-spin" />, cls: "bg-amber-500/10 text-amber-500",     label: "Đang xử lý" },
 };
 
+const QUICK_LINKS = [
+  { href: "/studio",              icon: Sparkles,    title: "AI Studio",      desc: "Try-on, tạo model, chỉnh ảnh" },
+  { href: "/archive/gallery",     icon: ImageIcon,   title: "Tất cả ảnh",     desc: "Quản lý kho ảnh của bạn" },
+  { href: "/archive/collections", icon: FolderHeart, title: "Bộ sưu tập",    desc: "Sắp xếp ảnh thành album" },
+  { href: "/archive/upload",      icon: Upload,      title: "Upload ảnh",     desc: "Tải lên kho lưu trữ" },
+  { href: "/pricing",             icon: Coins,       title: "Nạp credits",   desc: "Mua thêm credits sử dụng" },
+];
 
 export default function DashboardPage() {
   const { user } = useAppSelector((s) => s.auth);
@@ -47,7 +51,7 @@ export default function DashboardPage() {
   const completedJobs = recentJobs.filter(j => j.status === "completed").length;
 
   return (
-    <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-8">
+    <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
 
       {/* ── Greeting ── */}
       <div>
@@ -59,191 +63,113 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* ── Stats row ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={<Coins className="size-5 text-primary" />}
-          bg="bg-primary/10"
+      {/* ── Stat strip ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 rounded-lg border border-border divide-x divide-y sm:divide-y-0 divide-border overflow-hidden">
+        <StatCell
+          icon={<Coins className="size-4 text-primary" />}
           label="Credits còn lại"
           value={credit !== null ? credit.toLocaleString() : "—"}
-          sub={<Link href="/pricing" className="text-[11px] text-primary hover:underline">Nạp thêm</Link>}
+          href="/pricing"
+          linkLabel="Nạp thêm"
         />
-        <StatCard
-          icon={<ImageIcon className="size-5 text-blue-500" />}
-          bg="bg-blue-500/10"
+        <StatCell
+          icon={<ImageIcon className="size-4 text-blue-500" />}
           label="Ảnh đã lưu"
           value={statsLoading ? "…" : (imageCount ?? 0).toString()}
-          sub={<Link href="/archive/gallery" className="text-[11px] text-muted-foreground hover:text-foreground">Xem kho →</Link>}
+          href="/archive/gallery"
+          linkLabel="Xem kho"
         />
-        <StatCard
-          icon={<FolderHeart className="size-5 text-amber-500" />}
-          bg="bg-amber-500/10"
+        <StatCell
+          icon={<FolderHeart className="size-4 text-amber-500" />}
           label="Bộ sưu tập"
           value={statsLoading ? "…" : (collectionCount ?? 0).toString()}
-          sub={<Link href="/archive/collections" className="text-[11px] text-muted-foreground hover:text-foreground">Xem album →</Link>}
+          href="/archive/collections"
+          linkLabel="Xem album"
         />
-        <StatCard
-          icon={<CheckCircle2 className="size-5 text-emerald-500" />}
-          bg="bg-emerald-500/10"
-          label="Tác vụ gần đây"
+        <StatCell
+          icon={<CheckCircle2 className="size-4 text-emerald-500" />}
+          label="Tác vụ hoàn thành"
           value={statsLoading ? "…" : completedJobs.toString()}
-          sub={<Link href="/history" className="text-[11px] text-muted-foreground hover:text-foreground">Xem lịch sử →</Link>}
+          href="/history"
+          linkLabel="Xem lịch sử"
         />
       </div>
 
       {/* ── Main grid ── */}
       <div className="grid lg:grid-cols-3 gap-6">
 
-        {/* Left: Quick actions + Recent jobs */}
-        <div className="lg:col-span-2 space-y-6">
-
-          {/* Quick actions */}
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
-              Thao tác nhanh
+        {/* Left: Recent AI jobs table */}
+        <div className="lg:col-span-2 rounded-lg border border-border overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <h2 className="text-sm font-semibold flex items-center gap-2">
+              <History className="size-4 text-muted-foreground" />
+              Tác vụ AI gần đây
             </h2>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {[
-                { href: "/studio",      icon: <Sparkles className="size-5 text-primary" />,      bg: "bg-primary/10",     title: "AI Studio",       desc: "Try-on, tạo model, chỉnh ảnh" },
-                { href: "/archive/gallery",    icon: <ImageIcon className="size-5 text-blue-500" />,    bg: "bg-blue-500/10",    title: "Tất cả ảnh",      desc: "Quản lý kho ảnh của bạn" },
-                { href: "/archive/collections",icon: <FolderHeart className="size-5 text-amber-500" />, bg: "bg-amber-500/10",   title: "Bộ sưu tập",      desc: "Sắp xếp ảnh thành album" },
-                { href: "/history",            icon: <Clock className="size-5 text-emerald-500" />,     bg: "bg-emerald-500/10", title: "Lịch sử tác vụ",  desc: "Xem kết quả AI đã tạo" },
-              ].map(({ href, icon, bg, title, desc }) => (
-                <Link key={href} href={href}
-                  className="group flex items-center gap-3 p-4 rounded-xl border border-border/60 bg-background hover:border-primary/30 hover:bg-primary/5 transition-all"
-                >
-                  <div className={`size-10 rounded-xl ${bg} flex items-center justify-center shrink-0`}>{icon}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium group-hover:text-primary transition-colors">{title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{desc}</p>
-                  </div>
-                  <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-                </Link>
-              ))}
-            </div>
+            <Link href="/history" className="text-xs text-primary hover:underline flex items-center gap-1">
+              Xem tất cả <ArrowRight className="size-3" />
+            </Link>
           </div>
 
-          {/* Recent AI jobs */}
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Tác vụ AI gần đây
-              </h2>
-              <Link href="/history" className="text-xs text-primary hover:underline flex items-center gap-1">
-                Xem tất cả <ArrowRight className="size-3" />
+          {statsLoading ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
+              <Loader2 className="size-5 animate-spin mr-2" /> Đang tải...
+            </div>
+          ) : recentJobs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Sparkles className="size-8 text-primary/40 mb-3" />
+              <p className="text-sm font-medium text-muted-foreground">Chưa có tác vụ nào</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Hãy thử tính năng AI Studio!</p>
+              <Link href="/studio"
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
+              >
+                <Sparkles className="size-3.5" /> Dùng thử Studio
               </Link>
             </div>
-
-            {statsLoading ? (
-              <div className="flex items-center justify-center py-8 text-muted-foreground">
-                <Loader2 className="size-5 animate-spin mr-2" /> Đang tải...
-              </div>
-            ) : recentJobs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center">
-                <Sparkles className="size-8 text-primary/40 mb-3" />
-                <p className="text-sm font-medium text-muted-foreground">Chưa có tác vụ nào</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">Hãy thử tính năng AI Studio!</p>
-                <Link href="/studio"
-                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
-                >
-                  <Sparkles className="size-3.5" /> Dùng thử Studio
-                </Link>
-              </div>
-            ) : (
-              <div className="divide-y divide-border/50">
-                {recentJobs.map((job) => (
-                  <div key={job.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                    <div className="size-8 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-                      {JOB_TYPE_ICON[job.type] ?? JOB_TYPE_ICON.default}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {JOB_TYPE_LABEL[job.type] ?? job.type}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{timeAgo(job.created_at)}</p>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {job.status === "completed" && (
-                        <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900">
-                          <CheckCircle2 className="size-3" /> Xong
+          ) : (
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Tác vụ</th>
+                  <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Trạng thái</th>
+                  <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Thời gian</th>
+                  <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">Credit</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentJobs.map((job) => {
+                  const pill = STATUS_PILL[job.status] ?? { icon: <Clock className="size-3" />, cls: "bg-secondary text-muted-foreground", label: job.status };
+                  return (
+                    <tr key={job.id} className="border-b border-border last:border-b-0 hover:bg-secondary/30 transition-colors">
+                      <td className="px-4 py-3 text-xs font-medium text-foreground">{JOB_TYPE_LABEL[job.type] ?? job.type}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${pill.cls}`}>
+                          {pill.icon}{pill.label}
                         </span>
-                      )}
-                      {job.status === "failed" && (
-                        <span className="flex items-center gap-1 text-[11px] font-medium text-red-600 bg-red-50 dark:bg-red-950/40 px-2 py-0.5 rounded-full border border-red-100 dark:border-red-900">
-                          <XCircle className="size-3" /> Thất bại
-                        </span>
-                      )}
-                      {job.status === "processing" && (
-                        <span className="flex items-center gap-1 text-[11px] font-medium text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full border border-blue-100 dark:border-blue-900">
-                          <Loader2 className="size-3 animate-spin" /> Đang xử lý
-                        </span>
-                      )}
-                      <span className="text-[11px] text-muted-foreground font-mono">-{job.credit_cost}cr</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{timeAgo(job.created_at)}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground text-right font-mono">-{job.credit_cost}cr</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
 
-        {/* Right: Credit card + go to studio CTA */}
-        <div className="space-y-5">
-
-          {/* Credit card */}
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="size-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Coins className="size-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Credits</p>
-                <p className="text-xs text-muted-foreground">Số dư hiện tại</p>
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-foreground tabular-nums mb-1">
-              {credit !== null ? credit.toLocaleString() : "—"}
-            </p>
-            <p className="text-xs text-muted-foreground mb-4">credits</p>
-            <Link
-              href="/pricing"
-              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+        {/* Right: Compact action list */}
+        <div className="rounded-lg border border-border divide-y divide-border overflow-hidden self-start">
+          {QUICK_LINKS.map(({ href, icon: Icon, title, desc }) => (
+            <Link key={href} href={href}
+              className="group flex items-center gap-3 px-4 py-3 hover:bg-secondary/30 transition-colors"
             >
-              <Coins className="size-4" /> Nạp thêm credits
+              <Icon className="size-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors">{title}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{desc}</p>
+              </div>
+              <ArrowRight className="size-3.5 text-muted-foreground/50 group-hover:text-primary transition-colors shrink-0" />
             </Link>
-          </div>
-
-          {/* Studio CTA */}
-          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/8 to-violet-500/5 p-5">
-            <div className="size-10 rounded-xl bg-primary/15 flex items-center justify-center mb-3">
-              <Sparkles className="size-5 text-primary" />
-            </div>
-            <p className="text-sm font-semibold text-foreground mb-1">Bắt đầu tạo ảnh AI</p>
-            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-              Dùng Try-On, Product to Model và các công cụ AI thời trang ngay hôm nay.
-            </p>
-            <Link
-              href="/studio"
-              className="flex items-center gap-2 text-xs font-semibold text-primary hover:gap-3 transition-all"
-            >
-              Vào AI Studio <ArrowRight className="size-3.5" />
-            </Link>
-          </div>
-
-          {/* Upload shortcut */}
-          <Link
-            href="/archive/upload"
-            className="flex items-center gap-3 p-4 rounded-2xl border border-border bg-card hover:border-primary/30 hover:bg-primary/5 transition-all group"
-          >
-            <div className="size-9 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-              <Upload className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium group-hover:text-primary transition-colors">Upload ảnh</p>
-              <p className="text-xs text-muted-foreground">Tải lên kho lưu trữ</p>
-            </div>
-            <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-          </Link>
+          ))}
         </div>
 
       </div>
@@ -251,23 +177,23 @@ export default function DashboardPage() {
   );
 }
 
-// ── Stat card ─────────────────────────────────────────────────────────────────
+// ── Stat cell ─────────────────────────────────────────────────────────────────
 
-function StatCard({ icon, bg, label, value, sub }: {
+function StatCell({ icon, label, value, href, linkLabel }: {
   icon: React.ReactNode;
-  bg: string;
   label: string;
   value: string;
-  sub?: React.ReactNode;
+  href: string;
+  linkLabel: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-3">
-      <div className={`size-10 rounded-xl ${bg} flex items-center justify-center`}>{icon}</div>
-      <div>
-        <p className="text-2xl font-bold text-foreground tabular-nums leading-none">{value}</p>
-        <p className="text-xs text-muted-foreground mt-1">{label}</p>
+    <Link href={href} className="group flex flex-col gap-1.5 p-4 hover:bg-secondary/30 transition-colors">
+      <div className="flex items-center gap-1.5 text-muted-foreground">
+        {icon}
+        <span className="text-[11px]">{label}</span>
       </div>
-      {sub && <div>{sub}</div>}
-    </div>
+      <p className="text-xl font-bold text-foreground tabular-nums leading-none">{value}</p>
+      <span className="text-[10px] text-muted-foreground group-hover:text-primary transition-colors">{linkLabel} →</span>
+    </Link>
   );
 }

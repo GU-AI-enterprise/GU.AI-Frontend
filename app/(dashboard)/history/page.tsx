@@ -4,8 +4,6 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   History,
-  Sparkles,
-  DollarSign,
   Clock,
   CheckCircle2,
   XCircle,
@@ -23,6 +21,7 @@ import GuaiLoader from "@/components/shared/guai-loader";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useHistoryData } from "@/features/history/hooks";
 import type { AIJob, Transaction } from "@/features/history/historyService";
+import { timeAgo } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -60,139 +59,202 @@ function formatInputParams(params?: Record<string, unknown>): [string, string][]
     .map(([k, v]) => [labelMap[k] ?? k, String(v)]);
 }
 
-// ─── JobCard ─────────────────────────────────────────────────────────────────
+// Build a compact page list with ellipsis: 1 2 3 4 5 … N
+function buildPageList(page: number, totalPages: number): (number | "...")[] {
+  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+  const pages = new Set<number>([1, 2, totalPages - 1, totalPages, page - 1, page, page + 1]);
+  const sorted = Array.from(pages).filter(p => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+  const result: (number | "...")[] = [];
+  let prev = 0;
+  for (const p of sorted) {
+    if (prev && p - prev > 1) result.push("...");
+    result.push(p);
+    prev = p;
+  }
+  return result;
+}
 
-function JobCard({ job }: { job: AIJob }) {
-  const [expanded, setExpanded] = useState(false);
+// ─── Status pill ────────────────────────────────────────────────────────────
 
-  const statusIcon = ({
-    completed: <CheckCircle2 className="size-3.5 text-green-400" />,
-    failed: <XCircle className="size-3.5 text-red-400" />,
-    processing: <RefreshCw className="size-3.5 text-primary animate-spin" />,
-    cancelled: <X className="size-3.5 text-muted-foreground" />,
-    queued: <Clock className="size-3.5 text-muted-foreground" />,
-  } as Record<string, React.ReactElement>)[job.status] ?? <Clock className="size-3.5 text-muted-foreground" />;
-
-  const statusClass = ({
-    completed: "bg-green-500/10 text-green-400 border-green-500/20",
-    failed: "bg-red-500/10 text-red-400 border-red-500/20",
-    processing: "bg-primary/10 text-primary border-primary/20",
-    cancelled: "bg-zinc-800 text-muted-foreground border-transparent",
-    queued: "bg-zinc-800 text-muted-foreground border-transparent",
-  } as Record<string, string>)[job.status] ?? "bg-zinc-800 text-muted-foreground border-transparent";
-
-  const inputRows = formatInputParams(job.input_params);
-  const duration = formatDuration(job.started_at, job.completed_at);
-  const typeLabel = JOB_TYPE_LABELS[job.type] ?? job.type;
-  const hasDetails = !!(job.started_at || job.completed_at || job.error_message || job.provider || inputRows.length);
-
+function StatusPill({ status }: { status: string }) {
+  const map: Record<string, { icon: React.ReactElement; cls: string; label: string }> = {
+    completed:  { icon: <CheckCircle2 className="size-3" />, cls: "bg-emerald-500/10 text-emerald-500", label: "Hoàn thành" },
+    success:    { icon: <CheckCircle2 className="size-3" />, cls: "bg-emerald-500/10 text-emerald-500", label: "Thành công" },
+    failed:     { icon: <XCircle className="size-3" />,      cls: "bg-red-500/10 text-red-500",        label: "Thất bại" },
+    processing: { icon: <RefreshCw className="size-3 animate-spin" />, cls: "bg-amber-500/10 text-amber-500", label: "Đang xử lý" },
+    pending:    { icon: <Clock className="size-3" />,        cls: "bg-amber-500/10 text-amber-500",    label: "Chờ xử lý" },
+    queued:     { icon: <Clock className="size-3" />,        cls: "bg-secondary text-muted-foreground", label: "Trong hàng đợi" },
+    cancelled:  { icon: <X className="size-3" />,             cls: "bg-secondary text-muted-foreground", label: "Đã hủy" },
+  };
+  const m = map[status] ?? { icon: <Clock className="size-3" />, cls: "bg-secondary text-muted-foreground", label: status };
   return (
-    <div className="rounded-2xl bg-background border border-border overflow-hidden">
-      <button
-        type="button"
-        onClick={() => hasDetails && setExpanded((p) => !p)}
-        className={`w-full p-3.5 flex items-center justify-between gap-3 text-left transition-colors ${
-          hasDetails ? "hover:bg-secondary/40 cursor-pointer" : "cursor-default"
-        }`}
-      >
-        <div className="min-w-0 flex-1">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-primary">{typeLabel}</span>
-          <p className="text-xs text-foreground font-semibold mt-0.5 font-mono">
-            {job.id.substring(0, 8)}<span className="text-muted-foreground">…</span>
-          </p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">
-            {new Date(job.created_at).toLocaleString("vi-VN")}
-          </p>
-        </div>
-
-        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-          <span className={`text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border flex items-center gap-1 ${statusClass}`}>
-            {statusIcon}
-            {job.status}
-          </span>
-          <span className="text-[10px] text-muted-foreground">{job.credit_cost} Credits</span>
-          {hasDetails && (
-            expanded
-              ? <ChevronUp className="size-3 text-muted-foreground" />
-              : <ChevronDown className="size-3 text-muted-foreground" />
-          )}
-        </div>
-      </button>
-
-      <AnimatePresence initial={false}>
-        {expanded && hasDetails && (
-          <motion.div
-            key="detail"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            className="overflow-hidden"
-          >
-            <div className="px-3.5 pb-3.5 pt-1 border-t border-border space-y-2.5 text-[11px]">
-              <div className="grid grid-cols-2 gap-2">
-                {job.started_at && (
-                  <div>
-                    <p className="text-muted-foreground mb-0.5">Bắt đầu xử lý</p>
-                    <p className="text-foreground font-medium">
-                      {new Date(job.started_at).toLocaleTimeString("vi-VN")}
-                    </p>
-                  </div>
-                )}
-                {job.completed_at && (
-                  <div>
-                    <p className="text-muted-foreground mb-0.5">Hoàn thành</p>
-                    <p className="text-foreground font-medium">
-                      {new Date(job.completed_at).toLocaleTimeString("vi-VN")}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                {duration && (
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Clock className="size-3" />
-                    <span>Thời gian: <span className="text-foreground font-medium">{duration}</span></span>
-                  </div>
-                )}
-                {job.provider && (
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Cpu className="size-3" />
-                    <span>Provider: <span className="text-foreground font-medium capitalize">{job.provider}</span></span>
-                  </div>
-                )}
-              </div>
-
-              {inputRows.length > 0 && (
-                <div>
-                  <p className="text-muted-foreground mb-1.5">Tham số</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {inputRows.map(([label, value]) => (
-                      <span key={label} className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[10px]">
-                        <span className="text-muted-foreground">{label}:</span>
-                        <span className="text-foreground font-medium">{value}</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {job.error_message && job.status === "failed" && (
-                <div className="flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-red-400">
-                  <AlertCircle className="size-3.5 mt-0.5 flex-shrink-0" />
-                  <p className="leading-relaxed break-words">{job.error_message}</p>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${m.cls}`}>
+      {m.icon}{m.label}
+    </span>
   );
 }
 
-// ─── Pagination ──────────────────────────────────────────────────────────────
+// ─── AI Jobs table ──────────────────────────────────────────────────────────
+
+function JobsTable({ jobs, loading, hasDateFilter }: { jobs: AIJob[]; loading: boolean; hasDateFilter: boolean }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-16"><GuaiLoader size="sm" text="Đang tải..." /></div>;
+  }
+  if (jobs.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <p className="text-xs text-muted-foreground">
+          {hasDateFilter ? "Không có tác vụ trong khoảng thời gian này." : "Chưa thực hiện tác vụ AI nào."}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <table className="w-full text-left">
+      <thead>
+        <tr className="border-b border-border bg-muted/40">
+          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Tác vụ</th>
+          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Trạng thái</th>
+          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Bắt đầu</th>
+          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Hoàn thành</th>
+          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Thời lượng</th>
+          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">Credit</th>
+          <th className="w-8" />
+        </tr>
+      </thead>
+      <tbody>
+        {jobs.map((job) => {
+          const inputRows = formatInputParams(job.input_params);
+          const duration = formatDuration(job.started_at, job.completed_at);
+          const typeLabel = JOB_TYPE_LABELS[job.type] ?? job.type;
+          const hasDetails = !!(job.started_at || job.completed_at || job.error_message || job.provider || inputRows.length);
+          const expanded = expandedId === job.id;
+
+          return (
+            <React.Fragment key={job.id}>
+              <tr
+                onClick={() => hasDetails && setExpandedId(expanded ? null : job.id)}
+                className={`border-b border-border transition-colors ${hasDetails ? "hover:bg-secondary/30 cursor-pointer" : ""}`}
+              >
+                <td className="px-4 py-3">
+                  <p className="text-xs font-medium text-foreground">{typeLabel}</p>
+                  <p className="text-[10px] font-mono text-muted-foreground mt-0.5">{job.id.slice(0, 8)}…</p>
+                </td>
+                <td className="px-4 py-3"><StatusPill status={job.status} /></td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{timeAgo(job.created_at)}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{job.completed_at ? timeAgo(job.completed_at) : "—"}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{duration ?? "—"}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground text-right">{job.credit_cost} cr</td>
+                <td className="px-2 py-3 text-right">
+                  {hasDetails && (
+                    expanded
+                      ? <ChevronUp className="size-3.5 text-muted-foreground inline" />
+                      : <ChevronDown className="size-3.5 text-muted-foreground inline" />
+                  )}
+                </td>
+              </tr>
+              <AnimatePresence initial={false}>
+                {expanded && hasDetails && (
+                  <tr>
+                    <td colSpan={7} className="p-0 border-b border-border">
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.18 }}
+                        className="overflow-hidden bg-secondary/20"
+                      >
+                        <div className="px-4 py-3.5 space-y-2.5 text-[11px]">
+                          <div className="flex flex-wrap gap-4">
+                            {duration && (
+                              <div className="flex items-center gap-1.5 text-muted-foreground">
+                                <Clock className="size-3" />
+                                <span>Thời gian: <span className="text-foreground font-medium">{duration}</span></span>
+                              </div>
+                            )}
+                            {job.provider && (
+                              <div className="flex items-center gap-1.5 text-muted-foreground">
+                                <Cpu className="size-3" />
+                                <span>Provider: <span className="text-foreground font-medium capitalize">{job.provider}</span></span>
+                              </div>
+                            )}
+                          </div>
+
+                          {inputRows.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {inputRows.map(([label, value]) => (
+                                <span key={label} className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[10px]">
+                                  <span className="text-muted-foreground">{label}:</span>
+                                  <span className="text-foreground font-medium">{value}</span>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {job.error_message && job.status === "failed" && (
+                            <div className="flex items-start gap-2 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-red-500">
+                              <AlertCircle className="size-3.5 mt-0.5 flex-shrink-0" />
+                              <p className="leading-relaxed break-words">{job.error_message}</p>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    </td>
+                  </tr>
+                )}
+              </AnimatePresence>
+            </React.Fragment>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+// ─── Transactions table ─────────────────────────────────────────────────────
+
+function TransactionsTable({ transactions }: { transactions: Transaction[] }) {
+  if (transactions.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <p className="text-xs text-muted-foreground">Chưa có giao dịch nào.</p>
+      </div>
+    );
+  }
+
+  return (
+    <table className="w-full text-left">
+      <thead>
+        <tr className="border-b border-border bg-muted/40">
+          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Gói</th>
+          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Trạng thái</th>
+          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Số tiền</th>
+          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">Credit</th>
+          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">Thời gian</th>
+        </tr>
+      </thead>
+      <tbody>
+        {transactions.map((tx) => (
+          <tr key={tx.id} className="border-b border-border hover:bg-secondary/30 transition-colors">
+            <td className="px-4 py-3">
+              <p className="text-xs font-medium text-foreground">{tx.package?.name || "Gói nạp Credit"}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5 capitalize">{tx.provider}</p>
+            </td>
+            <td className="px-4 py-3"><StatusPill status={tx.status} /></td>
+            <td className="px-4 py-3 text-xs text-muted-foreground">{tx.amount.toLocaleString("vi-VN")} VNĐ</td>
+            <td className="px-4 py-3 text-xs text-emerald-500 text-right">+{tx.package?.credit_amount || 0}</td>
+            <td className="px-4 py-3 text-xs text-muted-foreground text-right">{timeAgo(tx.created_at)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+// ─── Pagination (numbered, flat) ────────────────────────────────────────────
 
 function Pagination({
   page,
@@ -209,27 +271,34 @@ function Pagination({
 }) {
   const from = total === 0 ? 0 : (page - 1) * limit + 1;
   const to = Math.min(page * limit, total);
+  const pages = buildPageList(page, totalPages || 1);
 
   return (
-    <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground select-none">
-      <span className="text-[11px]">
-        {total === 0 ? "0 kết quả" : `${from}–${to} / ${total}`}
-      </span>
-      <div className="flex items-center gap-1">
+    <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground select-none">
+      <span className="text-[11px]">{total === 0 ? "0 kết quả" : `${from}–${to} / ${total}`}</span>
+      <div className="flex items-center gap-3">
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="flex size-7 items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronLeft className="size-3.5" />
         </button>
-        <span className="min-w-[56px] text-center text-[11px] font-medium text-foreground">
-          {page} / {totalPages || 1}
-        </span>
+        {pages.map((p, i) => p === "..." ? (
+          <span key={`e${i}`} className="text-[11px] text-muted-foreground/60">…</span>
+        ) : (
+          <button
+            key={p}
+            onClick={() => onPageChange(p)}
+            className={`text-[11px] transition-colors ${p === page ? "text-foreground font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            {p}
+          </button>
+        ))}
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="flex size-7 items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronRight className="size-3.5" />
         </button>
@@ -242,9 +311,12 @@ function Pagination({
 
 const PAGE_SIZE = 10;
 
+type Tab = "jobs" | "transactions";
+
 export default function HistoryPage() {
   const authReady = useRequireAuth();
   const { aiJobs, transactions, loading, totalPages: jobTotalPages, total: jobTotal, fetch: fetchHistory } = useHistoryData();
+  const [activeTab, setActiveTab] = useState<Tab>("jobs");
   const [jobPage, setJobPage] = useState(1);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -277,14 +349,6 @@ export default function HistoryPage() {
     fetchHistory(page, dateFrom, dateTo);
   };
 
-  const txStatusClass = (status: string) => {
-    if (status === "success")   return "bg-green-500/10 text-green-400 border border-green-500/20";
-    if (status === "pending")   return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
-    if (status === "failed")    return "bg-red-500/10 text-red-400 border border-red-500/20";
-    if (status === "cancelled") return "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20";
-    return "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20";
-  };
-
   if (!authReady) {
     return (
       <div className="flex h-full w-full items-center justify-center">
@@ -308,143 +372,67 @@ export default function HistoryPage() {
         </p>
       </div>
 
-      {/* Grid */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* ── AI Jobs Card ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col rounded-3xl border border-border bg-card overflow-hidden min-h-[380px]"
-        >
-          {/* Card header */}
-          <div className="flex-shrink-0 px-5 pt-5 pb-4 border-b border-border space-y-3">
-            <h3 className="text-sm font-bold flex items-center gap-2">
-              <Sparkles className="size-4 text-primary" />
-              Lịch sử tác vụ AI
-            </h3>
+      {/* Card */}
+      <div className="flex-1 min-h-0 flex flex-col rounded-lg border border-border overflow-hidden">
+        {/* Tabs + filter */}
+        <div className="flex-shrink-0 flex flex-wrap items-center justify-between gap-3 px-4 border-b border-border">
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => setActiveTab("jobs")}
+              className={`relative py-3 text-sm font-medium transition-colors cursor-pointer ${activeTab === "jobs" ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Tác vụ AI
+              {activeTab === "jobs" && <span className="absolute -bottom-px left-0 right-0 h-px bg-foreground" />}
+            </button>
+            <button
+              onClick={() => setActiveTab("transactions")}
+              className={`relative py-3 text-sm font-medium transition-colors cursor-pointer ${activeTab === "transactions" ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Giao dịch
+              {activeTab === "transactions" && <span className="absolute -bottom-px left-0 right-0 h-px bg-foreground" />}
+            </button>
+          </div>
 
-            {/* Date filter */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <CalendarDays className="size-3.5" />
-                <span>Lọc theo ngày:</span>
-              </div>
-              <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => handleDateFrom(e.target.value)}
-                  max={dateTo || undefined}
-                  className="flex-1 min-w-0 rounded-lg border border-border bg-background px-2 py-1 text-[11px] text-foreground outline-none focus:border-primary"
-                />
-                <span className="text-[10px] text-muted-foreground flex-shrink-0">→</span>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => handleDateTo(e.target.value)}
-                  min={dateFrom || undefined}
-                  className="flex-1 min-w-0 rounded-lg border border-border bg-background px-2 py-1 text-[11px] text-foreground outline-none focus:border-primary"
-                />
-                {hasDateFilter && (
-                  <button
-                    onClick={clearDates}
-                    className="flex-shrink-0 flex size-6 items-center justify-center rounded-lg border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-                    title="Xóa bộ lọc"
-                  >
-                    <X className="size-3" />
-                  </button>
-                )}
-              </div>
+          {activeTab === "jobs" && (
+            <div className="flex items-center gap-1.5 py-2">
+              <CalendarDays className="size-3.5 text-muted-foreground" />
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => handleDateFrom(e.target.value)}
+                max={dateTo || undefined}
+                className="rounded-md border border-border bg-background px-2 py-1 text-[11px] text-foreground outline-none focus:border-foreground"
+              />
+              <span className="text-[10px] text-muted-foreground">→</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => handleDateTo(e.target.value)}
+                min={dateFrom || undefined}
+                className="rounded-md border border-border bg-background px-2 py-1 text-[11px] text-foreground outline-none focus:border-foreground"
+              />
+              {hasDateFilter && (
+                <button onClick={clearDates} className="text-muted-foreground hover:text-foreground transition-colors" title="Xóa bộ lọc">
+                  <X className="size-3.5" />
+                </button>
+              )}
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* List */}
-          <ScrollArea className="flex-1 min-h-0">
-          <div className="px-5 py-4 space-y-2.5">
-            {loading ? (
-              <div className="flex h-full items-center justify-center py-10">
-                <GuaiLoader size="sm" text="Đang tải..." />
-              </div>
-            ) : aiJobs.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center py-10 text-center">
-                <Sparkles className="size-9 mb-2 text-muted-foreground/40" />
-                <p className="text-xs text-muted-foreground">
-                  {hasDateFilter ? "Không có tác vụ trong khoảng thời gian này." : "Chưa thực hiện tác vụ AI nào."}
-                </p>
-              </div>
-            ) : (
-              aiJobs.map((job) => <JobCard key={job.id} job={job} />)
-            )}
-          </div>
-          </ScrollArea>
+        {/* Scrollable table area */}
+        <ScrollArea className="flex-1 min-h-0">
+          {activeTab === "jobs"
+            ? <JobsTable jobs={aiJobs} loading={loading} hasDateFilter={hasDateFilter} />
+            : <TransactionsTable transactions={transactions} />}
+        </ScrollArea>
 
-          {/* Pagination */}
-          <div className="flex-shrink-0 px-5 py-3 border-t border-border">
-            <Pagination
-              page={jobPage}
-              totalPages={jobTotalPages}
-              total={jobTotal}
-              limit={PAGE_SIZE}
-              onPageChange={handlePageChange}
-            />
+        {/* Pagination */}
+        {activeTab === "jobs" && (
+          <div className="flex-shrink-0 px-4 py-3 border-t border-border">
+            <Pagination page={jobPage} totalPages={jobTotalPages} total={jobTotal} limit={PAGE_SIZE} onPageChange={handlePageChange} />
           </div>
-        </motion.div>
-
-        {/* ── Transactions Card ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.08 }}
-          className="flex flex-col rounded-3xl border border-border bg-card overflow-hidden min-h-[380px]"
-        >
-          {/* Card header */}
-          <div className="flex-shrink-0 px-5 pt-5 pb-4 border-b border-border">
-            <h3 className="text-sm font-bold flex items-center gap-2">
-              <DollarSign className="size-4 text-emerald-400" />
-              Lịch sử giao dịch
-            </h3>
-          </div>
-
-          {/* List */}
-          <ScrollArea className="flex-1 min-h-0">
-          <div className="px-5 py-4 space-y-2.5">
-            {transactions.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center py-10 text-center">
-                <DollarSign className="size-9 mb-2 text-muted-foreground/40" />
-                <p className="text-xs text-muted-foreground">Chưa có giao dịch nào.</p>
-              </div>
-            ) : (
-              transactions.map((tx) => (
-                <div
-                  key={tx.id}
-                  className="p-3.5 rounded-2xl bg-background border border-border flex items-center justify-between gap-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                      {tx.package?.name || "Gói nạp Credit"}
-                    </span>
-                    <p className="text-xs text-foreground font-semibold mt-0.5">
-                      {tx.amount.toLocaleString("vi-VN")} VNĐ
-                    </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {new Date(tx.created_at).toLocaleString("vi-VN")} &middot; {tx.provider}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                    <span className={`text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded ${txStatusClass(tx.status)}`}>
-                      {tx.status === "success" ? "Thành công" : tx.status}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      +{tx.package?.credits || 0} Credits
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          </ScrollArea>
-        </motion.div>
+        )}
       </div>
     </div>
   );
