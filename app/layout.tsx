@@ -8,6 +8,7 @@ import { SocketProvider } from "@/contexts/SocketContext";
 import { SupportUnreadProvider } from "@/contexts/SupportUnreadContext";
 import { Toaster } from "@/components/ui/sonner";
 import StoreProvider from "@/store/StoreProvider";
+import { DomResilience } from "@/components/providers/DomResilience";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,6 +51,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary">
+        <DomResilience />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <StoreProvider>
             <AuthProvider>

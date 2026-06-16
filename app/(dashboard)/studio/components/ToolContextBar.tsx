@@ -39,6 +39,7 @@ function DropdownBtn<T extends string | number>({
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
+        translate="no"
         className="cursor-pointer flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border/60 bg-background hover:bg-secondary/50 text-xs text-foreground transition-colors whitespace-nowrap"
       >
         {label && <span className="text-muted-foreground mr-0.5">{label}</span>}
@@ -76,13 +77,13 @@ function RunBtn({ onClick, disabled, isProcessing }: {
     <button
       onClick={onClick}
       disabled={disabled}
+      translate="no"
       className="cursor-pointer flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-foreground text-background text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-all whitespace-nowrap"
     >
-      {isProcessing ? (
-        <><Loader2 className="size-3.5 animate-spin" />Đang chạy</>
-      ) : (
-        <><Sparkles className="size-3.5" />Chạy</>
-      )}
+      {isProcessing
+        ? <Loader2 className="size-3.5 animate-spin" />
+        : <Sparkles className="size-3.5" />}
+      <span>{isProcessing ? "Đang chạy" : "Chạy"}</span>
     </button>
   );
 }
@@ -98,6 +99,7 @@ function ActionBtn({ icon: Icon, label, active, onClick }: {
   return (
     <button
       onClick={onClick}
+      translate="no"
       className={cn(
         "cursor-pointer flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors whitespace-nowrap",
         active

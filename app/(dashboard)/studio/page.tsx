@@ -561,7 +561,7 @@ function StudioPageInner() {
   }
 
   return (
-    <div className="w-full h-[100%] bg-background text-foreground flex flex-col overflow-hidden">
+    <div translate="no" className="w-full h-[100%] bg-background text-foreground flex flex-col overflow-hidden">
 
       {/* ── Content area ── */}
       <div className="flex-1 min-h-0 flex items-center justify-center px-3 py-3 sm:px-6 sm:py-4">
