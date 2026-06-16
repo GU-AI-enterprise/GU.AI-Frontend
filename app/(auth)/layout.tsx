@@ -8,7 +8,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       {/* ── Left: Banner image ───────────────────────────────────────────── */}
       <div className="relative hidden lg:flex lg:w-[52%] xl:w-[56%] flex-shrink-0">
         <Image
-          src="/images/login_banner.jpg"
+          src="/images/login_banner2.png"
           alt="GU.AI Fashion Studio"
           fill
           className="object-cover"
