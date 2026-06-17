@@ -348,7 +348,9 @@ export default function LibraryPage() {
 
       {/* ── Header ── */}
       <div className="mb-7">
-        <h1 className="text-2xl font-bold text-foreground tracking-tight mb-1">Thư viện</h1>
+        <h1 className="font-serif text-3xl font-light text-foreground tracking-tight mb-1">
+          Thư <span className="font-normal italic text-primary">viện</span>
+        </h1>
         <p className="text-sm text-muted-foreground">
           Người mẫu, dáng ảnh, prompt mẫu và background để tham khảo và dùng nhanh trong Studio
         </p>

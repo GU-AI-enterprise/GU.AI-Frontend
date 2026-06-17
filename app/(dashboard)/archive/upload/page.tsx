@@ -177,9 +177,9 @@ export default function UploadPage() {
       <div className="mx-auto max-w-4xl px-6 py-10 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground flex items-center gap-3">
+          <h1 className="font-serif text-3xl font-light tracking-tight text-foreground flex items-center gap-3">
             <UploadCloud className="size-7 text-primary" />
-            Upload hàng loạt
+            Upload <span className="font-normal italic text-primary">hàng loạt</span>
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Kéo thả hoặc chọn nhiều ảnh để tải lên thư viện.

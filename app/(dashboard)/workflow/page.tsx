@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Zap, Send, Plus, BotMessageSquare } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import { selectCreditBalance } from "@/features/credit/creditSlice";
+import { useSidebar } from "@/contexts/SidebarContext";
 import { toast } from "sonner";
 
 import { GalleryModal }  from "@/features/workflow/components/gallery-modal";
@@ -25,6 +26,7 @@ import type {
 export default function WorkflowPage() {
   const { user } = useAppSelector((s) => s.auth);
   const credit    = useAppSelector(selectCreditBalance);
+  const { isMobile } = useSidebar();
 
   const displayName = user?.user_metadata?.full_name
     || user?.user_metadata?.name
@@ -42,7 +44,13 @@ export default function WorkflowPage() {
 
   const [history, setHistory]               = useState<WorkflowHistory[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const [toolMeta, setToolMeta]             = useState<Record<string, { label: string; credit: number }>>({});
+
+  // Default to fully collapsed on mobile, same as the main sidebar
+  useEffect(() => {
+    if (isMobile) setHistoryCollapsed(true);
+  }, [isMobile]);
 
   const planRef       = useRef<WorkflowPlan | null>(null);
   const sentImagesRef = useRef<Record<string, string>>({});
@@ -351,7 +359,12 @@ export default function WorkflowPage() {
       </div>
 
       {/* ── Right: History panel ── */}
-      <HistoryPanel history={history} loading={historyLoading} />
+      <HistoryPanel
+        history={history}
+        loading={historyLoading}
+        collapsed={historyCollapsed}
+        onToggleCollapse={() => setHistoryCollapsed((v) => !v)}
+      />
 
       {/* Gallery modal */}
       {gallerySlot !== null && (

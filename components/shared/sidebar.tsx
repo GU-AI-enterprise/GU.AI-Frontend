@@ -37,6 +37,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import SupportChatWidget from "@/components/support/support-chat-widget";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { fetchCredit, selectCreditBalance, setPlanType, selectPlanType } from "@/features/credit/creditSlice";
+import { PLAN_VISUALS } from "@/features/credit/planMeta";
+import { PlanBadgeWrap, PlanAvatarRing } from "@/features/credit/PlanGlow";
 import { getTopupInfo } from "@/features/payment/paymentService";
 import { supabase } from "@/lib/supabase";
 import { useSupportUnread } from "@/contexts/SupportUnreadContext";
@@ -173,13 +175,8 @@ export default function Sidebar() {
   const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
   const initials = displayName.charAt(0).toUpperCase();
 
-  const PLAN_META = {
-    free: { label: 'Free', color: 'text-slate-400', bg: 'bg-slate-400/10', dot: 'bg-slate-400' },
-    basic: { label: 'Basic', color: 'text-blue-400', bg: 'bg-blue-400/10', dot: 'bg-blue-400' },
-    pro: { label: 'Pro', color: 'text-violet-400', bg: 'bg-violet-400/10', dot: 'bg-violet-400' },
-    agency: { label: 'Agency', color: 'text-amber-400', bg: 'bg-amber-400/10', dot: 'bg-amber-400' },
-  } as const;
-  const plan = PLAN_META[planType];
+  const plan = PLAN_VISUALS[planType];
+  const avatarBorderClass = plan.ringClass ? "" : "border-2 border-border/60";
 
   return (
     <>
@@ -363,7 +360,7 @@ export default function Sidebar() {
                 >
                   <Coins className="size-4" />
                   {planType !== 'free' && (
-                    <span className={`absolute -top-1 -right-1 size-2.5 rounded-full border-2 border-sidebar ${plan.dot}`} />
+                    <span className={`absolute -top-1 -right-1 size-2.5 rounded-full border-2 border-sidebar ${plan.dotClass}`} />
                   )}
                 </Link>
               </div>
@@ -441,14 +438,16 @@ export default function Sidebar() {
           >
             {/* Avatar */}
             <div className="shrink-0 relative">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={displayName} referrerPolicy="no-referrer"
-                  className="size-8 rounded-full object-cover border-2 border-border/60" />
-              ) : (
-                <div className="size-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground border-2 border-primary/20">
-                  {initials}
-                </div>
-              )}
+              <PlanAvatarRing planType={planType}>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={displayName} referrerPolicy="no-referrer"
+                    className={`size-8 rounded-full object-cover ${avatarBorderClass}`} />
+                ) : (
+                  <div className={`size-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground ${avatarBorderClass}`}>
+                    {initials}
+                  </div>
+                )}
+              </PlanAvatarRing>
               {unreadCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-sidebar border-0 leading-none">
                   {unreadCount > 9 ? "9+" : unreadCount}
@@ -462,10 +461,10 @@ export default function Sidebar() {
                 <div className="flex-1 min-w-0 text-left">
                   <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">{displayName}</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className={`shrink-0 inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${plan.bg} ${plan.color}`}>
-                      <span className={`size-1 rounded-full ${plan.dot}`} />
+                    <PlanBadgeWrap planType={planType} className="shrink-0 inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                      <span className={`size-1 rounded-full ${plan.dotClass}`} />
                       {plan.label}
-                    </span>
+                    </PlanBadgeWrap>
                     <p className="text-[11px] text-sidebar-foreground/50 truncate leading-tight">{email}</p>
                   </div>
                 </div>
@@ -528,21 +527,23 @@ export default function Sidebar() {
         >
           {/* User info header */}
           <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={displayName} referrerPolicy="no-referrer"
-                className="size-9 rounded-full object-cover border border-border/60 shrink-0" />
-            ) : (
-              <div className="size-9 rounded-full bg-primary flex items-center justify-center text-sm font-bold text-primary-foreground shrink-0">
-                {initials}
-              </div>
-            )}
+            <PlanAvatarRing planType={planType} className="shrink-0">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={displayName} referrerPolicy="no-referrer"
+                  className={`size-9 rounded-full object-cover ${avatarBorderClass}`} />
+              ) : (
+                <div className={`size-9 rounded-full bg-primary flex items-center justify-center text-sm font-bold text-primary-foreground ${avatarBorderClass}`}>
+                  {initials}
+                </div>
+              )}
+            </PlanAvatarRing>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${plan.bg} ${plan.color}`}>
-                  <span className={`size-1.5 rounded-full ${plan.dot}`} />
+                <PlanBadgeWrap planType={planType} className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  <span className={`size-1.5 rounded-full ${plan.dotClass}`} />
                   {plan.label}
-                </span>
+                </PlanBadgeWrap>
                 <p className="text-xs text-muted-foreground truncate">{email}</p>
               </div>
             </div>

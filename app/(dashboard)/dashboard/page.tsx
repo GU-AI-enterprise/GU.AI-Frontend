@@ -55,8 +55,8 @@ export default function DashboardPage() {
 
       {/* ── Greeting ── */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Xin chào, {displayName}! 👋
+        <h1 className="font-serif text-3xl font-light tracking-tight">
+          Xin chào, <span className="font-normal italic text-primary">{displayName}</span>! 👋
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Đây là tổng quan tài khoản của bạn.
@@ -69,7 +69,7 @@ export default function DashboardPage() {
           icon={<Coins className="size-4 text-primary" />}
           label="Credits còn lại"
           value={credit !== null ? credit.toLocaleString() : "—"}
-          href="/pricing"
+          href="/topup"
           linkLabel="Nạp thêm"
         />
         <StatCell

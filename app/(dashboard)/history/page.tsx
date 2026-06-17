@@ -23,6 +23,7 @@ import { useHistoryData } from "@/features/history/hooks";
 import type { AIJob, Transaction } from "@/features/history/historyService";
 import { timeAgo } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -113,19 +114,19 @@ function JobsTable({ jobs, loading, hasDateFilter }: { jobs: AIJob[]; loading: b
   }
 
   return (
-    <table className="w-full text-left">
-      <thead>
-        <tr className="border-b border-border bg-muted/40">
-          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Tác vụ</th>
-          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Trạng thái</th>
-          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Bắt đầu</th>
-          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Hoàn thành</th>
-          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Thời lượng</th>
-          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">Credit</th>
-          <th className="w-8" />
-        </tr>
-      </thead>
-      <tbody>
+    <Table>
+      <TableHeader>
+        <TableRow className="hover:bg-transparent">
+          <TableHead>Tác vụ</TableHead>
+          <TableHead>Trạng thái</TableHead>
+          <TableHead>Bắt đầu</TableHead>
+          <TableHead>Hoàn thành</TableHead>
+          <TableHead>Thời lượng</TableHead>
+          <TableHead className="text-right">Credit</TableHead>
+          <TableHead className="w-8" />
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {jobs.map((job) => {
           const inputRows = formatInputParams(job.input_params);
           const duration = formatDuration(job.started_at, job.completed_at);
@@ -135,31 +136,31 @@ function JobsTable({ jobs, loading, hasDateFilter }: { jobs: AIJob[]; loading: b
 
           return (
             <React.Fragment key={job.id}>
-              <tr
+              <TableRow
                 onClick={() => hasDetails && setExpandedId(expanded ? null : job.id)}
-                className={`border-b border-border transition-colors ${hasDetails ? "hover:bg-secondary/30 cursor-pointer" : ""}`}
+                className={hasDetails ? "cursor-pointer" : ""}
               >
-                <td className="px-4 py-3">
+                <TableCell>
                   <p className="text-xs font-medium text-foreground">{typeLabel}</p>
                   <p className="text-[10px] font-mono text-muted-foreground mt-0.5">{job.id.slice(0, 8)}…</p>
-                </td>
-                <td className="px-4 py-3"><StatusPill status={job.status} /></td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{timeAgo(job.created_at)}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{job.completed_at ? timeAgo(job.completed_at) : "—"}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{duration ?? "—"}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground text-right">{job.credit_cost} cr</td>
-                <td className="px-2 py-3 text-right">
+                </TableCell>
+                <TableCell><StatusPill status={job.status} /></TableCell>
+                <TableCell className="text-xs text-muted-foreground">{timeAgo(job.created_at)}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{job.completed_at ? timeAgo(job.completed_at) : "—"}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{duration ?? "—"}</TableCell>
+                <TableCell className="text-xs text-muted-foreground text-right">{job.credit_cost} cr</TableCell>
+                <TableCell className="px-2 text-right">
                   {hasDetails && (
                     expanded
                       ? <ChevronUp className="size-3.5 text-muted-foreground inline" />
                       : <ChevronDown className="size-3.5 text-muted-foreground inline" />
                   )}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
               <AnimatePresence initial={false}>
                 {expanded && hasDetails && (
-                  <tr>
-                    <td colSpan={7} className="p-0 border-b border-border">
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={7} className="p-0">
                       <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
@@ -202,15 +203,15 @@ function JobsTable({ jobs, loading, hasDateFilter }: { jobs: AIJob[]; loading: b
                           )}
                         </div>
                       </motion.div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
               </AnimatePresence>
             </React.Fragment>
           );
         })}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   );
 }
 
@@ -226,31 +227,31 @@ function TransactionsTable({ transactions }: { transactions: Transaction[] }) {
   }
 
   return (
-    <table className="w-full text-left">
-      <thead>
-        <tr className="border-b border-border bg-muted/40">
-          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Gói</th>
-          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Trạng thái</th>
-          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Số tiền</th>
-          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">Credit</th>
-          <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">Thời gian</th>
-        </tr>
-      </thead>
-      <tbody>
+    <Table>
+      <TableHeader>
+        <TableRow className="hover:bg-transparent">
+          <TableHead>Gói</TableHead>
+          <TableHead>Trạng thái</TableHead>
+          <TableHead>Số tiền</TableHead>
+          <TableHead className="text-right">Credit</TableHead>
+          <TableHead className="text-right">Thời gian</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {transactions.map((tx) => (
-          <tr key={tx.id} className="border-b border-border hover:bg-secondary/30 transition-colors">
-            <td className="px-4 py-3">
+          <TableRow key={tx.id}>
+            <TableCell>
               <p className="text-xs font-medium text-foreground">{tx.package?.name || "Gói nạp Credit"}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5 capitalize">{tx.provider}</p>
-            </td>
-            <td className="px-4 py-3"><StatusPill status={tx.status} /></td>
-            <td className="px-4 py-3 text-xs text-muted-foreground">{tx.amount.toLocaleString("vi-VN")} VNĐ</td>
-            <td className="px-4 py-3 text-xs text-emerald-500 text-right">+{tx.package?.credit_amount || 0}</td>
-            <td className="px-4 py-3 text-xs text-muted-foreground text-right">{timeAgo(tx.created_at)}</td>
-          </tr>
+            </TableCell>
+            <TableCell><StatusPill status={tx.status} /></TableCell>
+            <TableCell className="text-xs text-muted-foreground">{tx.amount.toLocaleString("vi-VN")} VNĐ</TableCell>
+            <TableCell className="text-xs text-emerald-500 text-right">+{tx.package?.credit_amount || 0}</TableCell>
+            <TableCell className="text-xs text-muted-foreground text-right">{timeAgo(tx.created_at)}</TableCell>
+          </TableRow>
         ))}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   );
 }
 
@@ -315,38 +316,49 @@ type Tab = "jobs" | "transactions";
 
 export default function HistoryPage() {
   const authReady = useRequireAuth();
-  const { aiJobs, transactions, loading, totalPages: jobTotalPages, total: jobTotal, fetch: fetchHistory } = useHistoryData();
+  const {
+    aiJobs, transactions, loading,
+    totalPages: jobTotalPages, total: jobTotal,
+    txTotalPages, txTotal,
+    fetch: fetchHistory,
+  } = useHistoryData();
   const [activeTab, setActiveTab] = useState<Tab>("jobs");
   const [jobPage, setJobPage] = useState(1);
+  const [txPage, setTxPage] = useState(1);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
-    if (authReady) fetchHistory(1, "", "");
+    if (authReady) fetchHistory(1, "", "", 1);
   }, [authReady, fetchHistory]);
 
   const handleDateFrom = (val: string) => {
     setDateFrom(val);
     setJobPage(1);
-    fetchHistory(1, val, dateTo);
+    fetchHistory(1, val, dateTo, txPage);
   };
 
   const handleDateTo = (val: string) => {
     setDateTo(val);
     setJobPage(1);
-    fetchHistory(1, dateFrom, val);
+    fetchHistory(1, dateFrom, val, txPage);
   };
 
   const clearDates = () => {
     setDateFrom("");
     setDateTo("");
     setJobPage(1);
-    fetchHistory(1, "", "");
+    fetchHistory(1, "", "", txPage);
   };
 
   const handlePageChange = (page: number) => {
     setJobPage(page);
-    fetchHistory(page, dateFrom, dateTo);
+    fetchHistory(page, dateFrom, dateTo, txPage);
+  };
+
+  const handleTxPageChange = (page: number) => {
+    setTxPage(page);
+    fetchHistory(jobPage, dateFrom, dateTo, page);
   };
 
   if (!authReady) {
@@ -363,9 +375,9 @@ export default function HistoryPage() {
     <div className="h-full overflow-hidden flex flex-col px-6 py-8 lg:px-8">
       {/* Header */}
       <div className="flex-shrink-0 mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground flex items-center gap-3">
+        <h1 className="font-serif text-3xl font-light tracking-tight text-foreground flex items-center gap-3">
           <History className="size-7 text-primary" />
-          Lịch sử tác vụ
+          Lịch sử <span className="font-normal italic text-primary">tác vụ</span>
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Theo dõi tiến trình và lịch sử các tác vụ AI, giao dịch thanh toán.
@@ -428,11 +440,11 @@ export default function HistoryPage() {
         </ScrollArea>
 
         {/* Pagination */}
-        {activeTab === "jobs" && (
-          <div className="flex-shrink-0 px-4 py-3 border-t border-border">
-            <Pagination page={jobPage} totalPages={jobTotalPages} total={jobTotal} limit={PAGE_SIZE} onPageChange={handlePageChange} />
-          </div>
-        )}
+        <div className="flex-shrink-0 px-4 py-3 border-t border-border">
+          {activeTab === "jobs"
+            ? <Pagination page={jobPage} totalPages={jobTotalPages} total={jobTotal} limit={PAGE_SIZE} onPageChange={handlePageChange} />
+            : <Pagination page={txPage} totalPages={txTotalPages} total={txTotal} limit={PAGE_SIZE} onPageChange={handleTxPageChange} />}
+        </div>
       </div>
     </div>
   );

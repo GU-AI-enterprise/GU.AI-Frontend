@@ -6,16 +6,21 @@ import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Logo from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
-import { useAppSelector } from "@/store/hooks";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { LogOut, User as UserIcon, LayoutDashboard, Settings, ChevronDown, Shirt, Box, Shuffle, UserRound, Video, Pencil, Crop, ImageUp } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import NotificationCenter from "@/components/notification/NotificationCenter";
+import { fetchCredit, selectPlanType } from "@/features/credit/creditSlice";
+import { PLAN_VISUALS } from "@/features/credit/planMeta";
+import { PlanAvatarRing } from "@/features/credit/PlanGlow";
 
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
+  const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const authLoading = useAppSelector((state) => state.auth.loading);
+  const planType = useAppSelector(selectPlanType);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const toolsRef = useRef<HTMLDivElement>(null);
@@ -51,6 +56,13 @@ export default function Header() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (user) dispatch(fetchCredit());
+  }, [user, dispatch]);
+
+  const plan = PLAN_VISUALS[planType];
+  const avatarBorderClass = plan.ringClass ? "" : "border border-primary/20";
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -154,12 +166,14 @@ export default function Header() {
                   className="cursor-pointer flex items-center gap-2.5 p-1.5 pr-3 rounded-full hover:bg-secondary border border-border/60 transition-all duration-300 focus:outline-none"
                 >
                   {/* User Avatar */}
-                  <img
-                    src={user.user_metadata?.avatar_url || user.user_metadata?.picture || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100"}
-                    alt={user.user_metadata?.full_name || "Avatar"}
-                    className="size-8 rounded-full object-cover border border-primary/20 shadow-sm"
-                    referrerPolicy="no-referrer"
-                  />
+                  <PlanAvatarRing planType={planType}>
+                    <img
+                      src={user.user_metadata?.avatar_url || user.user_metadata?.picture || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100"}
+                      alt={user.user_metadata?.full_name || "Avatar"}
+                      className={`size-8 rounded-full object-cover shadow-sm ${avatarBorderClass}`}
+                      referrerPolicy="no-referrer"
+                    />
+                  </PlanAvatarRing>
 
                   {/* User Info (Desktop only) */}
                   <div className="hidden sm:flex flex-col items-start text-left">

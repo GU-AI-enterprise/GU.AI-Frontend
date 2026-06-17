@@ -108,7 +108,9 @@ export default function ProfilePage() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Hồ sơ cá nhân</h1>
+          <h1 className="font-serif text-3xl font-light tracking-tight">
+            Hồ sơ <span className="font-normal italic text-primary">cá nhân</span>
+          </h1>
           <p className="text-sm text-muted-foreground mt-0.5">Thông tin tài khoản của bạn</p>
         </div>
         <Link href="/profile/edit"

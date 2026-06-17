@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { apiFetch } from '@/lib/apiFetch';
 import type { RootState } from '@/store/store';
 
-type PlanType = 'free' | 'basic' | 'pro' | 'agency';
+export type PlanType = 'free' | 'basic' | 'pro' | 'agency';
 
 interface CreditState {
   balance: number | null;

@@ -128,9 +128,9 @@ export default function ArchivePage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground flex items-center gap-3">
+            <h1 className="font-serif text-3xl font-light tracking-tight text-foreground flex items-center gap-3">
               <Archive className="size-7 text-primary" />
-              Archive
+              <span className="font-normal italic text-primary">Archive</span>
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Ảnh sẽ bị xóa vĩnh viễn sau 2 ngày nếu không được khôi phục.</p>
           </div>
@@ -174,7 +174,7 @@ export default function ArchivePage() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             <AnimatePresence>
               {assets.map((img) => {
                 const isSelected = selectedIds.has(img.id);

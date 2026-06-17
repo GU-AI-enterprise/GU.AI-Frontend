@@ -120,9 +120,9 @@ export default function CollectionDetailPage() {
             <ArrowLeft className="size-4 text-muted-foreground" />
           </button>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground flex items-center gap-2.5">
+            <h1 className="font-serif text-3xl font-light tracking-tight text-foreground flex items-center gap-2.5">
               <Folder className="size-6 text-primary" />
-              {collection?.name ?? "Đang tải..."}
+              <span className="italic text-primary">{collection?.name ?? "Đang tải..."}</span>
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               {assets.length} ảnh · Tạo {collection ? new Date(collection.created_at).toLocaleDateString("vi-VN") : ""}

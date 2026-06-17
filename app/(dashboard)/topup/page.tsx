@@ -130,7 +130,9 @@ export default function TopupPage() {
           <Coins className="size-4" />
           Nạp Credits
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Quản lý credits</h1>
+        <h1 className="font-serif text-3xl font-light tracking-tight text-foreground">
+          Quản lý <span className="font-normal italic text-primary">credits</span>
+        </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Nạp credits để tạo ảnh & video AI. Mua gói để nhận ưu đãi mỗi lần top-up.
         </p>

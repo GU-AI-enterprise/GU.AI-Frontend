@@ -31,6 +31,10 @@ export interface HistoryData {
   aiJobsLimit: number;
   aiJobsTotalPages: number;
   transactions: Transaction[];
+  transactionsTotal: number;
+  transactionsPage: number;
+  transactionsLimit: number;
+  transactionsTotalPages: number;
 }
 
 export async function getHistory(params?: {
@@ -38,12 +42,16 @@ export async function getHistory(params?: {
   jobLimit?: number;
   jobDateFrom?: string;
   jobDateTo?: string;
+  txPage?: number;
+  txLimit?: number;
 }): Promise<HistoryData> {
   const qs = new URLSearchParams();
   if (params?.jobPage) qs.set('job_page', String(params.jobPage));
   if (params?.jobLimit) qs.set('job_limit', String(params.jobLimit));
   if (params?.jobDateFrom) qs.set('job_date_from', params.jobDateFrom);
   if (params?.jobDateTo) qs.set('job_date_to', params.jobDateTo);
+  if (params?.txPage) qs.set('tx_page', String(params.txPage));
+  if (params?.txLimit) qs.set('tx_limit', String(params.txLimit));
 
   const url = `/api/history${qs.toString() ? `?${qs}` : ''}`;
   const res = await apiFetch(url);
@@ -56,5 +64,9 @@ export async function getHistory(params?: {
     aiJobsLimit: json.data.aiJobsLimit ?? 10,
     aiJobsTotalPages: json.data.aiJobsTotalPages ?? 1,
     transactions: json.data.transactions ?? [],
+    transactionsTotal: json.data.transactionsTotal ?? 0,
+    transactionsPage: json.data.transactionsPage ?? 1,
+    transactionsLimit: json.data.transactionsLimit ?? 10,
+    transactionsTotalPages: json.data.transactionsTotalPages ?? 1,
   };
 }

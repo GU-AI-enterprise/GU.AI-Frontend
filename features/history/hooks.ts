@@ -9,8 +9,10 @@ export function useHistoryData() {
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [txTotalPages, setTxTotalPages] = useState(1);
+  const [txTotal, setTxTotal] = useState(0);
 
-  const fetch = useCallback(async (page: number, dateFrom?: string, dateTo?: string) => {
+  const fetch = useCallback(async (page: number, dateFrom?: string, dateTo?: string, txPage = 1) => {
     setLoading(true);
     try {
       const data = await getHistory({
@@ -18,13 +20,17 @@ export function useHistoryData() {
         jobLimit: PAGE_SIZE,
         jobDateFrom: dateFrom || undefined,
         jobDateTo: dateTo || undefined,
+        txPage,
+        txLimit: PAGE_SIZE,
       });
       setAiJobs(data.aiJobs);
       setTotalPages(data.aiJobsTotalPages);
       setTotal(data.aiJobsTotal);
       setTransactions(data.transactions);
+      setTxTotalPages(data.transactionsTotalPages);
+      setTxTotal(data.transactionsTotal);
     } catch { } finally { setLoading(false); }
   }, []);
 
-  return { aiJobs, transactions, loading, totalPages, total, fetch };
+  return { aiJobs, transactions, loading, totalPages, total, txTotalPages, txTotal, fetch };
 }
