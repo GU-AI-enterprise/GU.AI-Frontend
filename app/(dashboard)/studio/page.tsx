@@ -242,6 +242,43 @@ function StudioPageInner() {
     }
   }, [authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Initialize params from Library ────────────────────────────────────────
+  useEffect(() => {
+    if (authLoading) return;
+
+    const modelUrl = searchParams.get("modelUrl");
+    const poseUrl = searchParams.get("poseUrl");
+    const bgUrl = searchParams.get("bgUrl");
+    const promptText = searchParams.get("promptText");
+    const exampleUrl = searchParams.get("exampleUrl");
+
+    if (modelUrl) {
+      setToModelImage({ id: "lib", url: modelUrl });
+      setMsImage({ id: "lib", url: modelUrl });
+      setP2mProduct({ id: "lib", url: modelUrl });
+    }
+    if (poseUrl) {
+      setP2mPromptImg({ id: "lib", url: poseUrl });
+      setImages([{ id: "lib", url: poseUrl }]);
+    }
+    if (bgUrl) {
+      setEditContext({ id: "lib", url: bgUrl });
+      setP2mBgRef({ id: "lib", url: bgUrl });
+    }
+    if (promptText) {
+      setToPrompt(promptText);
+      setP2mPrompt(promptText);
+      setMsPrompt(promptText);
+      setGenericPrompt(promptText);
+      setF2mPrompt(promptText);
+    }
+    if (exampleUrl) {
+      if (selectedTool === AIToolType.TRY_ON) setToModelImage({ id: "lib", url: exampleUrl });
+      if (selectedTool === AIToolType.PRODUCT_TO_MODEL) setP2mProduct({ id: "lib", url: exampleUrl });
+      if (selectedTool === AIToolType.EDIT) setEditSource({ id: "lib", url: exampleUrl });
+    }
+  }, [authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Mount / mobile ────────────────────────────────────────────────────────
   useEffect(() => {
     setIsMounted(true);
