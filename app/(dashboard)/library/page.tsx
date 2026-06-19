@@ -309,7 +309,7 @@ export default function LibraryPage() {
     let tool = "try-on";
     const params = new URLSearchParams();
 
-    const pose = selectedItems.find(i => i.cat === "pose" || i.cat === "reference");
+    const pose = selectedItems.find(i => i.cat === "pose");
     const model = selectedItems.find(i => i.cat === "model");
     const bg = selectedItems.find(i => i.cat === "background");
     const prompt = selectedItems.find(i => i.cat === "prompt");
