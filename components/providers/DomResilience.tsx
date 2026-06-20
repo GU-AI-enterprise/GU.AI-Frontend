@@ -29,6 +29,15 @@ export function DomResilience() {
       }
       return origRemoveChild.call(this, child);
     };
+
+    // Suppress React 19 next-themes script tag warning
+    const origError = console.error;
+    console.error = function (...args) {
+      if (typeof args[0] === 'string' && args[0].includes('Encountered a script tag while rendering React component')) {
+        return;
+      }
+      origError.apply(console, args);
+    };
   }, []);
 
   return null;

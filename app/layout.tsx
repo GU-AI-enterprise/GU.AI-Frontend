@@ -55,7 +55,7 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary">
+      <body suppressHydrationWarning className="min-h-full flex flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary">
         <DomResilience />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
