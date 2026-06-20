@@ -4,8 +4,10 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Mail, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase";
 
 export default function ForgotPasswordPage() {
+  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -16,11 +18,16 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
     setError("");
 
-    // Simulate link submission
-    setTimeout(() => {
-      setIsLoading(false);
-      setSuccess(true);
-    }, 1200);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+    });
+
+    setIsLoading(false);
+    if (resetError) {
+      setError(resetError.message);
+      return;
+    }
+    setSuccess(true);
   };
 
   if (success) {
