@@ -102,3 +102,4 @@ export function useAIJob(jobId: string | null): UseAIJobReturn {
 
   return { state, imageUrl, assetId, error, isProcessing: state === "processing", reset };
 }
+// Test docker cache
