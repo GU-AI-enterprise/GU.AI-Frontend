@@ -48,3 +48,6 @@ jobs:
             cd ~/guai-enterprise
             docker-compose build frontend
             docker-compose up -d frontend
+
+            # Tự động dọn dẹp các image mồ côi (untagged) để tiết kiệm ổ cứng
+            docker image prune -f
