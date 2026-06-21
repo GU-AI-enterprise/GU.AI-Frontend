@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Zap, Send, Plus, BotMessageSquare } from "lucide-react";
+import { Zap, Send, Plus } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import { selectCreditBalance } from "@/features/credit/creditSlice";
 import { useSidebar } from "@/contexts/SidebarContext";
@@ -16,7 +16,7 @@ import { IMAGE_SLOTS, EXAMPLE_PROMPTS, DEFAULT_REASONING_MODEL } from "@/feature
 import { buildHistory } from "@/features/workflow/helpers";
 import {
   fetchWorkflowHistory, fetchWorkflowTools,
-  chatWithWorkflow, executeWorkflow, getWorkflowStatus,
+  chatWithWorkflowStream, executeWorkflow, getWorkflowStatus,
 } from "@/features/workflow/workflowService";
 import type {
   PageState, ChatMessage, WorkflowPlan, StepData, WorkflowHistory,
@@ -117,14 +117,28 @@ export default function WorkflowPage() {
     setPageState("planning");
 
     const thinkId = appendMessage({ kind: "thinking" });
+    let streamedText = "";
+    let switchedToAssistant = false;
 
     try {
-      const { message: aiMessage, plan } = await chatWithWorkflow({
-        message: currentPrompt,
-        userInputUrls: currentImages,
-        model,
-        history: conversationHistory,
-      });
+      const { message: aiMessage, plan } = await chatWithWorkflowStream(
+        {
+          message: currentPrompt,
+          userInputUrls: currentImages,
+          model,
+          history: conversationHistory,
+        },
+        (event) => {
+          if (event.type !== "delta") return;
+          streamedText += event.text;
+          if (!switchedToAssistant) {
+            switchedToAssistant = true;
+            updateMessage(thinkId, { kind: "assistant", text: streamedText });
+          } else {
+            updateMessage(thinkId, { text: streamedText });
+          }
+        },
+      );
 
       if (plan) {
         if (aiMessage) {
@@ -137,7 +151,7 @@ export default function WorkflowPage() {
         }
         setPageState("plan_ready");
       } else {
-        updateMessage(thinkId, { kind: "assistant", text: aiMessage || "…" });
+        updateMessage(thinkId, { kind: "assistant", text: aiMessage || streamedText || "…" });
         setPageState("idle");
       }
     } catch (err: unknown) {
@@ -307,8 +321,6 @@ export default function WorkflowPage() {
           <>
             <div className="flex items-center justify-between px-4 h-12 border-b border-border shrink-0">
               <div className="flex items-center gap-2">
-                <BotMessageSquare className="size-4 text-primary" />
-                <span className="text-sm font-semibold">Trợ lý ảo</span>
                 {credit !== null && (
                   <span className="flex items-center gap-1 text-xs text-muted-foreground ml-2">
                     <Zap className="size-3 text-primary" />

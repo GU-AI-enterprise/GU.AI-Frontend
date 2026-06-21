@@ -8,7 +8,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { createBrowserClient } from "@supabase/ssr";
+import { apiClient } from "@/lib/apiFetch";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -243,31 +243,27 @@ export default function LibraryPage() {
 
   useEffect(() => {
     const fetchItems = async () => {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-      );
-
-      const { data, error } = await supabase
-        .from("library_items")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Lỗi lấy dữ liệu thư viện:", error);
-      } else if (data) {
-        setItems(data.map((d: any) => ({
-          id: d.id,
-          cat: d.category,
-          title: d.title,
-          image: d.image_url,
-          promptText: d.prompt_text,
-          tags: d.tags || [],
-          desc: d.description || "",
-          imgAspect: d.img_aspect || "square",
-        })));
+      try {
+        const res = await apiClient.get("/api/library");
+        if (res.data.success) {
+          setItems((res.data.data as any[]).map((d) => ({
+            id: d.id,
+            cat: d.category,
+            title: d.title,
+            image: d.image_url,
+            promptText: d.prompt_text,
+            tags: d.tags || [],
+            desc: d.description || "",
+            imgAspect: d.img_aspect || "square",
+          })));
+        } else {
+          console.error("Lỗi lấy dữ liệu thư viện:", res.data.error);
+        }
+      } catch (err) {
+        console.error("Lỗi lấy dữ liệu thư viện:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchItems();

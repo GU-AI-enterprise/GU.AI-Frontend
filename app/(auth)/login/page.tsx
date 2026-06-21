@@ -15,6 +15,7 @@ function LoginContent() {
   const supabase = createClient();
 
   const emailVerified = searchParams.get("verified") === "true";
+  const passwordReset = searchParams.get("reset") === "true";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -97,6 +98,14 @@ function LoginContent() {
         <span className="text-emerald-500 text-base leading-none">✓</span>
         <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
           Email đã được xác nhận! Bạn có thể đăng nhập ngay.
+        </p>
+      </div>
+
+      {/* Password reset banner — always in DOM, CSS-toggled */}
+      <div className={passwordReset ? "rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 flex items-center gap-2.5" : "hidden"}>
+        <span className="text-emerald-500 text-base leading-none">✓</span>
+        <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          Mật khẩu đã được đặt lại! Hãy đăng nhập bằng mật khẩu mới.
         </p>
       </div>
 

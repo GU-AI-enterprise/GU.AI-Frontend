@@ -5,13 +5,14 @@ import {
   Sparkles, Check, X, Loader2, AlertCircle, Download,
 } from "lucide-react";
 import { Lightbox } from "@/components/shared/lightbox";
+import { MarkdownText } from "./markdown-text";
 import { TOOL_LABELS, TOOL_CREDIT, INPUT_KEY_LABELS, formatInputVal } from "../constants";
 import type { ChatMessage, PageState, StepData } from "../types";
 
 export function AssistantAvatar() {
   return (
-    <div className="size-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
-      <Sparkles className="size-3.5 text-primary" />
+    <div className="size-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5 overflow-hidden">
+      <img src="/icons/logo_ai_spiral.png" alt="Trợ lý ảo" className="size-6 object-contain" />
     </div>
   );
 }
@@ -118,7 +119,7 @@ export function MessageBubble({ msg, pageState, onConfirm, onReject, toolMeta }:
       <div className="flex items-start gap-2">
         <AssistantAvatar />
         <div className="max-w-[85%] bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3">
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+          <MarkdownText text={msg.text ?? ""} />
         </div>
       </div>
     );

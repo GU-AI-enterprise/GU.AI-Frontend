@@ -12,12 +12,16 @@ function AuthCallbackContent() {
 
   useEffect(() => {
     const handleCallback = async () => {
-      // OAuth PKCE flow (Google, etc.) — exchange code then go to dashboard
+      // OAuth PKCE flow (Google, etc.) or password-recovery flow — both arrive with ?code=
       const code = searchParams.get("code");
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
           router.push("/login?error=oauth_failed");
+          return;
+        }
+        if (searchParams.get("type") === "recovery") {
+          router.push("/reset-password");
           return;
         }
         router.push("/dashboard");
