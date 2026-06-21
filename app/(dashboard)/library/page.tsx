@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/apiFetch";
 import GuaiLoader from "@/components/shared/guai-loader";
@@ -73,7 +74,7 @@ function splitCols<T>(items: T[], n: number): T[][] {
 
 // ── Card ──────────────────────────────────────────────────────────────────────
 
-function LibraryCard({ item, selected, onToggle }: { item: Item; selected: boolean; onToggle: () => void }) {
+const LibraryCard = React.memo(function LibraryCard({ item, selected, onToggle, priority }: { item: Item; selected: boolean; onToggle: (item: Item) => void; priority?: boolean }) {
   const [copied, setCopied] = useState(false);
   const catLabel = CATS.find(c => c.id === item.cat)?.label ?? item.cat;
 
@@ -110,7 +111,7 @@ function LibraryCard({ item, selected, onToggle }: { item: Item; selected: boole
 
   return (
     <div 
-      onClick={onToggle}
+      onClick={() => onToggle(item)}
       className={cn(
         "group cursor-pointer rounded-2xl overflow-hidden border bg-card hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 relative",
         selected ? "border-primary shadow-md shadow-primary/20 ring-2 ring-primary/20" : "border-border hover:shadow-black/5 dark:hover:shadow-black/20"
@@ -128,12 +129,15 @@ function LibraryCard({ item, selected, onToggle }: { item: Item; selected: boole
 
       {/* ── Image card ── */}
       {item.image ? (
-        <div className={cn("relative overflow-hidden", aspectClass)}>
-          <img
+        <div className={cn("relative overflow-hidden bg-secondary", aspectClass)}>
+          <Image
             src={item.image}
             alt={item.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-            loading="lazy"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            priority={priority}
+            loading={priority ? undefined : "lazy"}
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
           />
           {/* Hover overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 gap-2">
@@ -228,7 +232,7 @@ function LibraryCard({ item, selected, onToggle }: { item: Item; selected: boole
       </div>
     </div>
   );
-}
+});
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -290,14 +294,14 @@ export default function LibraryPage() {
     return result;
   }, [items, activeCat, search]);
 
-  const toggleSelect = (item: Item) => {
+  const toggleSelect = React.useCallback((item: Item) => {
     setSelectedItems(prev => {
       if (prev.find(i => i.id === item.id)) {
         return prev.filter(i => i.id !== item.id);
       }
       return [...prev.filter(i => i.cat !== item.cat), item];
     });
-  };
+  }, []);
 
   const handleSendToStudio = () => {
     if (selectedItems.length === 0) return;
@@ -392,12 +396,13 @@ export default function LibraryPage() {
         <div className="flex gap-4 items-start pb-24">
           {splitCols(filtered, cols).map((col, ci) => (
             <div key={ci} className="flex-1 flex flex-col gap-4 min-w-0">
-              {col.map(item => (
+              {col.map((item, rowIdx) => (
                 <LibraryCard 
                   key={item.id} 
                   item={item} 
                   selected={!!selectedItems.find(i => i.id === item.id)}
-                  onToggle={() => toggleSelect(item)}
+                  onToggle={toggleSelect}
+                  priority={rowIdx < 2}
                 />
               ))}
             </div>
@@ -419,7 +424,7 @@ export default function LibraryPage() {
               {selectedItems.map((item, idx) => (
                 <div key={item.id} className="relative size-10 rounded-full overflow-hidden border-2 border-background bg-secondary z-[idx]">
                   {item.image ? (
-                    <img src={item.image} alt="" className="size-full object-cover" />
+                    <Image src={item.image} alt="" fill sizes="40px" className="object-cover" />
                   ) : (
                     <div className="size-full flex items-center justify-center bg-violet-100 text-violet-600 dark:bg-violet-900 dark:text-violet-400">
                       <AlignLeft className="size-4" />
