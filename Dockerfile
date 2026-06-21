@@ -8,7 +8,7 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
-RUN npm ci
+    RUN npm ci
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -43,4 +43,4 @@ ENV PORT=3000
 # set hostname to localhost
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
