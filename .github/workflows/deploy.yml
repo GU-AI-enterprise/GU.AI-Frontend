@@ -49,4 +49,5 @@ jobs:
             COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build frontend
             docker-compose up -d frontend
 
-            docker image prune -f
+            docker image prune -af
+            docker builder prune -f --filter "unused-for=24h"
