@@ -11,12 +11,13 @@ interface Props {
   onFaceRefChange: (img: StudioImage | null) => void;
   onPaste: (onImage: (file: File) => void) => Promise<void>;
   openGallery: (cb: (url: string) => void) => void;
+  openLibraryModal?: (category: string, cb: (url: string) => void, onUpload: () => void) => void;
 }
 
 export function ModelSwapPanel({
   modelImage, faceRef,
   onModelImageChange, onFaceRefChange,
-  onPaste, openGallery,
+  onPaste, openGallery, openLibraryModal
 }: Props) {
   const mkImg = (url: string): StudioImage => ({ id: Math.random().toString(36).substr(2, 9), url });
 
@@ -37,6 +38,7 @@ export function ModelSwapPanel({
           onFileChange={(f) => onFaceRefChange(fileToStudioImage(f))}
           onPaste={() => onPaste((f) => onFaceRefChange(fileToStudioImage(f)))}
           onGallery={() => openGallery((url) => onFaceRefChange(mkImg(url)))}
+          onLibrary={openLibraryModal ? () => openLibraryModal("model", (url) => onFaceRefChange(mkImg(url)), () => {}) : undefined}
         />
       </div>
 

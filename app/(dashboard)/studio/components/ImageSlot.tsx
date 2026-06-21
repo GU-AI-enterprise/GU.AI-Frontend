@@ -13,10 +13,11 @@ interface Props {
   onFileChange: (file: File) => void;
   onPaste: () => void;
   onGallery: () => void;
+  onLibrary?: () => void;
   required?: boolean;
 }
 
-export function ImageSlot({ label, sublabel, image, onClear, onFileChange, onPaste, onGallery, required }: Props) {
+export function ImageSlot({ label, sublabel, image, onClear, onFileChange, onPaste, onGallery, onLibrary, required }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Native paste event — fires when Ctrl+V pressed while frame is focused
@@ -85,6 +86,7 @@ export function ImageSlot({ label, sublabel, image, onClear, onFileChange, onPas
             onUpload={() => fileRef.current?.click()}
             onPaste={onPaste}
             onGallery={onGallery}
+            onLibrary={onLibrary}
           />
         </div>
       </div>

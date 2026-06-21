@@ -15,12 +15,13 @@ interface Props {
   onImageContextChange: (img: StudioImage | null) => void;
   onPaste: (onImage: (file: File) => void) => Promise<void>;
   openGallery: (cb: (url: string) => void) => void;
+  openLibraryModal?: (category: string, cb: (url: string) => void, onUpload: () => void) => void;
 }
 
 export function EditPanel({
   source, mask, imageContext,
   onSourceChange, onMaskChange, onImageContextChange,
-  onPaste, openGallery,
+  onPaste, openGallery, openLibraryModal
 }: Props) {
   const maskRef    = useRef<HTMLInputElement>(null);
   const contextRef = useRef<HTMLInputElement>(null);
@@ -34,6 +35,7 @@ export function EditPanel({
       val: mask,
       set: onMaskChange,
       ref: maskRef,
+      cat: undefined,
     },
     {
       label: "Ngữ cảnh",
@@ -41,6 +43,7 @@ export function EditPanel({
       val: imageContext,
       set: onImageContextChange,
       ref: contextRef,
+      cat: "background",
     },
   ] as const;
 
@@ -59,11 +62,17 @@ export function EditPanel({
 
       {/* Optional mini slots: mask + image_context */}
       <div className="grid grid-cols-2 gap-2 shrink-0" style={{ height: "90px" }}>
-        {miniSlots.map(({ label, sub, val, set, ref }) => (
+        {miniSlots.map(({ label, sub, val, set, ref, cat }) => (
           <div
             key={label}
             className="relative rounded-xl overflow-hidden border border-dashed border-border bg-card flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors"
-            onClick={() => ref.current?.click()}
+            onClick={() => {
+              if (cat && openLibraryModal) {
+                openLibraryModal(cat, (url) => set(mkImg(url)), () => ref.current?.click());
+              } else {
+                ref.current?.click();
+              }
+            }}
           >
             {val ? (
               <>

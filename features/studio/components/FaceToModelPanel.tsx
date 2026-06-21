@@ -9,9 +9,10 @@ interface Props {
   onFaceImageChange: (img: StudioImage | null) => void;
   onPaste: (onImage: (file: File) => void) => Promise<void>;
   openGallery: (cb: (url: string) => void) => void;
+  openLibraryModal?: (category: string, cb: (url: string) => void, onUpload: () => void) => void;
 }
 
-export function FaceToModelPanel({ faceImage, onFaceImageChange, onPaste, openGallery }: Props) {
+export function FaceToModelPanel({ faceImage, onFaceImageChange, onPaste, openGallery, openLibraryModal }: Props) {
   const mkImg = (url: string): StudioImage => ({ id: Math.random().toString(36).substr(2, 9), url });
 
   return (
@@ -23,6 +24,7 @@ export function FaceToModelPanel({ faceImage, onFaceImageChange, onPaste, openGa
           onFileChange={(f) => onFaceImageChange(fileToStudioImage(f))}
           onPaste={() => onPaste((f) => onFaceImageChange(fileToStudioImage(f)))}
           onGallery={() => openGallery((url) => onFaceImageChange(mkImg(url)))}
+          onLibrary={openLibraryModal ? () => openLibraryModal("model", (url) => onFaceImageChange(mkImg(url)), () => {}) : undefined}
         />
       </div>
     </div>

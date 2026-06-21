@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/apiFetch";
-
+import GuaiLoader from "@/components/shared/guai-loader";
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type Cat = "all" | "model" | "pose" | "prompt" | "background" | "example";
@@ -385,8 +385,8 @@ export default function LibraryPage() {
 
       {/* ── Grid ── */}
       {loading ? (
-        <div className="flex items-center justify-center py-32 text-muted-foreground">
-          <Wand2 className="size-8 animate-spin opacity-20" />
+        <div className="flex items-center justify-center py-32">
+          <GuaiLoader size="lg" />
         </div>
       ) : filtered.length > 0 ? (
         <div className="flex gap-4 items-start pb-24">

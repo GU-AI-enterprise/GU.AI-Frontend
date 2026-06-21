@@ -17,21 +17,22 @@ interface Props {
   onBgRefChange: (img: StudioImage | null) => void;
   onPaste: (onImage: (file: File) => void) => Promise<void>;
   openGallery: (cb: (url: string) => void) => void;
+  openLibraryModal?: (category: string, cb: (url: string) => void, onUpload: () => void) => void;
 }
 
 export function ProductToModelPanel({
   product, imagePrompt, faceRef, bgRef,
   onProductChange, onImagePromptChange, onFaceRefChange, onBgRefChange,
-  onPaste, openGallery,
+  onPaste, openGallery, openLibraryModal
 }: Props) {
   const promptRef  = useRef<HTMLInputElement>(null);
   const faceRefRef = useRef<HTMLInputElement>(null);
   const bgRefRef   = useRef<HTMLInputElement>(null);
 
   const miniSlots = [
-    { label: "Ảnh pose mẫu", sub: "Tuỳ chọn", val: imagePrompt, set: onImagePromptChange, ref: promptRef },
-    { label: "Ảnh mặt ref",  sub: "+3 credits", val: faceRef,   set: onFaceRefChange,    ref: faceRefRef },
-    { label: "Ảnh nền",      sub: "Tuỳ chọn", val: bgRef,       set: onBgRefChange,      ref: bgRefRef },
+    { label: "Ảnh pose mẫu", sub: "Tuỳ chọn", val: imagePrompt, set: onImagePromptChange, ref: promptRef, cat: "pose" },
+    { label: "Ảnh mặt ref",  sub: "+3 credits", val: faceRef,   set: onFaceRefChange,    ref: faceRefRef, cat: "model" },
+    { label: "Ảnh nền",      sub: "Tuỳ chọn", val: bgRef,       set: onBgRefChange,      ref: bgRefRef, cat: "background" },
   ] as const;
 
   return (
@@ -49,11 +50,17 @@ export function ProductToModelPanel({
 
       {/* Optional mini slots */}
       <div className="grid grid-cols-3 gap-2 shrink-0" style={{ height: "90px" }}>
-        {miniSlots.map(({ label, sub, val, set, ref }) => (
+        {miniSlots.map(({ label, sub, val, set, ref, cat }) => (
           <div
             key={label}
             className="relative rounded-xl overflow-hidden border border-dashed border-border bg-card flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors"
-            onClick={() => ref.current?.click()}
+            onClick={() => {
+              if (openLibraryModal) {
+                openLibraryModal(cat, (url) => set({ id: "lib", url }), () => ref.current?.click());
+              } else {
+                ref.current?.click();
+              }
+            }}
           >
             {val ? (
               <>

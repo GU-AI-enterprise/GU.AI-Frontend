@@ -55,6 +55,7 @@ import { ModelSwapPanel } from "@/features/studio/components/ModelSwapPanel";
 import { FaceToModelPanel } from "@/features/studio/components/FaceToModelPanel";
 import { EditPanel } from "@/features/studio/components/EditPanel";
 import { GenericPanel } from "@/features/studio/components/GenericPanel";
+import { LibraryModal } from "@/features/studio/components/LibraryModal";
 
 // ─── Inner page (needs Suspense because of useSearchParams) ───────────────────
 
@@ -147,6 +148,7 @@ function StudioPageInner() {
   const [galleryImages,    setGalleryImages]     = useState<{ id: string; url: string }[]>([]);
   const [lightboxUrl,      setLightboxUrl]       = useState<string | null>(null);
   const [saveAlbumAssetId, setSaveAlbumAssetId]  = useState<string | null>(null);
+  const [libraryModalConfig, setLibraryModalConfig] = useState<{ cat: string; cb: (url: string) => void; onUpload: () => void } | null>(null);
   const [isMounted,        setIsMounted]         = useState(false);
   const [isMobile,         setIsMobile]          = useState(false);
   const [canScrollLeft,    setCanScrollLeft]     = useState(false);
@@ -364,6 +366,10 @@ function StudioPageInner() {
     galleryCallbackRef.current?.(url);
     setShowGallery(false);
   };
+
+  const openLibraryModal = useCallback((cat: string, cb: (url: string) => void, onUpload: () => void) => {
+    setLibraryModalConfig({ cat, cb, onUpload });
+  }, []);
 
   // ── Paste ─────────────────────────────────────────────────────────────────
   const handlePaste = useCallback(async (onImage: (file: File) => void) => {
@@ -618,7 +624,7 @@ function StudioPageInner() {
               <TryOnPanel
                 modelImage={toModelImage} garmentImage={toGarment}
                 onModelImageChange={setToModelImage} onGarmentImageChange={setToGarment}
-                onPaste={handlePaste} openGallery={openGallery}
+                onPaste={handlePaste} openGallery={openGallery} openLibraryModal={openLibraryModal}
               />
             ) : isP2M ? (
               <ProductToModelPanel
@@ -626,25 +632,25 @@ function StudioPageInner() {
                 faceRef={p2mFaceRef} bgRef={p2mBgRef}
                 onProductChange={setP2mProduct} onImagePromptChange={setP2mPromptImg}
                 onFaceRefChange={setP2mFaceRef} onBgRefChange={setP2mBgRef}
-                onPaste={handlePaste} openGallery={openGallery}
+                onPaste={handlePaste} openGallery={openGallery} openLibraryModal={openLibraryModal}
               />
             ) : isMS ? (
               <ModelSwapPanel
                 modelImage={msImage} faceRef={msFaceRef}
                 onModelImageChange={setMsImage} onFaceRefChange={setMsFaceRef}
-                onPaste={handlePaste} openGallery={openGallery}
+                onPaste={handlePaste} openGallery={openGallery} openLibraryModal={openLibraryModal}
               />
             ) : isFaceToModel ? (
               <FaceToModelPanel
                 faceImage={f2mFaceImage}
                 onFaceImageChange={setF2mFaceImage}
-                onPaste={handlePaste} openGallery={openGallery}
+                onPaste={handlePaste} openGallery={openGallery} openLibraryModal={openLibraryModal}
               />
             ) : isEdit ? (
               <EditPanel
                 source={editSource} mask={editMask} imageContext={editContext}
                 onSourceChange={setEditSource} onMaskChange={setEditMask} onImageContextChange={setEditContext}
-                onPaste={handlePaste} openGallery={openGallery}
+                onPaste={handlePaste} openGallery={openGallery} openLibraryModal={openLibraryModal}
               />
             ) : (
               <GenericPanel
@@ -902,6 +908,22 @@ function StudioPageInner() {
         </div>,
         document.body
       )}
+
+      {/* ── Library Modal ── */}
+      {libraryModalConfig && (
+        <LibraryModal
+          category={libraryModalConfig.cat}
+          onSelect={(url) => {
+            libraryModalConfig.cb(url);
+            setLibraryModalConfig(null);
+          }}
+          onUpload={() => {
+            setLibraryModalConfig(null);
+            libraryModalConfig.onUpload();
+          }}
+          onClose={() => setLibraryModalConfig(null)}
+        />
+      )}
     </div>
   );
 }
@@ -910,7 +932,7 @@ function StudioPageInner() {
 
 export default function StudioPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<div className="h-screen w-full bg-background" />}>
       <StudioPageInner />
     </Suspense>
   );

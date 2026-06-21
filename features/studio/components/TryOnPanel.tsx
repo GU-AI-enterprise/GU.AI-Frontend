@@ -11,12 +11,13 @@ interface Props {
   onGarmentImageChange: (img: StudioImage | null) => void;
   onPaste: (onImage: (file: File) => void) => Promise<void>;
   openGallery: (cb: (url: string) => void) => void;
+  openLibraryModal?: (category: string, cb: (url: string) => void, onUpload: () => void) => void;
 }
 
 export function TryOnPanel({
   modelImage, garmentImage,
   onModelImageChange, onGarmentImageChange,
-  onPaste, openGallery,
+  onPaste, openGallery, openLibraryModal
 }: Props) {
   return (
     <div className="grid grid-cols-2 gap-4 h-full min-h-0">
@@ -26,6 +27,7 @@ export function TryOnPanel({
         onFileChange={(f) => onModelImageChange(fileToStudioImage(f))}
         onPaste={() => onPaste((f) => onModelImageChange(fileToStudioImage(f)))}
         onGallery={() => openGallery((url) => onModelImageChange({ id: Math.random().toString(36).substr(2, 9), url }))}
+        onLibrary={openLibraryModal ? () => openLibraryModal("model", (url) => onModelImageChange({ id: Math.random().toString(36).substr(2, 9), url }), () => {}) : undefined}
       />
       <ImageSlot
         label="Ảnh trang phục" sublabel="Sản phẩm rõ nét"
