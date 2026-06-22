@@ -8,6 +8,14 @@ import {
   FolderHeart, Plus, CheckSquare, X, Layers, Film, Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  ActionBar,
+  ActionBarClose,
+  ActionBarGroup,
+  ActionBarItem,
+  ActionBarSelection,
+  ActionBarSeparator,
+} from "@/components/ui/action-bar";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { Lightbox } from "@/components/shared/lightbox";
 import { SaveToAlbumModal } from "@/components/shared/save-to-album-modal";
@@ -299,21 +307,24 @@ export default function GalleryPage() {
       </div>
 
       {/* Multi-select bottom bar */}
-      <div className={`fixed bottom-0 left-0 right-0 z-40 transition-all duration-300 ${selectMode && selectedIds.size > 0 ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"}`}>
-        <div className="mx-auto max-w-xl mb-6 px-4">
-          <div className="flex items-center gap-3 bg-card border border-border rounded-2xl shadow-2xl p-3">
-            <span className="text-sm font-semibold text-foreground flex-1">Đã chọn {selectedIds.size} mục</span>
-            <button onClick={() => { const firstId = Array.from(selectedIds)[0]; if (firstId) setSaveAssetId(firstId); }}
-              className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors">
-              <FolderHeart className="size-3.5" /> Lưu vào Album
-            </button>
-            <button onClick={executeBulkArchive}
-              className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500/15 text-amber-500 border border-amber-500/25 text-xs font-semibold hover:bg-amber-500/25 transition-colors">
-              <Archive className="size-3.5" /> Archive {selectedIds.size} mục
-            </button>
-          </div>
-        </div>
-      </div>
+      <ActionBar open={selectMode && selectedIds.size > 0} onOpenChange={(open) => !open && setSelectedIds(new Set())}>
+        <ActionBarSelection>Đã chọn {selectedIds.size} mục</ActionBarSelection>
+        <ActionBarSeparator />
+        <ActionBarGroup>
+          <ActionBarItem
+            onSelect={(e) => { e.preventDefault(); const firstId = Array.from(selectedIds)[0]; if (firstId) setSaveAssetId(firstId); }}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <FolderHeart className="size-3.5" /> Lưu vào Album
+          </ActionBarItem>
+          <ActionBarItem onSelect={executeBulkArchive} className="bg-amber-500/15 text-amber-500 border-amber-500/25 hover:bg-amber-500/25">
+            <Archive className="size-3.5" /> Archive {selectedIds.size} mục
+          </ActionBarItem>
+        </ActionBarGroup>
+        <ActionBarClose>
+          <X className="size-3.5" />
+        </ActionBarClose>
+      </ActionBar>
 
       <Lightbox
         imageUrl={lightboxUrl}

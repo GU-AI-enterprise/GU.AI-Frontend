@@ -5,6 +5,14 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Archive, RotateCcw, AlertTriangle, Clock, X, CheckSquare, Layers, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  ActionBar,
+  ActionBarClose,
+  ActionBarGroup,
+  ActionBarItem,
+  ActionBarSelection,
+  ActionBarSeparator,
+} from "@/components/ui/action-bar";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { supabase } from "@/lib/supabase";
 import {
@@ -226,21 +234,24 @@ export default function ArchivePage() {
       </div>
 
       {/* Multi-select bottom bar */}
-      <div className={`fixed bottom-0 left-0 right-0 z-40 transition-all duration-300 ${selectMode && selectedIds.size > 0 ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"}`}>
-        <div className="mx-auto max-w-xl mb-6 px-4">
-          <div className="flex items-center gap-3 bg-card border border-border rounded-2xl shadow-2xl p-3">
-            <span className="text-sm font-semibold text-foreground flex-1">Đã chọn {selectedIds.size} ảnh</span>
-            <button onClick={handleBulkRestore}
-              className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500 transition-colors">
-              <RotateCcw className="size-3.5" /> Khôi phục
-            </button>
-            <button onClick={() => setBulkDeleteConfirm(true)}
-              className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-semibold hover:bg-red-500/20 transition-colors">
-              <Trash2 className="size-3.5" /> Xóa vĩnh viễn
-            </button>
-          </div>
-        </div>
-      </div>
+      <ActionBar open={selectMode && selectedIds.size > 0} onOpenChange={(open) => !open && setSelectedIds(new Set())}>
+        <ActionBarSelection>Đã chọn {selectedIds.size} ảnh</ActionBarSelection>
+        <ActionBarSeparator />
+        <ActionBarGroup>
+          <ActionBarItem onSelect={handleBulkRestore} className="bg-emerald-600 text-white hover:bg-emerald-500">
+            <RotateCcw className="size-3.5" /> Khôi phục
+          </ActionBarItem>
+          <ActionBarItem
+            onSelect={(e) => { e.preventDefault(); setBulkDeleteConfirm(true); }}
+            className="bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20"
+          >
+            <Trash2 className="size-3.5" /> Xóa vĩnh viễn
+          </ActionBarItem>
+        </ActionBarGroup>
+        <ActionBarClose>
+          <X className="size-3.5" />
+        </ActionBarClose>
+      </ActionBar>
 
       <ConfirmModal isOpen={deleteId !== null} onClose={() => setDeleteId(null)} onConfirm={handlePermanentDelete}
         title="Xóa vĩnh viễn" description="Ảnh này sẽ bị xóa vĩnh viễn và không thể khôi phục."

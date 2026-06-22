@@ -7,8 +7,6 @@ import {
   ArrowRight,
   Play,
   Check,
-  ChevronLeft,
-  ChevronRight,
   Camera,
   Layers,
   Zap,
@@ -23,6 +21,12 @@ import Header from "@/components/shared/header";
 import Logo from "@/components/shared/logo";
 import SupportChatWidget from "@/components/support/support-chat-widget";
 import { Button } from "@/components/ui/button";
+import {
+  CompareSlider,
+  CompareSliderAfter,
+  CompareSliderBefore,
+  CompareSliderHandle,
+} from "@/components/ui/compare-slider";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 
@@ -39,33 +43,7 @@ const TOOLS = [
 ];
 
 export default function LandingPage() {
-  const [sliderPosition, setSliderPosition] = useState(50);
-  const [isDragging, setIsDragging]         = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-
-  const handleMove = (clientX: number) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    setSliderPosition(Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100)));
-  };
-  const handleMouseMove = (e: MouseEvent) => { if (isDragging) handleMove(e.clientX); };
-  const handleTouchMove = (e: TouchEvent) => { if (isDragging) handleMove(e.touches[0].clientX); };
-  const handleMouseUp   = () => setIsDragging(false);
-
-  useEffect(() => {
-    if (!isDragging) return;
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup",   handleMouseUp);
-    window.addEventListener("touchmove", handleTouchMove);
-    window.addEventListener("touchend",  handleMouseUp);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup",   handleMouseUp);
-      window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("touchend",  handleMouseUp);
-    };
-  }, [isDragging]);
 
   // ── custom page scroll ──
   const pageRef   = useRef<HTMLDivElement>(null);
@@ -306,14 +284,12 @@ export default function LandingPage() {
 
             {/* Slider */}
             <div className="md:w-1/2 w-full max-w-xs mx-auto">
-              <div
-                ref={containerRef}
-                className="relative aspect-[3/4] rounded-2xl overflow-hidden border border-border shadow-xl select-none cursor-ew-resize"
-                onMouseDown={() => setIsDragging(true)}
-                onTouchStart={() => setIsDragging(true)}
+              <CompareSlider
+                defaultValue={50}
+                className="aspect-[3/4] rounded-2xl border border-border shadow-xl"
               >
-                {/* After */}
-                <div className="absolute inset-0">
+                {/* After (AI render) — left side */}
+                <CompareSliderAfter>
                   <img src="/images/after.jpg" alt="AI Model" className="absolute inset-0 size-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                   <div className="absolute top-3 left-3 rounded-full bg-primary/30 border border-primary/50 px-2.5 py-0.5 text-[9px] text-white font-mono backdrop-blur-sm">✦ AI RENDER</div>
@@ -321,34 +297,21 @@ export default function LandingPage() {
                     <p className="text-[10px] text-primary font-mono uppercase tracking-wider">Kết quả AI</p>
                     <p className="text-sm font-serif text-white mt-0.5">Ảnh Model Hoàn Thiện</p>
                   </div>
-                </div>
+                </CompareSliderAfter>
 
-                {/* Before */}
-                <div
-                  className="absolute inset-0"
-                  style={{ clipPath: `polygon(${sliderPosition}% 0, 100% 0, 100% 100%, ${sliderPosition}% 100%)` }}
-                >
-                  <img
-                    src="/images/before.jpg"
-                    alt="Raw Product"
-                    className="absolute inset-0 size-full object-cover"
-                  />
+                {/* Before (raw product) — right side */}
+                <CompareSliderBefore>
+                  <img src="/images/before.jpg" alt="Raw Product" className="absolute inset-0 size-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                   <div className="absolute top-3 right-3 rounded-full bg-white/20 border border-white/30 px-2.5 py-0.5 text-[9px] text-white font-mono backdrop-blur-sm">ẢNH GỐC</div>
                   <div className="absolute bottom-4 right-4 text-right">
                     <p className="text-[10px] text-white/70 font-mono uppercase tracking-wider">Đầu vào</p>
                     <p className="text-sm font-serif text-white mt-0.5">Ảnh Sản Phẩm Thô</p>
                   </div>
-                </div>
+                </CompareSliderBefore>
 
-                {/* Drag handle */}
-                <div className="absolute inset-y-0 w-0.5 bg-white/80" style={{ left: `${sliderPosition}%` }}>
-                  <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 size-9 rounded-full border-2 border-white/80 bg-background/90 shadow-lg flex items-center justify-between px-1">
-                    <ChevronLeft className="size-3" />
-                    <ChevronRight className="size-3" />
-                  </div>
-                </div>
-              </div>
+                <CompareSliderHandle />
+              </CompareSlider>
             </div>
           </div>
         </section>

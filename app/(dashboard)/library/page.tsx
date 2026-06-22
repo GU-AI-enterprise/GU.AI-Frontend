@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
   Search, Sparkles, UserRound, Image as ImageIcon,
-  Layers, Copy, Wand2, AlignLeft, Check, LayoutGrid, X
+  Layers, Copy, Wand2, AlignLeft, Check, LayoutGrid, X, Maximize2
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,21 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/apiFetch";
 import GuaiLoader from "@/components/shared/guai-loader";
+import {
+  ActionBar,
+  ActionBarClose,
+  ActionBarGroup,
+  ActionBarItem,
+  ActionBarSelection,
+  ActionBarSeparator,
+} from "@/components/ui/action-bar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type Cat = "all" | "model" | "pose" | "prompt" | "background" | "example";
@@ -50,14 +65,14 @@ const CAT_PROMPT_GRADIENT: Record<string, string> = {
   prompt: "from-violet-50 to-purple-50/60 dark:from-violet-950/40 dark:to-purple-950/20",
 };
 
-// ── Masonry helpers ───────────────────────────────────────────────────────────
+// ── Masonry (code tay: chia round-robin theo cột, mỗi cột tự xếp dọc) ──────────
 
 function useCols(): number {
   const [cols, setCols] = useState(3);
   useEffect(() => {
     const update = () => {
       const w = window.innerWidth;
-      setCols(w >= 1280 ? 4 : w >= 1024 ? 3 : w >= 640 ? 2 : 1);
+      setCols(w >= 1280 ? 5 : w >= 1024 ? 4 : w >= 768 ? 3 : w >= 640 ? 2 : 1);
     };
     update();
     window.addEventListener("resize", update);
@@ -76,19 +91,16 @@ function splitCols<T>(items: T[], n: number): T[][] {
 
 const LibraryCard = React.memo(function LibraryCard({ item, selected, onToggle, priority }: { item: Item; selected: boolean; onToggle: (item: Item) => void; priority?: boolean }) {
   const [copied, setCopied] = useState(false);
+  const [promptOpen, setPromptOpen] = useState(false);
   const catLabel = CATS.find(c => c.id === item.cat)?.label ?? item.cat;
+  const isImageCard = !!item.image;
+  const hasImageWithPrompt = isImageCard && !!item.promptText;
 
   const copy = (text: string) => {
     navigator.clipboard.writeText(text).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  const aspectClass =
-    item.imgAspect === "tall"      ? "aspect-[2/3]"  :
-    item.imgAspect === "portrait"  ? "aspect-[3/4]"  :
-    item.imgAspect === "landscape" ? "aspect-[4/3]"  :
-                                     "aspect-square";
 
   let href = item.studioHref;
   if (!href) {
@@ -127,20 +139,44 @@ const LibraryCard = React.memo(function LibraryCard({ item, selected, onToggle, 
         <Check className="size-3.5" strokeWidth={3} />
       </div>
 
-      {/* ── Image card ── */}
+      {/* ── Image card (chiều cao tự nhiên theo ảnh thật, đúng kiểu masonry) ── */}
       {item.image ? (
-        <div className={cn("relative overflow-hidden bg-secondary", aspectClass)}>
-          <Image
+        <div className="relative overflow-hidden bg-secondary">
+          {/* eslint-disable-next-line @next/next/no-img-element -- cần chiều cao tự nhiên theo ảnh thật cho từng cột masonry, next/image fill sẽ ép theo box cố định */}
+          <img
             src={item.image}
             alt={item.title}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            priority={priority}
             loading={priority ? undefined : "lazy"}
-            className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+            className="block w-full h-auto transition-transform duration-500 group-hover:scale-[1.04]"
           />
+          {/* Xem chi tiết */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setPromptOpen(true); }}
+            title="Xem chi tiết"
+            className="absolute top-3 right-3 z-10 size-7 rounded-full flex items-center justify-center bg-black/30 text-white opacity-0 group-hover:opacity-100 backdrop-blur-md border border-white/30 hover:bg-black/50 transition-all"
+          >
+            <Maximize2 className="size-3.5" />
+          </button>
           {/* Hover overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 gap-2">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 gap-2">
+            <div>
+              <span className={cn(
+                "inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold mb-1.5",
+                CAT_COLORS[item.cat],
+              )}>
+                {catLabel}
+              </span>
+              <h3 className="text-sm font-semibold text-white leading-snug">{item.title}</h3>
+              <p className="text-[11px] text-white/80 leading-relaxed line-clamp-2 mt-0.5">{item.desc}</p>
+            </div>
+            {hasImageWithPrompt && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setPromptOpen(true); }}
+                className="text-left text-[10px] font-mono text-white/80 leading-relaxed line-clamp-2 hover:text-white transition-colors"
+              >
+                &ldquo;{item.promptText}&rdquo;
+              </button>
+            )}
             <div className="flex items-center gap-2">
               {href && (
                 <Link
@@ -199,37 +235,113 @@ const LibraryCard = React.memo(function LibraryCard({ item, selected, onToggle, 
               </button>
             </div>
           </div>
-          <p className="text-[11px] font-mono text-muted-foreground leading-relaxed flex-1">
+          <p className="text-[11px] font-mono text-muted-foreground leading-relaxed flex-1 line-clamp-4">
             {item.promptText}
           </p>
         </div>
       )}
 
-      {/* ── Card body ── */}
-      <div className="px-3.5 py-3">
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <span className={cn(
-            "inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold",
-            CAT_COLORS[item.cat],
-          )}>
-            {catLabel}
-          </span>
-        </div>
-
-        <h3 className="text-sm font-semibold text-foreground leading-snug mb-1">{item.title}</h3>
-        <p className="text-[11px] text-muted-foreground leading-relaxed mb-2.5">{item.desc}</p>
-
-        <div className="flex flex-wrap gap-1">
-          {item.tags.map(tag => (
-            <span
-              key={tag}
-              className="px-1.5 py-0.5 rounded-md bg-secondary text-[10px] text-muted-foreground"
-            >
-              {tag}
+      {/* ── Card body (prompt-only cards: no image to hover, so info stays visible) ── */}
+      {!item.image && (
+        <div className="px-3.5 py-3">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className={cn(
+              "inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold",
+              CAT_COLORS[item.cat],
+            )}>
+              {catLabel}
             </span>
-          ))}
+          </div>
+
+          <h3 className="text-sm font-semibold text-foreground leading-snug mb-1">{item.title}</h3>
+          <p className="text-[11px] text-muted-foreground leading-relaxed mb-2.5">{item.desc}</p>
+
+          <div className="flex flex-wrap gap-1">
+            {item.tags.map(tag => (
+              <span
+                key={tag}
+                className="px-1.5 py-0.5 rounded-md bg-secondary text-[10px] text-muted-foreground"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* ── Chi tiết dialog (ảnh + mô tả, kèm prompt đầy đủ nếu có) ── */}
+      {isImageCard && (
+        <Dialog open={promptOpen} onOpenChange={setPromptOpen}>
+          <DialogContent
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-3xl w-[calc(100%-2rem)] p-0 overflow-hidden grid sm:grid-cols-2 gap-0"
+          >
+            <div className="relative bg-secondary flex items-center justify-center min-h-[240px] sm:min-h-[420px] max-h-[80vh] p-2">
+              {/* eslint-disable-next-line @next/next/no-img-element -- hiện đúng ảnh thật, không ép theo box cố định để tránh crop/letterbox sai tỉ lệ */}
+              <img src={item.image!} alt={item.title} className="max-w-full max-h-[76vh] w-auto h-auto object-contain rounded-lg" />
+            </div>
+            <div className="p-6 flex flex-col max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <span className={cn(
+                  "inline-flex w-fit items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold mb-2",
+                  CAT_COLORS[item.cat],
+                )}>
+                  {catLabel}
+                </span>
+                <DialogTitle>{item.title}</DialogTitle>
+                <DialogDescription>{item.desc}</DialogDescription>
+              </DialogHeader>
+
+              {item.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-3">
+                  {item.tags.map(tag => (
+                    <span key={tag} className="px-1.5 py-0.5 rounded-md bg-secondary text-[10px] text-muted-foreground">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {item.promptText && (
+                <div className="mt-4 flex-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Prompt đầy đủ</p>
+                  <p className="text-xs font-mono text-foreground leading-relaxed whitespace-pre-wrap bg-secondary/50 rounded-xl p-3">
+                    {item.promptText}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 mt-5">
+                {href && (
+                  <Link
+                    href={href}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
+                  >
+                    <Wand2 className="size-3.5" />
+                    Dùng trong Studio
+                  </Link>
+                )}
+                {item.promptText && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); copy(item.promptText ?? ""); }}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors",
+                      copied
+                        ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/70",
+                    )}
+                  >
+                    <Copy className={cn("size-3.5", copied && "hidden")} />
+                    <Check className={cn("size-3.5", !copied && "hidden")} />
+                    {copied ? "Đã copy!" : "Copy prompt"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 });
@@ -397,12 +509,12 @@ export default function LibraryPage() {
           {splitCols(filtered, cols).map((col, ci) => (
             <div key={ci} className="flex-1 flex flex-col gap-4 min-w-0">
               {col.map((item, rowIdx) => (
-                <LibraryCard 
-                  key={item.id} 
-                  item={item} 
+                <LibraryCard
+                  key={item.id}
+                  item={item}
                   selected={!!selectedItems.find(i => i.id === item.id)}
                   onToggle={toggleSelect}
-                  priority={rowIdx < 2}
+                  priority={rowIdx === 0}
                 />
               ))}
             </div>
@@ -417,46 +529,33 @@ export default function LibraryPage() {
       )}
 
       {/* ── Selection Cart (Floating Bottom Bar) ── */}
-      {selectedItems.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-background/90 backdrop-blur-xl border shadow-2xl p-3 pr-4 rounded-full animate-in slide-in-from-bottom-10 fade-in duration-300">
-          <div className="flex items-center gap-2 pl-2 border-r pr-4">
-            <div className="flex -space-x-3">
-              {selectedItems.map((item, idx) => (
-                <div key={item.id} className="relative size-10 rounded-full overflow-hidden border-2 border-background bg-secondary z-[idx]">
-                  {item.image ? (
-                    <Image src={item.image} alt="" fill sizes="40px" className="object-cover" />
-                  ) : (
-                    <div className="size-full flex items-center justify-center bg-violet-100 text-violet-600 dark:bg-violet-900 dark:text-violet-400">
-                      <AlignLeft className="size-4" />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-col ml-2">
-              <span className="text-[11px] text-muted-foreground font-medium leading-none mb-1">Đã chọn</span>
-              <span className="text-sm font-semibold leading-none">{selectedItems.length} mục</span>
-            </div>
+      <ActionBar open={selectedItems.length > 0} onOpenChange={(open) => !open && setSelectedItems([])}>
+        <ActionBarSelection>
+          <div className="flex -space-x-3 mr-1">
+            {selectedItems.map((item) => (
+              <div key={item.id} className="relative size-7 rounded-full overflow-hidden border-2 border-background bg-secondary">
+                {item.image ? (
+                  <Image src={item.image} alt="" fill sizes="28px" className="object-cover" />
+                ) : (
+                  <div className="size-full flex items-center justify-center bg-violet-100 text-violet-600 dark:bg-violet-900 dark:text-violet-400">
+                    <AlignLeft className="size-3" />
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-          
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setSelectedItems([])}
-              className="px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-secondary rounded-xl transition-colors flex items-center gap-1"
-            >
-              <X className="size-3" />
-              Bỏ qua
-            </button>
-            <button 
-              onClick={handleSendToStudio}
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold rounded-xl transition-all shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5"
-            >
-              <Wand2 className="size-4" />
-              Gửi vào Studio
-            </button>
-          </div>
-        </div>
-      )}
+          {selectedItems.length} mục
+        </ActionBarSelection>
+        <ActionBarSeparator />
+        <ActionBarGroup>
+          <ActionBarItem onSelect={handleSendToStudio} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Wand2 className="size-3.5" /> Gửi vào Studio
+          </ActionBarItem>
+        </ActionBarGroup>
+        <ActionBarClose>
+          <X className="size-3.5" />
+        </ActionBarClose>
+      </ActionBar>
     </div>
   );
 }

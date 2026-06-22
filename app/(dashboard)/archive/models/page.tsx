@@ -8,6 +8,14 @@ import {
   Plus, CheckSquare, X, Layers, UploadCloud, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  ActionBar,
+  ActionBarClose,
+  ActionBarGroup,
+  ActionBarItem,
+  ActionBarSelection,
+  ActionBarSeparator,
+} from "@/components/ui/action-bar";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { Lightbox } from "@/components/shared/lightbox";
 import { supabase } from "@/lib/supabase";
@@ -260,17 +268,18 @@ export default function ModelsPage() {
       </div>
 
       {/* Multi-select bottom bar */}
-      <div className={`fixed bottom-0 left-0 right-0 z-40 transition-all duration-300 ${selectMode && selectedIds.size > 0 ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"}`}>
-        <div className="mx-auto max-w-xl mb-6 px-4">
-          <div className="flex items-center gap-3 bg-card border border-border rounded-2xl shadow-2xl p-3">
-            <span className="text-sm font-semibold text-foreground flex-1">Đã chọn {selectedIds.size} ảnh</span>
-            <button onClick={executeBulkArchive}
-              className="cursor-pointer flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 text-xs font-semibold hover:bg-amber-500/20 transition-colors">
-              <Archive className="size-3.5" /> Archive {selectedIds.size} ảnh
-            </button>
-          </div>
-        </div>
-      </div>
+      <ActionBar open={selectMode && selectedIds.size > 0} onOpenChange={(open) => !open && setSelectedIds(new Set())}>
+        <ActionBarSelection>Đã chọn {selectedIds.size} ảnh</ActionBarSelection>
+        <ActionBarSeparator />
+        <ActionBarGroup>
+          <ActionBarItem onSelect={executeBulkArchive} className="bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20">
+            <Archive className="size-3.5" /> Archive {selectedIds.size} ảnh
+          </ActionBarItem>
+        </ActionBarGroup>
+        <ActionBarClose>
+          <X className="size-3.5" />
+        </ActionBarClose>
+      </ActionBar>
 
       <Lightbox imageUrl={lightboxUrl} createdAt={lightboxCreatedAt} currentIndex={lightboxIndex}
         images={filtered.map(a => ({ url: a.url, createdAt: a.created_at }))}
