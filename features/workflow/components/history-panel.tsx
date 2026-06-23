@@ -11,9 +11,11 @@ interface Props {
   loading: boolean;
   collapsed: boolean;
   onToggleCollapse: () => void;
+  onSelect: (id: string) => void;
+  selectedId?: string | null;
 }
 
-export function HistoryPanel({ history, loading, collapsed, onToggleCollapse }: Props) {
+export function HistoryPanel({ history, loading, collapsed, onToggleCollapse, onSelect, selectedId }: Props) {
   return (
     <div className="relative flex shrink-0">
       {/* Sliding panel — width animates between 0 and 272px, content stays fixed-width inside so it doesn't reflow while collapsing */}
@@ -48,9 +50,13 @@ export function HistoryPanel({ history, loading, collapsed, onToggleCollapse }: 
                 </div>
               ) : (
                 history.map((item) => (
-                  <div
+                  <button
                     key={item.id}
-                    className="group px-3 py-3 rounded-xl hover:bg-secondary/50 transition-colors cursor-default mb-0.5"
+                    type="button"
+                    onClick={() => onSelect(item.id)}
+                    className={`w-full text-left group px-3 py-3 rounded-xl hover:bg-secondary/50 transition-colors cursor-pointer mb-0.5 ${
+                      selectedId === item.id ? "bg-secondary/60" : ""
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <p className="text-[13px] font-medium text-foreground leading-snug line-clamp-2 flex-1">
@@ -68,7 +74,7 @@ export function HistoryPanel({ history, loading, collapsed, onToggleCollapse }: 
                         </>
                       )}
                     </div>
-                  </div>
+                  </button>
                 ))
               )}
             </div>

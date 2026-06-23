@@ -29,6 +29,9 @@ export const REASONING_MODELS: Array<{
 
 export const DEFAULT_REASONING_MODEL: ReasoningModelId = "gemini-2.5-flash";
 
+export const RAG_TOP_K_DEFAULT = 5;
+export const RAG_TOP_K_OPTIONS = [3, 5, 8, 10, 15, 20];
+
 export const TOOL_LABELS: Record<string, string> = {
   remove_background: "Xóa nền",
   product_to_model:  "Tạo người mẫu",

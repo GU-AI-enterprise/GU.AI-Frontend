@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Zap, Send, Plus } from "lucide-react";
+import { Zap, Send, Plus, Loader2 } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import { selectCreditBalance } from "@/features/credit/creditSlice";
 import { useSidebar } from "@/contexts/SidebarContext";
@@ -10,12 +10,13 @@ import { toast } from "sonner";
 import { GalleryModal }  from "@/features/workflow/components/gallery-modal";
 import { CompactImageSlot } from "@/features/workflow/components/image-slot";
 import { MessageBubble } from "@/features/workflow/components/message-bubble";
-import { InputBar, ModelPicker } from "@/features/workflow/components/input-bar";
+import { InputBar, ModelPicker, TopKPicker } from "@/features/workflow/components/input-bar";
 import { HistoryPanel }  from "@/features/workflow/components/history-panel";
-import { IMAGE_SLOTS, EXAMPLE_PROMPTS, DEFAULT_REASONING_MODEL } from "@/features/workflow/constants";
+import { IMAGE_SLOTS, EXAMPLE_PROMPTS, DEFAULT_REASONING_MODEL, RAG_TOP_K_DEFAULT } from "@/features/workflow/constants";
 import { buildHistory } from "@/features/workflow/helpers";
 import {
   fetchWorkflowHistory, fetchWorkflowTools,
+  fetchWorkflowConversation, clearWorkflowConversation,
   chatWithWorkflowStream, executeWorkflow, getWorkflowStatus,
 } from "@/features/workflow/workflowService";
 import type {
@@ -41,11 +42,14 @@ export default function WorkflowPage() {
   const [prompt, setPrompt]           = useState("");
   const [gallerySlot, setGallerySlot] = useState<string | null>(null);
   const [model, setModel]             = useState<ReasoningModelId>(DEFAULT_REASONING_MODEL);
+  const [topK, setTopK]               = useState(RAG_TOP_K_DEFAULT);
 
   const [history, setHistory]               = useState<WorkflowHistory[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const [toolMeta, setToolMeta]             = useState<Record<string, { label: string; credit: number }>>({});
+  const [conversationLoading, setConversationLoading] = useState(true);
 
   // Default to fully collapsed on mobile, same as the main sidebar
   useEffect(() => {
@@ -81,6 +85,20 @@ export default function WorkflowPage() {
     fetchWorkflowTools().then(setToolMeta).catch(() => { /* fall back to static constants */ });
   }, []);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const turns = await fetchWorkflowConversation();
+        setMessages(turns.map((t) => ({
+          id: crypto.randomUUID(),
+          kind: t.role === "user" ? "user" : "assistant",
+          text: t.text,
+        })));
+      } catch { /* không tải được lịch sử -> bắt đầu mới, không chặn UI */ }
+      finally { setConversationLoading(false); }
+    })();
+  }, []);
+
   const appendMessage = (msg: Omit<ChatMessage, "id">): string => {
     const id = crypto.randomUUID();
     setMessages((prev) => [...prev, { ...msg, id }]);
@@ -96,6 +114,7 @@ export default function WorkflowPage() {
   const handleSend = async () => {
     if (!prompt.trim() || pageState !== "idle") return;
 
+    setSelectedHistoryId(null);
     const currentPrompt = prompt.trim();
     const currentImages = Object.fromEntries(
       Object.entries(images).filter(([, url]) => url !== null),
@@ -121,12 +140,13 @@ export default function WorkflowPage() {
     let switchedToAssistant = false;
 
     try {
-      const { message: aiMessage, plan } = await chatWithWorkflowStream(
+      const { message: aiMessage, plan, libraryMatches } = await chatWithWorkflowStream(
         {
           message: currentPrompt,
           userInputUrls: currentImages,
           model,
           history: conversationHistory,
+          topK,
         },
         (event) => {
           if (event.type !== "delta") return;
@@ -142,16 +162,16 @@ export default function WorkflowPage() {
 
       if (plan) {
         if (aiMessage) {
-          updateMessage(thinkId, { kind: "assistant", text: aiMessage });
+          updateMessage(thinkId, { kind: "assistant", text: aiMessage, libraryMatches });
           planRef.current = plan;
           appendMessage({ kind: "plan", plan });
         } else {
-          updateMessage(thinkId, { kind: "plan", plan });
+          updateMessage(thinkId, { kind: "plan", plan, libraryMatches });
           planRef.current = plan;
         }
         setPageState("plan_ready");
       } else {
-        updateMessage(thinkId, { kind: "assistant", text: aiMessage || streamedText || "…" });
+        updateMessage(thinkId, { kind: "assistant", text: aiMessage || streamedText || "…", libraryMatches });
         setPageState("idle");
       }
     } catch (err: unknown) {
@@ -223,13 +243,61 @@ export default function WorkflowPage() {
     appendMessage({ kind: "user", text: "Làm lại từ đầu" });
   };
 
-  const handleNewWorkflow = () => {
+  const handleNewWorkflow = async () => {
     stopPolling();
     setMessages([]);
     setImages({ product_image: null, model_image: null, face_image: null });
     setPrompt("");
     planRef.current = null;
+    setSelectedHistoryId(null);
     setPageState("idle");
+    try { await clearWorkflowConversation(); } catch { /* non-critical */ }
+  };
+
+  // ── Xem lại 1 workflow cũ từ History panel ──────────────────────────────────
+
+  const handleSelectHistory = async (workflowId: string) => {
+    stopPolling();
+    planRef.current = null;
+    setSelectedHistoryId(workflowId);
+    setMessages([]);
+
+    try {
+      const { workflow, steps } = await getWorkflowStatus(workflowId);
+      appendMessage({ kind: "user", text: workflow.prompt });
+      const execId = appendMessage(
+        workflow.status === "completed"
+          ? { kind: "result", steps, finalUrl: [...steps].reverse().find((s) => s.output_url)?.output_url ?? null }
+          : workflow.status === "failed"
+          ? { kind: "error_msg", steps, error: workflow.error_message ?? "Workflow thất bại" }
+          : { kind: "executing", steps },
+      );
+
+      if (workflow.status === "running" || workflow.status === "pending") {
+        setPageState("executing");
+        pollRef.current = setInterval(async () => {
+          try {
+            const { workflow: w2, steps: s2 } = await getWorkflowStatus(workflowId);
+            updateMessage(execId, { steps: s2 });
+            if (w2.status === "completed") {
+              stopPolling();
+              const last = [...s2].reverse().find((s) => s.output_url);
+              updateMessage(execId, { kind: "result", steps: s2, finalUrl: last?.output_url ?? null });
+              setPageState("idle");
+            } else if (w2.status === "failed") {
+              stopPolling();
+              updateMessage(execId, { kind: "error_msg", steps: s2, error: w2.error_message ?? "Workflow thất bại" });
+              setPageState("idle");
+            }
+          } catch { /* ignore transient poll errors */ }
+        }, 3000);
+      } else {
+        setPageState("idle");
+      }
+    } catch {
+      toast.error("Không thể tải lại workflow này");
+      setSelectedHistoryId(null);
+    }
   };
 
   const isInputDisabled = pageState !== "idle";
@@ -242,7 +310,11 @@ export default function WorkflowPage() {
       {/* ── Left: Chat area ── */}
       <div className="flex-1 flex flex-col min-w-0">
 
-        {messages.length === 0 ? (
+        {conversationLoading ? (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            <Loader2 className="size-5 animate-spin mr-2" /> Đang tải...
+          </div>
+        ) : messages.length === 0 ? (
           /* Welcome / idle state */
           <div className="flex-1 flex flex-col items-center justify-center px-8 py-12 overflow-y-auto">
             <div className="w-full max-w-2xl">
@@ -273,7 +345,10 @@ export default function WorkflowPage() {
                       />
                     ))}
                   </div>
-                  <ModelPicker value={model} onChange={setModel} disabled={false} />
+                  <div className="flex items-center gap-2">
+                    <TopKPicker value={topK} onChange={setTopK} disabled={false} />
+                    <ModelPicker value={model} onChange={setModel} disabled={false} />
+                  </div>
                 </div>
                 <div className="flex gap-2 items-end">
                   <textarea
@@ -363,6 +438,8 @@ export default function WorkflowPage() {
               pageState={pageState}
               model={model}
               setModel={setModel}
+              topK={topK}
+              setTopK={setTopK}
               onSend={handleSend}
               onOpenGallery={(key) => setGallerySlot(key)}
             />
@@ -376,6 +453,8 @@ export default function WorkflowPage() {
         loading={historyLoading}
         collapsed={historyCollapsed}
         onToggleCollapse={() => setHistoryCollapsed((v) => !v)}
+        onSelect={handleSelectHistory}
+        selectedId={selectedHistoryId}
       />
 
       {/* Gallery modal */}

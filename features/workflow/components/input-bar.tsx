@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { Send, Loader2, ChevronDown, Sparkles } from "lucide-react";
+import { Send, Loader2, ChevronDown, Sparkles, Library } from "lucide-react";
 import { CompactImageSlot } from "./image-slot";
-import { IMAGE_SLOTS, REASONING_MODELS } from "../constants";
+import { IMAGE_SLOTS, REASONING_MODELS, RAG_TOP_K_OPTIONS } from "../constants";
 import type { PageState, ReasoningModelId } from "../types";
 
 export function ModelPicker({
@@ -77,6 +77,62 @@ export function ModelPicker({
   );
 }
 
+export function TopKPicker({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  disabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((v) => !v)}
+        className="cursor-pointer flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-secondary/40 text-[11px] font-medium text-muted-foreground hover:border-primary/40 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+      >
+        <Library className="size-3 text-primary shrink-0" />
+        <span>Thư viện: {value}</span>
+        <ChevronDown className={`size-3 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute bottom-full left-0 mb-1.5 z-50 w-48 rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+          <div className="px-3 py-2 border-b border-border/60">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Số mục tham khảo (RAG)</p>
+          </div>
+          {RAG_TOP_K_OPTIONS.map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => { onChange(k); setOpen(false); }}
+              className={`cursor-pointer w-full flex items-center justify-between px-3 py-2 text-left hover:bg-secondary/50 transition-colors ${value === k ? "bg-primary/5" : ""}`}
+            >
+              <span className="text-xs font-medium text-foreground">{k} mục</span>
+              {value === k && <div className="size-2 rounded-full bg-primary shrink-0" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface Props {
   prompt: string;
   setPrompt: (v: string) => void;
@@ -86,13 +142,15 @@ interface Props {
   pageState: PageState;
   model: ReasoningModelId;
   setModel: (v: ReasoningModelId) => void;
+  topK: number;
+  setTopK: (v: number) => void;
   onSend: () => void;
   onOpenGallery: (key: string) => void;
 }
 
 export function InputBar({
   prompt, setPrompt, images, setImages,
-  isInputDisabled, pageState, model, setModel, onSend, onOpenGallery,
+  isInputDisabled, pageState, model, setModel, topK, setTopK, onSend, onOpenGallery,
 }: Props) {
   return (
     <div className="border-t border-border bg-card/80 backdrop-blur-sm px-4 pt-3 pb-4 space-y-2.5 shrink-0">
@@ -111,7 +169,10 @@ export function InputBar({
             />
           ))}
         </div>
-        <ModelPicker value={model} onChange={setModel} disabled={isInputDisabled} />
+        <div className="flex items-center gap-2">
+          <TopKPicker value={topK} onChange={setTopK} disabled={isInputDisabled} />
+          <ModelPicker value={model} onChange={setModel} disabled={isInputDisabled} />
+        </div>
       </div>
 
       <div className="flex gap-2 items-end">

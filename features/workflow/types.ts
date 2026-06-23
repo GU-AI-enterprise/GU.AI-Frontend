@@ -32,6 +32,13 @@ export interface ConversationTurn {
   text: string;
 }
 
+export interface LibraryReference {
+  id: string;
+  title: string;
+  image_url: string;
+  category: string;
+}
+
 export interface ChatMessage {
   id: string;
   kind: MessageKind;
@@ -41,6 +48,7 @@ export interface ChatMessage {
   steps?: StepData[];
   finalUrl?: string | null;
   error?: string;
+  libraryMatches?: LibraryReference[];
 }
 
 export interface WorkflowHistory {

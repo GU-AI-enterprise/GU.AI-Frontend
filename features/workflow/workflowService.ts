@@ -1,6 +1,6 @@
 import { apiClient } from "@/lib/apiFetch";
 import { supabase } from "@/lib/supabase";
-import type { WorkflowHistory, WorkflowPlan, StepData, ConversationTurn, ReasoningModelId } from "./types";
+import type { WorkflowHistory, WorkflowPlan, StepData, ConversationTurn, ReasoningModelId, LibraryReference } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -25,16 +25,27 @@ export async function chatWithWorkflow(payload: {
   userInputUrls: Record<string, string>;
   model: ReasoningModelId;
   history: ConversationTurn[];
-}): Promise<{ message: string; plan: WorkflowPlan | null }> {
+  topK?: number;
+}): Promise<{ message: string; plan: WorkflowPlan | null; libraryMatches: LibraryReference[] }> {
   const res = await apiClient.post("/api/workflow/chat", payload);
   if (!res.data.success) throw new Error(res.data.error ?? "Lỗi không xác định");
-  return res.data.data as { message: string; plan: WorkflowPlan | null };
+  return res.data.data as { message: string; plan: WorkflowPlan | null; libraryMatches: LibraryReference[] };
+}
+
+export async function fetchWorkflowConversation(): Promise<ConversationTurn[]> {
+  const res = await apiClient.get("/api/workflow/conversation");
+  if (!res.data.success) return [];
+  return res.data.data?.turns ?? [];
+}
+
+export async function clearWorkflowConversation(): Promise<void> {
+  await apiClient.delete("/api/workflow/conversation");
 }
 
 export type WorkflowStreamEvent =
   | { type: "delta"; text: string }
   | { type: "planning" }
-  | { type: "done"; message: string; plan: WorkflowPlan | null; model: string }
+  | { type: "done"; message: string; plan: WorkflowPlan | null; model: string; libraryMatches?: LibraryReference[] }
   | { type: "error"; error: string };
 
 /**
@@ -48,9 +59,10 @@ export async function chatWithWorkflowStream(
     userInputUrls: Record<string, string>;
     model: ReasoningModelId;
     history: ConversationTurn[];
+    topK?: number;
   },
   onEvent: (event: WorkflowStreamEvent) => void,
-): Promise<{ message: string; plan: WorkflowPlan | null }> {
+): Promise<{ message: string; plan: WorkflowPlan | null; libraryMatches: LibraryReference[] }> {
   const { data: { session } } = await supabase.auth.getSession();
 
   const res = await fetch(`${API_URL}/api/workflow/chat/stream`, {
@@ -69,7 +81,7 @@ export async function chatWithWorkflowStream(
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  let result: { message: string; plan: WorkflowPlan | null } | null = null;
+  let result: { message: string; plan: WorkflowPlan | null; libraryMatches: LibraryReference[] } | null = null;
   let streamError: string | null = null;
 
   outer: while (true) {
@@ -89,7 +101,7 @@ export async function chatWithWorkflowStream(
         const event = JSON.parse(jsonStr) as WorkflowStreamEvent;
         onEvent(event);
         if (event.type === "done") {
-          result = { message: event.message, plan: event.plan };
+          result = { message: event.message, plan: event.plan, libraryMatches: event.libraryMatches ?? [] };
         } else if (event.type === "error") {
           streamError = event.error;
         }
@@ -116,7 +128,7 @@ export async function executeWorkflow(payload: {
 }
 
 export async function getWorkflowStatus(workflowId: string): Promise<{
-  workflow: { status: string; error_message?: string };
+  workflow: { id: string; prompt: string; status: string; error_message?: string };
   steps: StepData[];
 }> {
   const res = await apiClient.get(`/api/workflow/${workflowId}`);

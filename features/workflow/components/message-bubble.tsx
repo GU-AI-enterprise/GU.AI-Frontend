@@ -7,7 +7,41 @@ import {
 import { Lightbox } from "@/components/shared/lightbox";
 import { MarkdownText } from "./markdown-text";
 import { TOOL_LABELS, TOOL_CREDIT, INPUT_KEY_LABELS, formatInputVal } from "../constants";
-import type { ChatMessage, PageState, StepData } from "../types";
+import type { ChatMessage, LibraryReference, PageState, StepData } from "../types";
+
+function LibraryReferenceRow({ matches }: { matches: LibraryReference[] }) {
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  if (!matches.length) return null;
+
+  return (
+    <>
+      <div className="mt-2.5 pt-2.5 border-t border-border/40">
+        <p className="text-[10px] text-muted-foreground mb-1.5">Tham khảo từ thư viện:</p>
+        <div className="flex gap-2 flex-wrap">
+          {matches.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => setLightboxUrl(m.image_url)}
+              className="cursor-zoom-in relative group shrink-0"
+              title={m.title}
+            >
+              <img
+                src={m.image_url}
+                alt={m.title}
+                className="size-16 rounded-lg object-cover border border-border shadow-sm group-hover:opacity-80 transition-opacity"
+              />
+              <span className="absolute bottom-0 left-0 right-0 text-[8px] text-center bg-black/60 text-white rounded-b-lg px-0.5 py-0.5 truncate">
+                {m.title}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <Lightbox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />
+    </>
+  );
+}
 
 export function AssistantAvatar() {
   return (
@@ -120,6 +154,7 @@ export function MessageBubble({ msg, pageState, onConfirm, onReject, toolMeta }:
         <AssistantAvatar />
         <div className="max-w-[85%] bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3">
           <MarkdownText text={msg.text ?? ""} />
+          {msg.libraryMatches && <LibraryReferenceRow matches={msg.libraryMatches} />}
         </div>
       </div>
     );
@@ -149,6 +184,7 @@ export function MessageBubble({ msg, pageState, onConfirm, onReject, toolMeta }:
               <span className="text-sm font-semibold">Kế hoạch AI đề xuất</span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">{msg.plan.goal}</p>
+            {msg.libraryMatches && <LibraryReferenceRow matches={msg.libraryMatches} />}
           </div>
 
           <div className="p-4">
