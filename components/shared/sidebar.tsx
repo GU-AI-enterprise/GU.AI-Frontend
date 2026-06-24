@@ -82,16 +82,18 @@ export default function Sidebar() {
   const [userMenuPos, setUserMenuPos] = useState<{ bottom: number; left: number } | null>(null);
   const [chatForceOpen, setChatForceOpen] = useState(false);
   const [isFakeAI, setIsFakeAI] = useState(false);
+  const isDev = process.env.NODE_ENV !== "production";
 
-  // Sync and load fake AI mode state
+  // Sync and load fake AI mode state — công cụ debug nội bộ, chỉ tồn tại ở development.
   useEffect(() => {
+    if (!isDev) return;
     setIsFakeAI(localStorage.getItem("fake-ai-call") === "true");
     const syncFakeAI = () => {
       setIsFakeAI(localStorage.getItem("fake-ai-call") === "true");
     };
     window.addEventListener("fake-ai-toggle", syncFakeAI);
     return () => window.removeEventListener("fake-ai-toggle", syncFakeAI);
-  }, []);
+  }, [isDev]);
 
   const toggleFakeAI = () => {
     const newVal = !isFakeAI;
@@ -384,7 +386,8 @@ export default function Sidebar() {
           </div>
         )}
 
-        {/* ── Fake AI Call Toggle ── */}
+        {/* ── Fake AI Call Toggle (chỉ hiện ở development) ── */}
+        {isDev && (
         <div className="px-3 pb-2">
           {isCollapsed ? (
             <div className="flex flex-col items-center gap-1.5 py-1">
@@ -420,6 +423,7 @@ export default function Sidebar() {
             </button>
           )}
         </div>
+        )}
 
         {/* ── User card (bottom) ── */}
         <div className="px-3 py-3 border-t border-sidebar-border">

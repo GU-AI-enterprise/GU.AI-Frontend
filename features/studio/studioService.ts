@@ -62,7 +62,12 @@ function toFormData(entries: Record<string, File | string | undefined>): FormDat
 }
 
 async function startJob<T = AIJobStartResult>(path: string, formData: FormData): Promise<T> {
-  if (typeof window !== 'undefined' && localStorage.getItem('fake-ai-call') === 'true') {
+  // Công cụ debug nội bộ — khoá cứng ở production, dù localStorage có bị set thủ công cũng không có tác dụng.
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    typeof window !== 'undefined' &&
+    localStorage.getItem('fake-ai-call') === 'true'
+  ) {
     // Generate a unique fake job ID
     const jobId = `fake-job-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 

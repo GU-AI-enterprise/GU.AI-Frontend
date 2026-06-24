@@ -161,7 +161,9 @@ function StudioPageInner() {
 
   const [isFakeAI, setIsFakeAI] = useState(false);
 
+  // Công cụ debug nội bộ — chỉ hoạt động ở development, không bao giờ ảnh hưởng bản production.
   useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
     setIsFakeAI(localStorage.getItem("fake-ai-call") === "true");
     const syncFakeAI = () => {
       setIsFakeAI(localStorage.getItem("fake-ai-call") === "true");
