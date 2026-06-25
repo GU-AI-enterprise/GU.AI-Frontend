@@ -392,13 +392,16 @@ export async function modelSwap(options: {
 // ─── Tác vụ phụ (gợi ý prompt / verify ảnh) ───────────────────────────────────
 // Không trừ credit, không phải job (trả về ngay, không cần polling).
 
-export async function suggestPrompt(tool: string, userHint: string): Promise<string> {
-  const res = await apiFetch('/api/ai/suggest-prompt', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tool, userHint }),
-  });
-  const json = await res.json();
+/** `image` tuỳ chọn (file hoặc URL) — giúp AI gợi ý prompt bám sát nội dung ảnh thực tế hơn. */
+export async function suggestPrompt(tool: string, userHint: string, image?: File | string): Promise<string> {
+  const fd = new FormData();
+  fd.append('tool', tool);
+  fd.append('userHint', userHint);
+  if (image instanceof File) fd.append('image', image);
+  else if (image) fd.append('imageUrl', image);
+
+  const response = await apiClient.post('/api/ai/suggest-prompt', fd);
+  const json = response.data;
   if (!json.success) throw new Error(json.error || 'Gợi ý prompt thất bại');
   return json.data.prompt as string;
 }

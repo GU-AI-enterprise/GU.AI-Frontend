@@ -547,6 +547,19 @@ function StudioPageInner() {
   const isEdit        = selectedTool === AIToolType.EDIT;
   const isVideo = selectedTool === AIToolType.IMAGE_TO_VIDEO;
 
+  // Ảnh tham chiếu để gợi ý prompt bám sát nội dung ảnh thực tế (multimodal) — chỉ map cho
+  // các tool có 1 ảnh chính rõ ràng; tool khác (Create Model, Image to Video...) để null (text-only).
+  const suggestImage: StudioImage | null = (() => {
+    switch (selectedTool) {
+      case AIToolType.TRY_ON:           return toModelImage;
+      case AIToolType.PRODUCT_TO_MODEL: return p2mProduct;
+      case AIToolType.MODEL_SWAP:       return msImage;
+      case AIToolType.FACE_TO_MODEL:    return f2mFaceImage;
+      case AIToolType.EDIT:             return editSource;
+      default:                          return null;
+    }
+  })();
+
   // "before" image for the comparison slider
   const beforeUrl = (() => {
     if (isVideo || !resultUrl) return null;
@@ -817,6 +830,7 @@ function StudioPageInner() {
             handleRun={handleRun}
             canRun={canRun}
             isProcessing={effectiveIsProcessing}
+            suggestImage={suggestImage}
             openGallery={openGallery}
             toCategory={toCategory} toModel={toModel} toResolution={toResolution} toHovered={toHovered} toPrompt={toPrompt}
             onToCategoryChange={setToCategory} onToModelChange={setToModel}

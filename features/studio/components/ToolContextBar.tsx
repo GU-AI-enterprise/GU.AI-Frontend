@@ -116,10 +116,12 @@ function ActionBtn({ icon: Icon, label, active, onClick }: {
 // ── Prompt suggest button ─────────────────────────────────────────────────────
 // Tác vụ phụ: gợi ý prompt tiếng Anh bằng Gemini — user luôn xem & có thể sửa lại trước khi Chạy.
 
-function PromptSuggestBtn({ tool, value, onChange }: {
+function PromptSuggestBtn({ tool, value, onChange, image }: {
   tool: string;
   value: string;
   onChange: (v: string) => void;
+  /** Ảnh tham chiếu hiện có (nếu có) — gửi kèm để AI gợi ý bám sát nội dung ảnh thực tế. */
+  image?: File | string;
 }) {
   const [loading, setLoading] = useState(false);
 
@@ -127,7 +129,7 @@ function PromptSuggestBtn({ tool, value, onChange }: {
     if (loading) return;
     setLoading(true);
     try {
-      const suggestion = await suggestPrompt(tool, value);
+      const suggestion = await suggestPrompt(tool, value, image);
       if (suggestion) onChange(suggestion);
     } catch {
       toast.error("Gợi ý prompt thất bại, thử lại sau.");
@@ -212,6 +214,9 @@ export interface ToolContextBarProps {
   handleRun: () => void;
   canRun: boolean;
   isProcessing: boolean;
+
+  // Ảnh tham chiếu hiện có của tool đang chọn — dùng để gợi ý prompt bám sát ảnh thực tế (multimodal).
+  suggestImage?: StudioImage | null;
 
   // Gallery opener
   openGallery: (cb: (url: string) => void) => void;
@@ -324,6 +329,7 @@ export interface ToolContextBarProps {
 export function ToolContextBar({
   selectedTool,
   handleRun, canRun, isProcessing,
+  suggestImage,
   openGallery,
   toCategory, toModel, toResolution, toHovered, toPrompt,
   onToCategoryChange, onToModelChange, onToResolutionChange, onToHoveredChange, onToPromptChange,
@@ -346,6 +352,8 @@ export function ToolContextBar({
   upscaleScale, onUpscaleScaleChange,
   removeBgCredit,
 }: ToolContextBarProps) {
+  // File ưu tiên hơn URL (URL có thể là blob: cục bộ không gửi lên server được).
+  const suggestRef = suggestImage?.file ?? suggestImage?.url;
 
   // ── Try-On ─────────────────────────────────────────────────────────────────
   if (selectedTool === AIToolType.TRY_ON) {
@@ -360,7 +368,7 @@ export function ToolContextBar({
                 placeholder='Tuỳ chỉnh (tuỳ chọn): "remove scarf", "tuck in shirt", "roll up sleeves"...'
                 className={cn(inputCls, "flex-1")}
               />
-              <PromptSuggestBtn tool="try_on_max" value={toPrompt} onChange={onToPromptChange} />
+              <PromptSuggestBtn tool="try_on_max" value={toPrompt} onChange={onToPromptChange} image={suggestRef} />
             </>
           ) : (
             <p className="text-[11px] text-muted-foreground/40 italic">
@@ -397,7 +405,7 @@ export function ToolContextBar({
             placeholder='Tùy chọn: "Blonde hair, studio photoshoot", "office setting", "casual outdoor"...'
             className={cn(inputCls, "flex-1")}
           />
-          <PromptSuggestBtn tool="product_to_model" value={p2mPrompt} onChange={onP2mPromptChange} />
+          <PromptSuggestBtn tool="product_to_model" value={p2mPrompt} onChange={onP2mPromptChange} image={suggestRef} />
         </div>
         <BottomRow
           left={
@@ -449,7 +457,7 @@ export function ToolContextBar({
             placeholder='Tùy chọn: "same pose", "outdoor", "studio lighting"...'
             className={cn(inputCls, "flex-1")}
           />
-          <PromptSuggestBtn tool="model_swap" value={msPrompt} onChange={onMsPromptChange} />
+          <PromptSuggestBtn tool="model_swap" value={msPrompt} onChange={onMsPromptChange} image={suggestRef} />
         </div>
         <BottomRow
           right={
@@ -478,7 +486,7 @@ export function ToolContextBar({
             placeholder='Tùy chọn: "athletic build", "slender frame", "curvy figure"...'
             className={cn(inputCls, "flex-1")}
           />
-          <PromptSuggestBtn tool="face_to_model" value={f2mPrompt} onChange={onF2mPromptChange} />
+          <PromptSuggestBtn tool="face_to_model" value={f2mPrompt} onChange={onF2mPromptChange} image={suggestRef} />
         </div>
         <BottomRow
           right={
@@ -511,7 +519,7 @@ export function ToolContextBar({
             placeholder='Mô tả thay đổi: "add a black leather bag", "turn slightly left", "studio lighting"...'
             className={cn(inputCls, "flex-1")}
           />
-          <PromptSuggestBtn tool="edit" value={genericPrompt} onChange={onGenericPromptChange} />
+          <PromptSuggestBtn tool="edit" value={genericPrompt} onChange={onGenericPromptChange} image={suggestRef} />
         </div>
         <BottomRow
           right={
@@ -538,7 +546,7 @@ export function ToolContextBar({
             placeholder='Mô tả model: "Full body shot, woman wearing a white t-shirt, studio"...'
             className={cn(inputCls, "flex-1")}
           />
-          <PromptSuggestBtn tool="create_model" value={genericPrompt} onChange={onGenericPromptChange} />
+          <PromptSuggestBtn tool="create_model" value={genericPrompt} onChange={onGenericPromptChange} image={suggestRef} />
         </div>
         <BottomRow
           right={
@@ -565,7 +573,7 @@ export function ToolContextBar({
             placeholder="Mô tả chuyển động (tùy chọn — để trống để AI tự quyết)"
             className={cn(inputCls, "flex-1")}
           />
-          <PromptSuggestBtn tool="image_to_video" value={genericPrompt} onChange={onGenericPromptChange} />
+          <PromptSuggestBtn tool="image_to_video" value={genericPrompt} onChange={onGenericPromptChange} image={suggestRef} />
         </div>
         <BottomRow
           right={
