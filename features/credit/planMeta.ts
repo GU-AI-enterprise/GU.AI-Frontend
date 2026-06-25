@@ -29,10 +29,11 @@ export const PLAN_VISUALS: Record<PlanType, PlanVisual> = {
     dotClass: "bg-white",
     ringClass: "bg-[conic-gradient(from_0deg,#8b5cf6,#f0abfc,#8b5cf6,#7e22ce,#8b5cf6)]",
   },
-  agency: {
-    label: "Agency",
-    badgeClass: "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-[0_0_6px_-1px_rgba(245,158,11,0.35)]",
-    dotClass: "bg-white",
-    ringClass: "bg-[conic-gradient(from_0deg,#f59e0b,#fde047,#f59e0b,#c2410c,#f59e0b)]",
-  },
 };
+
+/** Số ngày còn lại tới khi hết hạn gói; null nếu không có hạn (free / chưa từng mua gói). */
+export function daysRemaining(expiresAt: string | null): number | null {
+  if (!expiresAt) return null;
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  return Math.max(0, Math.ceil(ms / (24 * 60 * 60 * 1000)));
+}

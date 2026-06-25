@@ -14,6 +14,7 @@ import {
   type CreditPackage, type TopupInfo,
 } from "@/features/payment/paymentService";
 import GuaiLoader from "@/components/shared/guai-loader";
+import { daysRemaining } from "@/features/credit/planMeta";
 
 const TOPUP_BASE_RATE = 1580;
 const PKG_ICONS = [ShoppingBag, Sparkles, Crown];
@@ -21,13 +22,12 @@ const PRESETS = [50, 100, 200, 500];
 const MIN_CREDITS = 10;
 const MAX_CREDITS = 5000;
 
-type PlanType = 'free' | 'basic' | 'pro' | 'agency';
+type PlanType = 'free' | 'basic' | 'pro';
 
 const PLAN_META: Record<PlanType, { label: string; color: string; bg: string }> = {
   free:   { label: 'Free',   color: 'text-slate-400',     bg: 'bg-slate-400/10 border border-slate-400/20' },
   basic:  { label: 'Basic',  color: 'text-blue-400',      bg: 'bg-blue-400/10 border border-blue-400/20' },
   pro:    { label: 'Pro',    color: 'text-violet-400',    bg: 'bg-violet-400/10 border border-violet-400/20' },
-  agency: { label: 'Agency', color: 'text-amber-400',     bg: 'bg-amber-400/10 border border-amber-400/20' },
 };
 
 function perCredit(pkg: CreditPackage) {
@@ -111,10 +111,13 @@ export default function TopupPage() {
     );
   }
 
-  const sorted = [...packages].sort((a, b) => a.sort_order - b.sort_order);
-  const popularIdx = sorted.length >= 3 ? 1 : -1;
+  // Gói Free (price 0, grants_plan_type "free") chỉ dùng để hiển thị baseline trong bảng so sánh —
+  // không cho mua/gia hạn qua PayOS vì không có gì để thanh toán.
+  const sorted = [...packages].filter(p => p.grants_plan_type !== 'free').sort((a, b) => a.sort_order - b.sort_order);
+  const popularIdx = sorted.length >= 2 ? 1 : -1;
   const planType: PlanType = (topupInfo?.plan_type as PlanType) ?? 'free';
   const planMeta = PLAN_META[planType];
+  const planDaysLeft = planType !== 'free' ? daysRemaining(topupInfo?.plan_expires_at ?? null) : null;
   const discountPct = topupInfo?.discount_pct ?? 0;
   const ratePerCredit = topupInfo?.rate ?? TOPUP_BASE_RATE;
   const totalPrice = ratePerCredit * creditAmount;
@@ -167,6 +170,13 @@ export default function TopupPage() {
                 </span>
               )}
             </div>
+            {planDaysLeft !== null ? (
+              <a href="#packages" className="mt-1 flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
+                Còn <span className="font-semibold tabular-nums">{planDaysLeft}</span> ngày · <span className="underline">Gia hạn ngay</span>
+              </a>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">Chưa đăng ký gói nào</p>
+            )}
           </div>
         </div>
       </div>
@@ -308,7 +318,7 @@ export default function TopupPage() {
       </div>
 
       {/* ─── Packages / Plan upgrade section ─── */}
-      <div className="mb-6">
+      <div id="packages" className="mb-6 scroll-mt-6">
         <div className="flex items-center gap-2 text-primary text-xs font-semibold uppercase tracking-widest mb-2">
           <Crown className="size-4" />
           Gói nâng cấp
@@ -340,7 +350,7 @@ export default function TopupPage() {
               const isCurrentPlan = grantsPlan === planType && planType !== 'free';
 
               // Compute discount this plan unlocks
-              const planDiscounts: Record<string, number> = { basic: 5, pro: 10, agency: 15 };
+              const planDiscounts: Record<string, number> = { basic: 5, pro: 10 };
               const unlockDiscount = grantsPlan ? (planDiscounts[grantsPlan] ?? 0) : 0;
 
               return (
@@ -486,7 +496,7 @@ export default function TopupPage() {
                   {sorted.map((pkg, idx) => {
                     const grantsPlan  = pkg.grants_plan_type as PlanType | undefined;
                     const meta        = grantsPlan ? PLAN_META[grantsPlan] : null;
-                    const planDiscounts: Record<string, number> = { basic: 5, pro: 10, agency: 15 };
+                    const planDiscounts: Record<string, number> = { basic: 5, pro: 10 };
                     const disc        = grantsPlan ? (planDiscounts[grantsPlan] ?? 0) : 0;
                     const rate        = Math.round(TOPUP_BASE_RATE * (1 - disc / 100));
                     const isPopular   = idx === popularIdx;

@@ -13,7 +13,7 @@ interface Props {
   onModelImageChange: (img: StudioImage | null) => void;
   onFaceRefChange: (img: StudioImage | null) => void;
   onPaste: (onImage: (file: File) => void) => Promise<void>;
-  openGallery: (cb: (url: string) => void) => void;
+  openGallery: (cb: (url: string) => void, mode?: "model" | "library") => void;
 }
 
 export function FaceSwapPanel({
@@ -32,7 +32,7 @@ export function FaceSwapPanel({
           image={modelImage} onClear={() => onModelImageChange(null)}
           onFileChange={(f) => onModelImageChange(fileToStudioImage(f))}
           onPaste={() => onPaste((f) => onModelImageChange(fileToStudioImage(f)))}
-          onGallery={() => openGallery((url) => onModelImageChange(mkImg(url)))}
+          onGallery={() => openGallery((url) => onModelImageChange(mkImg(url)), "model")}
           verifyAs="model"
         />
         <ImageSlot

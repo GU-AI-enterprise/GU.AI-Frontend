@@ -11,7 +11,8 @@ export interface CreditPackage {
 }
 
 export interface TopupInfo {
-  plan_type: 'free' | 'basic' | 'pro' | 'agency';
+  plan_type: 'free' | 'basic' | 'pro';
+  plan_expires_at: string | null;
   discount_pct: number;
   base_rate: number;
   rate: number;

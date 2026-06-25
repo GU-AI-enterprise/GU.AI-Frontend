@@ -19,7 +19,6 @@ const ROUTE_MAP: Record<string, [SectionKey, RouteKey]> = {
   "/dashboard":          ["studio",        "overview"],
   "/studio":             ["studio",        "aiStudio"],
   "/archive/gallery":    ["archive",       "allPhotos"],
-  "/archive/models":     ["archive",       "models"],
   "/archive/collections":["archive",       "collections"],
   "/archive/upload":     ["archive",       "bulkUpload"],
   "/archive/trash":      ["archive",       "archiveTrash"],

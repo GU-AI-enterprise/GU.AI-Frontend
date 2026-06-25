@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/apiFetch';
-import type { DBAsset } from './imageService';
+import type { DBAsset, PaginatedResult } from './imageService';
 
 export interface Collection {
   id: string;
@@ -46,6 +46,13 @@ export async function getCollection(id: string): Promise<Collection> {
 
 export async function getCollectionItems(id: string): Promise<DBAsset[]> {
   return parseResponse<DBAsset[]>(await apiFetch(`/api/collections/${id}/items`));
+}
+
+/** Bản phân trang của getCollectionItems — dùng cho lazy-load trong modal picker. */
+export async function getCollectionItemsPaginated(id: string, limit: number, offset: number): Promise<PaginatedResult<DBAsset>> {
+  return parseResponse<PaginatedResult<DBAsset>>(
+    await apiFetch(`/api/collections/${id}/items?limit=${limit}&offset=${offset}`)
+  );
 }
 
 export async function addItemToCollection(collectionId: string, assetId: string): Promise<void> {

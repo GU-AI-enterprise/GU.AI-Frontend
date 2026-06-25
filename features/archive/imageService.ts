@@ -35,6 +35,21 @@ export async function getImages(category?: string): Promise<DBAsset[]> {
   return parseResponse<DBAsset[]>(await apiFetch(url));
 }
 
+export interface PaginatedResult<T> {
+  items: T[];
+  hasMore: boolean;
+}
+
+/** Bản phân trang của getImages — dùng cho lazy-load (infinite scroll trong modal picker). */
+export async function getImagesPaginated(
+  limit: number, offset: number, opts: { category?: string; type?: string } = {}
+): Promise<PaginatedResult<DBAsset>> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (opts.category) params.set('category', opts.category);
+  if (opts.type) params.set('type', opts.type);
+  return parseResponse<PaginatedResult<DBAsset>>(await apiFetch(`/api/images?${params.toString()}`));
+}
+
 /** Upload file lên Supabase qua backend (bypass RLS). Trả về public URL. */
 export async function uploadFile(file: File, bucket: 'assets' | 'videos' | 'models' = 'assets'): Promise<string> {
   const form = new FormData();

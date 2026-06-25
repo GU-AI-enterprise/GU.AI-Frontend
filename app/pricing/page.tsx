@@ -12,17 +12,17 @@ import {
   getPackages, createPaymentLink, getTopupInfo,
   type CreditPackage, type TopupInfo,
 } from "@/features/payment/paymentService";
+import { daysRemaining } from "@/features/credit/planMeta";
 
 const TOPUP_BASE_RATE = 1580;
 const PKG_ICONS = [ShoppingBag, Sparkles, Crown];
 
-type PlanType = 'free' | 'basic' | 'pro' | 'agency';
+type PlanType = 'free' | 'basic' | 'pro';
 
 const PLAN_META: Record<PlanType, { label: string; color: string; bg: string }> = {
   free:   { label: 'Free',   color: 'text-slate-400',   bg: 'bg-slate-400/10 border border-slate-400/20' },
   basic:  { label: 'Basic',  color: 'text-blue-400',    bg: 'bg-blue-400/10 border border-blue-400/20' },
   pro:    { label: 'Pro',    color: 'text-violet-400',  bg: 'bg-violet-400/10 border border-violet-400/20' },
-  agency: { label: 'Agency', color: 'text-amber-400',   bg: 'bg-amber-400/10 border border-amber-400/20' },
 };
 
 const faqs = [
@@ -32,15 +32,15 @@ const faqs = [
   },
   {
     q: "Top-up pay-as-you-go là gì?",
-    a: "Sau khi đăng ký, bạn có thể nạp thêm credits bất kỳ lúc nào với số lượng tùy ý (tối thiểu 10 credits). Giá mỗi credit phụ thuộc vào gói bạn đang giữ — gói cao hơn = giảm giá nhiều hơn vĩnh viễn.",
+    a: "Sau khi đăng ký, bạn có thể nạp thêm credits bất kỳ lúc nào với số lượng tùy ý (tối thiểu 10 credits). Giá mỗi credit phụ thuộc vào gói bạn đang giữ — gói cao hơn = giảm giá nhiều hơn.",
   },
   {
     q: "Tôi có phải trả phí hàng tháng không?",
-    a: "Không. Các gói là mua một lần duy nhất. Bạn nhận credits + unlock tier giảm giá top-up vĩnh viễn. Không có phí ẩn hay gia hạn tự động.",
+    a: "Không tự động trừ tiền hàng tháng. Mỗi gói có hiệu lực 30 ngày từ lúc mua/gia hạn — hết hạn bạn chỉ cần mua lại để tiếp tục nhận ưu đãi, không có phí ẩn hay tự động trừ tiền nếu bạn không chủ động mua.",
   },
   {
     q: "Discount top-up có bị mất không?",
-    a: "Không. Một khi bạn mua gói, tier giảm giá top-up được kích hoạt vĩnh viễn trên tài khoản. Bạn có thể nâng lên gói cao hơn bất kỳ lúc nào.",
+    a: "Discount top-up gắn với gói đang hoạt động trong 30 ngày. Gia hạn trước khi hết hạn để không bị mất ưu đãi — gia hạn sớm sẽ được cộng thêm ngày vào hạn hiện tại, không mất ngày còn lại.",
   },
   {
     q: "Có hỗ trợ xuất hóa đơn VAT không?",
@@ -88,17 +88,19 @@ export default function PricingPage() {
     }
   };
 
-  const sorted = [...packages].sort((a, b) => a.sort_order - b.sort_order);
-  const popularIdx = sorted.length >= 3 ? 1 : -1;
+  // Gói Free (price 0, grants_plan_type "free") chỉ dùng để hiển thị baseline trong bảng so sánh —
+  // không cho mua qua PayOS vì không có gì để thanh toán.
+  const sorted = [...packages].filter(p => p.grants_plan_type !== 'free').sort((a, b) => a.sort_order - b.sort_order);
+  const popularIdx = sorted.length >= 2 ? 1 : -1;
   const planType: PlanType = (topupInfo?.plan_type as PlanType) ?? 'free';
   const planMeta = PLAN_META[planType];
+  const planDaysLeft = planType !== 'free' ? daysRemaining(topupInfo?.plan_expires_at ?? null) : null;
   const discountPct = topupInfo?.discount_pct ?? 0;
 
   // Static packages for guests (mirrors DB data)
   const staticPackages = [
     { id: 's1', name: "Starter",            price: 261000,  credits: 100, planLabel: "Basic",  planColor: "text-blue-400",   planBg: "bg-blue-400/10 border-blue-400/20",   topupDiscount: 5,  popular: false },
     { id: 's2', name: "Gói Cơ Bản",         price: 489000,  credits: 199, planLabel: "Pro",    planColor: "text-violet-400", planBg: "bg-violet-400/10 border-violet-400/20", topupDiscount: 10, popular: true  },
-    { id: 's3', name: "Gói Chuyên Nghiệp",  price: 1100000, credits: 499, planLabel: "Agency", planColor: "text-amber-400",  planBg: "bg-amber-400/10 border-amber-400/20",  topupDiscount: 15, popular: false },
   ];
 
   return (
@@ -113,7 +115,7 @@ export default function PricingPage() {
             Bảng giá <span className="font-normal italic text-primary">đơn giản, minh bạch</span>
           </h1>
           <p className="mt-4 text-base font-light text-muted-foreground leading-relaxed max-w-xl mx-auto">
-            Mua một lần, dùng vĩnh viễn. Nạp thêm credits bất kỳ lúc nào — gói càng cao, giá top-up càng rẻ.
+            Mỗi gói có hiệu lực 30 ngày. Nạp thêm credits bất kỳ lúc nào — gói càng cao, giá top-up càng rẻ.
           </p>
           <div className="mt-8 inline-flex items-center gap-2 rounded-2xl border border-border bg-card px-5 py-3">
             <Coins className="size-4 text-primary" />
@@ -140,6 +142,13 @@ export default function PricingPage() {
                   <span className="text-xs text-emerald-500 font-semibold">-{discountPct}% top-up</span>
                 )}
               </div>
+              {planDaysLeft !== null ? (
+                <a href="#packages" className="mt-1 flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
+                  Còn <span className="font-semibold tabular-nums">{planDaysLeft}</span> ngày · <span className="underline">Gia hạn ngay</span>
+                </a>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">Chưa đăng ký gói nào</p>
+              )}
             </div>
           </div>
         </div>
@@ -152,7 +161,7 @@ export default function PricingPage() {
       )}
 
       {/* Package Cards */}
-      <section className="pb-16 relative z-10">
+      <section id="packages" className="pb-16 relative z-10 scroll-mt-6">
         <div className="mx-auto max-w-5xl px-6 lg:px-8">
           {pkgLoading ? (
             <div className="flex items-center justify-center py-20">
@@ -170,7 +179,7 @@ export default function PricingPage() {
                   const grantsPlan   = pkg.grants_plan_type as PlanType | null | undefined;
                   const grantMeta    = grantsPlan ? PLAN_META[grantsPlan] : null;
                   const isCurrentPlan = grantsPlan === planType && planType !== 'free';
-                  const planDiscounts: Record<string, number> = { basic: 5, pro: 10, agency: 15 };
+                  const planDiscounts: Record<string, number> = { basic: 5, pro: 10 };
                   const unlockDiscount = grantsPlan ? (planDiscounts[grantsPlan] ?? 0) : 0;
 
                   return (
@@ -300,7 +309,7 @@ export default function PricingPage() {
                       {sorted.map((pkg, idx) => {
                         const grantsPlan = pkg.grants_plan_type as PlanType | undefined;
                         const meta = grantsPlan ? PLAN_META[grantsPlan] : null;
-                        const planDiscounts: Record<string, number> = { basic: 5, pro: 10, agency: 15 };
+                        const planDiscounts: Record<string, number> = { basic: 5, pro: 10 };
                         const disc = grantsPlan ? (planDiscounts[grantsPlan] ?? 0) : 0;
                         const rate = Math.round(TOPUP_BASE_RATE * (1 - disc / 100));
                         const isPopular = idx === popularIdx;
@@ -404,7 +413,6 @@ export default function PricingPage() {
                         { label: "Free",              badge: null,                                                                                       disc: 0,  rate: TOPUP_BASE_RATE },
                         { label: "Starter",           badge: { label: "Basic",  color: "text-blue-400",   bg: "bg-blue-400/10 border-blue-400/20"   }, disc: 5,  rate: Math.round(TOPUP_BASE_RATE * 0.95) },
                         { label: "Gói Cơ Bản",        badge: { label: "Pro",    color: "text-violet-400", bg: "bg-violet-400/10 border-violet-400/20" }, disc: 10, rate: Math.round(TOPUP_BASE_RATE * 0.90) },
-                        { label: "Gói Chuyên Nghiệp", badge: { label: "Agency", color: "text-amber-400",  bg: "bg-amber-400/10 border-amber-400/20"  }, disc: 15, rate: Math.round(TOPUP_BASE_RATE * 0.85) },
                       ].map((row, i) => (
                         <tr key={i} className={`border-b border-border/40 last:border-0 ${i === 2 ? "bg-primary/[0.02]" : "hover:bg-muted/20"} transition-colors`}>
                           <td className="px-6 py-4 font-semibold text-foreground text-sm">

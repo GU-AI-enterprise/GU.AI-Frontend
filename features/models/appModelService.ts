@@ -1,6 +1,6 @@
 import { apiClient } from "@/lib/apiFetch";
 
-export type PlanTier = "free" | "basic" | "pro" | "agency";
+export type PlanTier = "free" | "basic" | "pro";
 
 export interface AppModel {
   id: string;

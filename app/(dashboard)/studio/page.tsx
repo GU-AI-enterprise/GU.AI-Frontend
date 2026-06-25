@@ -20,7 +20,6 @@ import { ToolContextBar } from "@/features/studio/components/ToolContextBar";
 import { Lightbox } from "@/components/shared/lightbox";
 import { SaveToAlbumModal } from "@/components/shared/save-to-album-modal";
 import { supabase } from "@/lib/supabase";
-import { getImages } from "@/features/archive/imageService";
 import { AIToolType } from "@/constants/ai";
 import { toast } from "sonner";
 import {
@@ -54,9 +53,7 @@ import { ModelSwapPanel } from "@/features/studio/components/ModelSwapPanel";
 import { FaceToModelPanel } from "@/features/studio/components/FaceToModelPanel";
 import { EditPanel } from "@/features/studio/components/EditPanel";
 import { GenericPanel } from "@/features/studio/components/GenericPanel";
-import { LibraryModal } from "@/features/studio/components/LibraryModal";
-import { ModelPickerModal } from "@/features/studio/components/ModelPickerModal";
-import { GalleryPickerModal } from "@/features/studio/components/GalleryPickerModal";
+import { StudioPickerModal } from "@/features/studio/components/StudioPickerModal";
 
 // ─── Inner page (needs Suspense because of useSearchParams) ───────────────────
 
@@ -146,7 +143,7 @@ function StudioPageInner() {
   // ── UI state ──────────────────────────────────────────────────────────────
   const [guideToolId,      setGuideToolId]      = useState<string | null>(null);
   const [showGallery,      setShowGallery]       = useState(false);
-  const [galleryImages,    setGalleryImages]     = useState<{ id: string; url: string }[]>([]);
+  const [galleryMode,      setGalleryMode]       = useState<"model" | "library">("library");
   const [lightboxUrl,      setLightboxUrl]       = useState<string | null>(null);
   const [saveAlbumAssetId, setSaveAlbumAssetId]  = useState<string | null>(null);
   const [libraryModalConfig, setLibraryModalConfig] = useState<{ cat: string; cb: (url: string) => void; onUpload: () => void } | null>(null);
@@ -191,7 +188,6 @@ function StudioPageInner() {
         if (!alive) return;
         if (error || !session?.user) { router.push("/login"); return; }
         setAuthLoading(false);
-        fetchGallery();
       } catch {
         if (alive) router.push("/login");
       }
@@ -352,16 +348,10 @@ function StudioPageInner() {
     else if (jobState === "failed" && jobError) toast.error(jobError);
   }, [jobState, jobError]);
 
-  // ── Gallery ───────────────────────────────────────────────────────────────
-  const fetchGallery = async () => {
-    try {
-      const imgs = await getImages();
-      setGalleryImages(imgs.filter(i => i.type === "image").map(i => ({ id: i.id, url: i.url })));
-    } catch {}
-  };
-
-  const openGallery = useCallback((cb: (url: string) => void) => {
+  // ── Gallery / Library / Model picker (StudioPickerModal) ─────────────────────
+  const openGallery = useCallback((cb: (url: string) => void, mode: "model" | "library" = "library") => {
     galleryCallbackRef.current = cb;
+    setGalleryMode(mode);
     setShowGallery(true);
   }, []);
 
@@ -882,8 +872,9 @@ function StudioPageInner() {
       />
 
       {isMounted && showGallery && createPortal(
-        <GalleryPickerModal
-          galleryImages={galleryImages}
+        <StudioPickerModal
+          mode={galleryMode}
+          defaultTab="gallery"
           onClose={() => setShowGallery(false)}
           onSelect={handleGallerySelect}
         />,
@@ -892,32 +883,19 @@ function StudioPageInner() {
 
       {/* ── Library / Model Picker Modal ── */}
       {libraryModalConfig && (
-        libraryModalConfig.cat === "model" ? (
-          <ModelPickerModal
-            onSelect={(url) => {
-              libraryModalConfig.cb(url);
-              setLibraryModalConfig(null);
-            }}
-            onUpload={() => {
-              setLibraryModalConfig(null);
-              libraryModalConfig.onUpload();
-            }}
-            onClose={() => setLibraryModalConfig(null)}
-          />
-        ) : (
-          <LibraryModal
-            category={libraryModalConfig.cat}
-            onSelect={(url) => {
-              libraryModalConfig.cb(url);
-              setLibraryModalConfig(null);
-            }}
-            onUpload={() => {
-              setLibraryModalConfig(null);
-              libraryModalConfig.onUpload();
-            }}
-            onClose={() => setLibraryModalConfig(null)}
-          />
-        )
+        <StudioPickerModal
+          mode={libraryModalConfig.cat === "model" ? "model" : "library"}
+          defaultTab="primary"
+          onSelect={(url) => {
+            libraryModalConfig.cb(url);
+            setLibraryModalConfig(null);
+          }}
+          onUpload={() => {
+            setLibraryModalConfig(null);
+            libraryModalConfig.onUpload();
+          }}
+          onClose={() => setLibraryModalConfig(null)}
+        />
       )}
     </div>
   );
