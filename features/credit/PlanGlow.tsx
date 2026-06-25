@@ -22,7 +22,7 @@ interface PlanBadgeWrapProps {
 
 /** Wraps a plan tier badge's contents with its gradient background; animates the gradient for paid tiers. */
 export function PlanBadgeWrap({ planType, className, children }: PlanBadgeWrapProps) {
-  const plan = PLAN_VISUALS[planType];
+  const plan = PLAN_VISUALS[planType] ?? PLAN_VISUALS.free;
   if (!plan.ringClass) return <span className={cn(plan.badgeClass, className)}>{children}</span>;
   return (
     <motion.span
@@ -48,7 +48,7 @@ interface PlanAvatarRingProps {
  * only the thin ring revealed by the padding gap appears to rotate.
  */
 export function PlanAvatarRing({ planType, className, children }: PlanAvatarRingProps) {
-  const plan = PLAN_VISUALS[planType];
+  const plan = PLAN_VISUALS[planType] ?? PLAN_VISUALS.free;
   if (!plan.ringClass) return <>{children}</>;
   return (
     <div className={cn("relative inline-flex shrink-0 items-center justify-center rounded-full p-[2.5px] overflow-hidden", className)}>

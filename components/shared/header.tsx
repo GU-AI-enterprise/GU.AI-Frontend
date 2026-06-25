@@ -61,7 +61,7 @@ export default function Header() {
     if (user) dispatch(fetchCredit());
   }, [user, dispatch]);
 
-  const plan = PLAN_VISUALS[planType];
+  const plan = PLAN_VISUALS[planType] ?? PLAN_VISUALS.free;
   const avatarBorderClass = plan.ringClass ? "" : "border border-primary/20";
 
   const handleSignOut = async () => {

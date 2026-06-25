@@ -39,7 +39,7 @@ function splitCols<T>(items: T[], n: number): T[][] {
 }
 
 const ModelCard = React.memo(function ModelCard({ model, onUse }: { model: AppModel; onUse: (m: AppModel) => void }) {
-  const plan = PLAN_VISUALS[model.required_tier];
+  const plan = PLAN_VISUALS[model.required_tier] ?? PLAN_VISUALS.pro;
   return (
     <div
       onClick={() => model.unlocked && onUse(model)}

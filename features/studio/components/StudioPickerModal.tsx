@@ -144,7 +144,7 @@ function ModelTab({ onSelect }: { onSelect: (url: string) => void }) {
 
   const handlePick = (model: AppModel) => {
     if (!model.unlocked) {
-      toast.error(`Cần nâng cấp lên ${PLAN_VISUALS[model.required_tier].label} để dùng người mẫu này`);
+      toast.error(`Cần nâng cấp lên ${(PLAN_VISUALS[model.required_tier] ?? PLAN_VISUALS.pro).label} để dùng người mẫu này`);
       return;
     }
     onSelect(model.image_url);
@@ -156,7 +156,7 @@ function ModelTab({ onSelect }: { onSelect: (url: string) => void }) {
   return (
     <div className={gridCls}>
       {models.map((model) => {
-        const plan = PLAN_VISUALS[model.required_tier];
+        const plan = PLAN_VISUALS[model.required_tier] ?? PLAN_VISUALS.pro;
         return (
           <div
             key={model.id}

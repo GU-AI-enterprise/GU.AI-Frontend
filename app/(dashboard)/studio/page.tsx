@@ -11,8 +11,11 @@ import {
   Sparkles,
   ChevronRight, ChevronLeft, Loader2,
   Download, RefreshCw, AlertCircle, FolderHeart,
-  BookOpen, SplitSquareHorizontal,
+  BookOpen, SplitSquareHorizontal, ArrowRightCircle,
 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { ToolGuideModal } from "@/components/shared/tool-guide-modal";
 import { TOOL_GUIDES } from "@/constants/toolGuides";
 import GuaiLoader from "@/components/shared/guai-loader";
@@ -220,6 +223,22 @@ function StudioPageInner() {
     dispatch(clearActiveJob());
     removeJobFromStorage();
   }, [resetJob, dispatch]);
+
+  // Mang ảnh kết quả vừa tạo sang công cụ khác — set thẳng vào slot ảnh chính của tool đích
+  // (không qua query param vì component không remount khi điều hướng cùng trang /studio).
+  const continueWithImage = useCallback((targetTool: AIToolType, url: string) => {
+    const img: StudioImage = { id: "continue", url };
+    switch (targetTool) {
+      case AIToolType.TRY_ON:           setToModelImage(img); break;
+      case AIToolType.PRODUCT_TO_MODEL: setP2mProduct(img); break;
+      case AIToolType.MODEL_SWAP:       setMsImage(img); break;
+      case AIToolType.FACE_TO_MODEL:    setF2mFaceImage(img); break;
+      case AIToolType.EDIT:             setEditSource(img); break;
+      default:                          setImages([img]); break; // GenericPanel: create-model/image-to-video/reframe/upscale/remove-bg
+    }
+    fullReset();
+    router.push(`/studio?tool=${TOOL_SLUG[targetTool]}`);
+  }, [fullReset, router]);
 
   // ── Restore job on mount (after auth resolves) ────────────────────────────
   useEffect(() => {
@@ -735,6 +754,25 @@ function StudioPageInner() {
                       <FolderHeart className="size-3.5" />
                       <span>{effectiveResultAssetId ? t("saveToAlbum") : t("saving")}</span>
                     </button>
+                    {!isVideo && effectiveResultUrl && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
+                          <ArrowRightCircle className="size-3.5" />
+                          <span>{t("continueWith")}</span>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          {TOOLS.filter(tool => tool.id !== selectedTool).map(tool => (
+                            <DropdownMenuItem
+                              key={tool.id}
+                              onClick={() => continueWithImage(tool.id, effectiveResultUrl!)}
+                            >
+                              <tool.Icon className="size-3.5" />
+                              {tool.name}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                     {!isMobile && (
                       <button onClick={fullReset} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors ml-auto">
                         <RefreshCw className="size-3.5" />

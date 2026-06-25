@@ -174,7 +174,7 @@ export default function Sidebar() {
   const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
   const initials = displayName.charAt(0).toUpperCase();
 
-  const plan = PLAN_VISUALS[planType];
+  const plan = PLAN_VISUALS[planType] ?? PLAN_VISUALS.free;
   const avatarBorderClass = plan.ringClass ? "" : "border-2 border-border/60";
 
   return (

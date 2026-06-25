@@ -178,7 +178,8 @@ export default function PricingPage() {
                   const totalCr      = pkg.credit_amount + (pkg.bonus_credit ?? 0);
                   const grantsPlan   = pkg.grants_plan_type as PlanType | null | undefined;
                   const grantMeta    = grantsPlan ? PLAN_META[grantsPlan] : null;
-                  const isCurrentPlan = grantsPlan === planType && planType !== 'free';
+                  const isCurrentPlan = grantsPlan === planType;
+                  const isFreePkg    = grantsPlan === 'free' || Number(pkg.price) <= 0;
                   const planDiscounts: Record<string, number> = { basic: 5, pro: 10 };
                   const unlockDiscount = grantsPlan ? (planDiscounts[grantsPlan] ?? 0) : 0;
 
@@ -248,32 +249,38 @@ export default function PricingPage() {
                         )}
                         <li className="flex items-center gap-2 text-xs text-muted-foreground">
                           <CheckCircle2 className="size-3.5 text-primary shrink-0" />
-                          Thanh toán an toàn qua PayOS
+                          {isFreePkg ? "Không cần thanh toán" : "Thanh toán an toàn qua PayOS"}
                         </li>
                       </ul>
 
                       <div className="mt-auto">
                         <div className="mb-3">
                           <span className="text-2xl font-bold text-foreground tabular-nums">{Number(pkg.price).toLocaleString('vi-VN')}đ</span>
-                          <span className="text-xs text-muted-foreground ml-1">/ lần mua</span>
+                          {!isFreePkg && <span className="text-xs text-muted-foreground ml-1">/ lần mua</span>}
                         </div>
-                        <button
-                          onClick={() => handleBuy(pkg)}
-                          disabled={!!buying}
-                          className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                            isCurrentPlan
-                              ? "bg-emerald-500/20 text-emerald-500 border border-emerald-500/30"
-                              : isPopular
-                                ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_12px_rgba(var(--color-primary),0.2)]"
-                                : "bg-secondary text-foreground hover:bg-secondary/70"
-                          }`}
-                        >
-                          {isBuying ? (
-                            <><Loader2 className="size-3.5 animate-spin" /><span>Đang xử lý...</span></>
-                          ) : (
-                            <span>{isCurrentPlan ? "Gia hạn / nâng cấp" : "Mua ngay"}</span>
-                          )}
-                        </button>
+                        {isFreePkg ? (
+                          <div className="w-full flex items-center justify-center rounded-xl py-2.5 text-xs font-semibold bg-secondary/60 text-muted-foreground">
+                            {isCurrentPlan ? "Gói đang dùng" : "Gói mặc định"}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleBuy(pkg)}
+                            disabled={!!buying}
+                            className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                              isCurrentPlan
+                                ? "bg-emerald-500/20 text-emerald-500 border border-emerald-500/30"
+                                : isPopular
+                                  ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_12px_rgba(var(--color-primary),0.2)]"
+                                  : "bg-secondary text-foreground hover:bg-secondary/70"
+                            }`}
+                          >
+                            {isBuying ? (
+                              <><Loader2 className="size-3.5 animate-spin" /><span>Đang xử lý...</span></>
+                            ) : (
+                              <span>{isCurrentPlan ? "Gia hạn / nâng cấp" : "Mua ngay"}</span>
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -297,15 +304,6 @@ export default function PricingPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="border-b border-border/40 hover:bg-muted/20">
-                        <td className="px-5 py-3.5 font-semibold text-foreground">
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full mr-2 ${PLAN_META.free.bg} ${PLAN_META.free.color}`}>Free</span>—
-                        </td>
-                        <td className="px-4 py-3.5 text-center text-muted-foreground">—</td>
-                        <td className="px-4 py-3.5 text-center text-muted-foreground">—</td>
-                        <td className="px-4 py-3.5 text-center text-muted-foreground">0%</td>
-                        <td className="px-4 py-3.5 text-center tabular-nums text-foreground font-medium">{fmt(TOPUP_BASE_RATE)}đ</td>
-                      </tr>
                       {sorted.map((pkg, idx) => {
                         const grantsPlan = pkg.grants_plan_type as PlanType | undefined;
                         const meta = grantsPlan ? PLAN_META[grantsPlan] : null;
@@ -313,14 +311,16 @@ export default function PricingPage() {
                         const disc = grantsPlan ? (planDiscounts[grantsPlan] ?? 0) : 0;
                         const rate = Math.round(TOPUP_BASE_RATE * (1 - disc / 100));
                         const isPopular = idx === popularIdx;
+                        const isCurrent = grantsPlan === planType;
                         const totalCr = pkg.credit_amount + (pkg.bonus_credit ?? 0);
                         return (
-                          <tr key={pkg.id} className={`border-b border-border/40 last:border-0 transition-colors ${isPopular ? "bg-primary/[0.03]" : "hover:bg-muted/20"}`}>
+                          <tr key={pkg.id} className={`border-b border-border/40 last:border-0 transition-colors ${isCurrent ? "bg-emerald-500/[0.03]" : isPopular ? "bg-primary/[0.03]" : "hover:bg-muted/20"}`}>
                             <td className="px-5 py-3.5 font-semibold text-foreground">
                               <div className="flex items-center gap-2">
                                 {meta && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${meta.bg} ${meta.color}`}>{meta.label}</span>}
                                 {pkg.name}
-                                {isPopular && <span className="text-[9px] font-bold bg-primary/15 text-primary px-1.5 py-0.5 rounded-full uppercase">Phổ biến</span>}
+                                {isCurrent && <span className="text-[9px] font-bold bg-emerald-500/15 text-emerald-500 px-1.5 py-0.5 rounded-full uppercase">Hiện tại</span>}
+                                {!isCurrent && isPopular && <span className="text-[9px] font-bold bg-primary/15 text-primary px-1.5 py-0.5 rounded-full uppercase">Phổ biến</span>}
                               </div>
                             </td>
                             <td className="px-4 py-3.5 text-center tabular-nums text-foreground font-medium">{totalCr.toLocaleString()}</td>
