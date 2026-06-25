@@ -8,10 +8,10 @@ import { motion } from "framer-motion";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { selectCreditBalance, setBalance } from "@/features/credit/creditSlice";
 import {
-  Sparkles, ImageIcon, GalleryHorizontal,
+  Sparkles,
   ChevronRight, ChevronLeft, Loader2,
   Download, RefreshCw, AlertCircle, FolderHeart,
-  BookOpen, Check, X, Maximize2, SplitSquareHorizontal,
+  BookOpen, SplitSquareHorizontal,
 } from "lucide-react";
 import { ToolGuideModal } from "@/components/shared/tool-guide-modal";
 import { TOOL_GUIDES } from "@/constants/toolGuides";
@@ -20,7 +20,6 @@ import { ToolContextBar } from "@/features/studio/components/ToolContextBar";
 import { Lightbox } from "@/components/shared/lightbox";
 import { SaveToAlbumModal } from "@/components/shared/save-to-album-modal";
 import { supabase } from "@/lib/supabase";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { getImages } from "@/features/archive/imageService";
 import { AIToolType } from "@/constants/ai";
 import { toast } from "sonner";
@@ -56,6 +55,8 @@ import { FaceToModelPanel } from "@/features/studio/components/FaceToModelPanel"
 import { EditPanel } from "@/features/studio/components/EditPanel";
 import { GenericPanel } from "@/features/studio/components/GenericPanel";
 import { LibraryModal } from "@/features/studio/components/LibraryModal";
+import { ModelPickerModal } from "@/features/studio/components/ModelPickerModal";
+import { GalleryPickerModal } from "@/features/studio/components/GalleryPickerModal";
 
 // ─── Inner page (needs Suspense because of useSearchParams) ───────────────────
 
@@ -355,7 +356,7 @@ function StudioPageInner() {
   const fetchGallery = async () => {
     try {
       const imgs = await getImages();
-      setGalleryImages(imgs.map(i => ({ id: i.id, url: i.url })));
+      setGalleryImages(imgs.filter(i => i.type === "image").map(i => ({ id: i.id, url: i.url })));
     } catch {}
   };
 
@@ -881,64 +882,42 @@ function StudioPageInner() {
       />
 
       {isMounted && showGallery && createPortal(
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
-          onClick={() => setShowGallery(false)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-2xl max-h-[70vh] rounded-3xl border border-border bg-card p-6 shadow-2xl overflow-hidden flex flex-col"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold flex items-center gap-2">
-                <GalleryHorizontal className="size-4 text-primary" /> Chọn ảnh từ thư viện
-              </h3>
-              <button onClick={() => setShowGallery(false)} className="p-1 rounded-lg hover:bg-secondary text-muted-foreground">
-                <X className="size-4" />
-              </button>
-            </div>
-            <ScrollArea className="flex-1 min-h-0">
-              {galleryImages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <ImageIcon className="size-10 mb-2 opacity-50" />
-                  <p className="text-xs">Thư viện trống</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-4 gap-3">
-                  {galleryImages.map((img) => (
-                    <button
-                      key={img.id}
-                      onClick={() => handleGallerySelect(img.url)}
-                      className="relative aspect-square rounded-xl overflow-hidden border border-border hover:border-primary/50 transition-all group"
-                    >
-                      <img src={img.url} alt="Gallery" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/20 transition-colors flex items-center justify-center">
-                        <Check className="size-6 text-white opacity-0 group-hover:opacity-100" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </div>
-        </div>,
+        <GalleryPickerModal
+          galleryImages={galleryImages}
+          onClose={() => setShowGallery(false)}
+          onSelect={handleGallerySelect}
+        />,
         document.body
       )}
 
-      {/* ── Library Modal ── */}
+      {/* ── Library / Model Picker Modal ── */}
       {libraryModalConfig && (
-        <LibraryModal
-          category={libraryModalConfig.cat}
-          onSelect={(url) => {
-            libraryModalConfig.cb(url);
-            setLibraryModalConfig(null);
-          }}
-          onUpload={() => {
-            setLibraryModalConfig(null);
-            libraryModalConfig.onUpload();
-          }}
-          onClose={() => setLibraryModalConfig(null)}
-        />
+        libraryModalConfig.cat === "model" ? (
+          <ModelPickerModal
+            onSelect={(url) => {
+              libraryModalConfig.cb(url);
+              setLibraryModalConfig(null);
+            }}
+            onUpload={() => {
+              setLibraryModalConfig(null);
+              libraryModalConfig.onUpload();
+            }}
+            onClose={() => setLibraryModalConfig(null)}
+          />
+        ) : (
+          <LibraryModal
+            category={libraryModalConfig.cat}
+            onSelect={(url) => {
+              libraryModalConfig.cb(url);
+              setLibraryModalConfig(null);
+            }}
+            onUpload={() => {
+              setLibraryModalConfig(null);
+              libraryModalConfig.onUpload();
+            }}
+            onClose={() => setLibraryModalConfig(null)}
+          />
+        )
       )}
     </div>
   );

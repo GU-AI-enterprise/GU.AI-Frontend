@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import {
-  Search, Sparkles, UserRound, Image as ImageIcon,
+  Search, Sparkles, Image as ImageIcon,
   Layers, Copy, Wand2, AlignLeft, Check, LayoutGrid, X, Maximize2
 } from "lucide-react";
 import Link from "next/link";
@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dialog";
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type Cat = "all" | "model" | "pose" | "prompt" | "background" | "example";
+type Cat = "all" | "pose" | "prompt" | "background" | "example";
 
 interface Item {
   id: string;
@@ -46,7 +46,6 @@ interface Item {
 
 const CATS: { id: Cat; label: string; Icon: React.ElementType }[] = [
   { id: "all",        label: "Tất cả",     Icon: Layers    },
-  { id: "model",      label: "Người mẫu",  Icon: UserRound },
   { id: "pose",       label: "Dáng ảnh",   Icon: ImageIcon },
   { id: "prompt",     label: "Prompt",     Icon: AlignLeft },
   { id: "background", label: "Background", Icon: LayoutGrid },
@@ -54,7 +53,6 @@ const CATS: { id: Cat; label: string; Icon: React.ElementType }[] = [
 ];
 
 const CAT_COLORS: Record<string, string> = {
-  model:      "bg-primary/10 text-primary",
   pose:       "bg-blue-500/10 text-blue-600 dark:text-blue-400",
   prompt:     "bg-violet-500/10 text-violet-600 dark:text-violet-400",
   background: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
@@ -106,8 +104,6 @@ const LibraryCard = React.memo(function LibraryCard({ item, selected, onToggle, 
   if (!href) {
     if (item.cat === "pose") {
       href = `/studio?tool=product-to-model&poseUrl=${encodeURIComponent(item.image || "")}`;
-    } else if (item.cat === "model") {
-      href = `/studio?tool=product-to-model&modelUrl=${encodeURIComponent(item.image || "")}`;
     } else if (item.cat === "background") {
       href = `/studio?tool=edit&bgUrl=${encodeURIComponent(item.image || "")}`;
     } else if (item.cat === "prompt") {
@@ -115,7 +111,6 @@ const LibraryCard = React.memo(function LibraryCard({ item, selected, onToggle, 
     }
   } else {
     if (href.includes("?")) {
-      if (item.cat === "model") href += `&modelUrl=${encodeURIComponent(item.image || "")}`;
       if (item.cat === "background") href += `&bgUrl=${encodeURIComponent(item.image || "")}`;
       if (item.cat === "example") href += `&exampleUrl=${encodeURIComponent(item.image || "")}`;
     }
@@ -362,16 +357,18 @@ export default function LibraryPage() {
       try {
         const res = await apiClient.get("/api/library");
         if (res.data.success) {
-          setItems((res.data.data as any[]).map((d) => ({
-            id: d.id,
-            cat: d.category,
-            title: d.title,
-            image: d.image_url,
-            promptText: d.prompt_text,
-            tags: d.tags || [],
-            desc: d.description || "",
-            imgAspect: d.img_aspect || "square",
-          })));
+          setItems((res.data.data as any[])
+            .filter((d) => d.category !== "model") // "Người mẫu" đã tách thành trang /models riêng
+            .map((d) => ({
+              id: d.id,
+              cat: d.category,
+              title: d.title,
+              image: d.image_url,
+              promptText: d.prompt_text,
+              tags: d.tags || [],
+              desc: d.description || "",
+              imgAspect: d.img_aspect || "square",
+            })));
         } else {
           console.error("Lỗi lấy dữ liệu thư viện:", res.data.error);
         }
@@ -422,24 +419,21 @@ export default function LibraryPage() {
     const params = new URLSearchParams();
 
     const pose = selectedItems.find(i => i.cat === "pose");
-    const model = selectedItems.find(i => i.cat === "model");
     const bg = selectedItems.find(i => i.cat === "background");
     const prompt = selectedItems.find(i => i.cat === "prompt");
 
-    if (pose || model) {
+    if (pose) {
       tool = "product-to-model";
-      if (pose) params.set("poseUrl", pose.image || "");
-      if (model) params.set("modelUrl", model.image || "");
+      params.set("poseUrl", pose.image || "");
     }
-    
+
     if (bg) {
       if (!pose) tool = "edit";
       params.set("bgUrl", bg.image || "");
-      if (model && !pose) params.set("modelUrl", model.image || "");
     }
 
     if (prompt) {
-      if (!pose && !model && !bg) tool = "create-model";
+      if (!pose && !bg) tool = "create-model";
       params.set("promptText", prompt.promptText || "");
     }
 
@@ -455,7 +449,7 @@ export default function LibraryPage() {
           Thư <span className="font-normal italic text-primary">viện</span>
         </h1>
         <p className="text-sm text-muted-foreground">
-          Người mẫu, dáng ảnh, prompt mẫu và background để tham khảo và dùng nhanh trong Studio
+          Dáng ảnh, prompt mẫu và background để tham khảo và dùng nhanh trong Studio. Tìm người mẫu? Qua <a href="/models" className="text-primary hover:underline">trang Người mẫu</a>.
         </p>
       </div>
 
@@ -465,7 +459,7 @@ export default function LibraryPage() {
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Tìm kiếm người mẫu, dáng, prompt..."
+          placeholder="Tìm kiếm dáng ảnh, prompt..."
           className="w-full h-10 pl-9 pr-4 text-sm bg-secondary/50 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all placeholder:text-muted-foreground/60"
         />
       </div>

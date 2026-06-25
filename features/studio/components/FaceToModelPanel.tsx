@@ -25,6 +25,7 @@ export function FaceToModelPanel({ faceImage, onFaceImageChange, onPaste, openGa
           onPaste={() => onPaste((f) => onFaceImageChange(fileToStudioImage(f)))}
           onGallery={() => openGallery((url) => onFaceImageChange(mkImg(url)))}
           onLibrary={openLibraryModal ? () => openLibraryModal("model", (url) => onFaceImageChange(mkImg(url)), () => {}) : undefined}
+          libraryKind="model"
           verifyAs="face"
         />
       </div>

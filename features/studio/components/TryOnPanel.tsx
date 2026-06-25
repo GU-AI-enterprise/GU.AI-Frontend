@@ -28,6 +28,7 @@ export function TryOnPanel({
         onPaste={() => onPaste((f) => onModelImageChange(fileToStudioImage(f)))}
         onGallery={() => openGallery((url) => onModelImageChange({ id: Math.random().toString(36).substr(2, 9), url }))}
         onLibrary={openLibraryModal ? () => openLibraryModal("model", (url) => onModelImageChange({ id: Math.random().toString(36).substr(2, 9), url }), () => {}) : undefined}
+        libraryKind="model"
         verifyAs="model"
       />
       <ImageSlot

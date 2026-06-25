@@ -15,12 +15,14 @@ interface Props {
   onPaste: () => void;
   onGallery: () => void;
   onLibrary?: () => void;
+  /** "model" đổi nút "Thư viện" thành "Người mẫu" (dùng cho các ô chọn ảnh người mẫu). */
+  libraryKind?: "model" | "library";
   required?: boolean;
   /** Nếu set, tự verify ảnh bằng AI sau khi upload — chỉ cảnh báo, không chặn dùng ảnh. */
   verifyAs?: VerifyImageType;
 }
 
-export function ImageSlot({ label, sublabel, image, onClear, onFileChange, onPaste, onGallery, onLibrary, required, verifyAs }: Props) {
+export function ImageSlot({ label, sublabel, image, onClear, onFileChange, onPaste, onGallery, onLibrary, libraryKind, required, verifyAs }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const verifyTokenRef = useRef(0);
@@ -122,6 +124,7 @@ export function ImageSlot({ label, sublabel, image, onClear, onFileChange, onPas
             onPaste={onPaste}
             onGallery={onGallery}
             onLibrary={onLibrary}
+            libraryKind={libraryKind}
           />
         </div>
       </div>

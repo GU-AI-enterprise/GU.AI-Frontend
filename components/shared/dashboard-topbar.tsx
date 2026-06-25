@@ -30,6 +30,7 @@ const ROUTE_MAP: Record<string, [SectionKey, RouteKey]> = {
   "/settings":           ["account",       "settings"],
   "/workflow":           ["studio",        "assistant"],
   "/library":            ["studio",        "library"],
+  "/models":             ["studio",        "models"],
 };
 
 function getRoute(pathname: string): [SectionKey, RouteKey] {

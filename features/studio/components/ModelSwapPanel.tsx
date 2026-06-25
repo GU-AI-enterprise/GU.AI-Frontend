@@ -40,6 +40,7 @@ export function ModelSwapPanel({
           onPaste={() => onPaste((f) => onFaceRefChange(fileToStudioImage(f)))}
           onGallery={() => openGallery((url) => onFaceRefChange(mkImg(url)))}
           onLibrary={openLibraryModal ? () => openLibraryModal("model", (url) => onFaceRefChange(mkImg(url)), () => {}) : undefined}
+          libraryKind="model"
           verifyAs="face"
         />
       </div>

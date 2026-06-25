@@ -1,18 +1,20 @@
 "use client";
 
-import { Upload, ClipboardPaste, GalleryHorizontal, Layers } from "lucide-react";
+import { Upload, ClipboardPaste, GalleryHorizontal, Layers, UserRound } from "lucide-react";
 
 interface Props {
   onUpload: () => void;
   onPaste: () => void;
   onGallery: () => void;
   onLibrary?: () => void;
+  /** "model" đổi nút "Thư viện" thành "Người mẫu" (dùng cho các ô chọn ảnh người mẫu). */
+  libraryKind?: "model" | "library";
 }
 
 const btnCls =
   "cursor-pointer flex items-center gap-1 @sm:gap-1.5 px-2 @sm:px-3 py-1 @sm:py-1.5 rounded-lg bg-background border border-border text-[10px] @sm:text-xs font-medium hover:bg-secondary transition-colors whitespace-nowrap";
 
-export function DropZoneContent({ onUpload, onPaste, onGallery, onLibrary }: Props) {
+export function DropZoneContent({ onUpload, onPaste, onGallery, onLibrary, libraryKind = "library" }: Props) {
   return (
     <>
       <div className="flex items-center justify-center gap-1.5 @sm:gap-2 mb-2">
@@ -32,7 +34,11 @@ export function DropZoneContent({ onUpload, onPaste, onGallery, onLibrary }: Pro
         </button>
         {onLibrary && (
           <button onClick={(e) => { e.stopPropagation(); onLibrary(); }} className={btnCls}>
-            <Layers className="size-3 @sm:size-3.5" /> Thư viện
+            {libraryKind === "model" ? (
+              <><UserRound className="size-3 @sm:size-3.5" /> Người mẫu</>
+            ) : (
+              <><Layers className="size-3 @sm:size-3.5" /> Thư viện</>
+            )}
           </button>
         )}
         <button onClick={(e) => { e.stopPropagation(); onGallery(); }} className={btnCls}>
