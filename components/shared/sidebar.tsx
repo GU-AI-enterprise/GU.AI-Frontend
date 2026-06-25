@@ -17,11 +17,9 @@ import {
   PanelLeftOpen,
   Coins,
   LogOut,
-  Settings,
   User,
   Sun,
   Moon,
-  HelpCircle,
   MessageCircle,
   BookOpen,
   ChevronUp,
@@ -46,7 +44,6 @@ import { useSidebar } from "@/contexts/SidebarContext";
 const mainNav = [
   { href: "/dashboard", label: "Tổng quan", Icon: LayoutDashboard, iconSrc: null },
   { href: "/studio", label: "Studio", Icon: null, iconSrc: "/icons/logo_only.png" },
-  { href: "/workflow", label: "Trợ lý ảo", Icon: null, iconSrc: "/icons/logo_ai_spiral.png" },
   { href: "/library", label: "Thư viện", Icon: BookOpen, iconSrc: null },
 ];
 
@@ -555,7 +552,6 @@ export default function Sidebar() {
           {/* Account links */}
           <div className="p-1.5">
             <MenuItem icon={<User className="size-4" />} label="Hồ sơ" href="/profile" onClick={() => setUserMenuOpen(false)} />
-            <MenuItem icon={<Settings className="size-4" />} label="Cài đặt" href="/settings" onClick={() => setUserMenuOpen(false)} />
           </div>
 
           <div className="border-t border-border/60 p-1.5">
@@ -583,12 +579,11 @@ export default function Sidebar() {
           </div>
 
           {/* Help & Support */}
-          <div className="border-t border-border/60 p-1.5">
-            <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-              Trợ giúp
-            </div>
-            <MenuItem icon={<BookOpen className="size-4" />} label="Help Center" href="#" onClick={() => setUserMenuOpen(false)} />
-            {!isStaff && (
+          {!isStaff && (
+            <div className="border-t border-border/60 p-1.5">
+              <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                Trợ giúp
+              </div>
               <button
                 onClick={() => { setUserMenuOpen(false); setChatForceOpen(true); setTimeout(() => setChatForceOpen(false), 200); }}
                 className="cursor-pointer w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-foreground hover:bg-accent transition-colors"
@@ -608,9 +603,8 @@ export default function Sidebar() {
                   </span>
                 )}
               </button>
-            )}
-            <MenuItem icon={<HelpCircle className="size-4" />} label="Discord" href="#" onClick={() => setUserMenuOpen(false)} />
-          </div>
+            </div>
+          )}
 
           {/* Logout */}
           <div className="border-t border-border/60 p-1.5">

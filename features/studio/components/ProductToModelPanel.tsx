@@ -45,6 +45,7 @@ export function ProductToModelPanel({
           onFileChange={(f) => onProductChange(fileToStudioImage(f))}
           onPaste={() => onPaste((f) => onProductChange(fileToStudioImage(f)))}
           onGallery={() => openGallery((url) => onProductChange({ id: Math.random().toString(36).substr(2, 9), url }))}
+          verifyAs="product"
         />
       </div>
 

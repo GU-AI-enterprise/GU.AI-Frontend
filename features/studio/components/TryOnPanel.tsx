@@ -28,6 +28,7 @@ export function TryOnPanel({
         onPaste={() => onPaste((f) => onModelImageChange(fileToStudioImage(f)))}
         onGallery={() => openGallery((url) => onModelImageChange({ id: Math.random().toString(36).substr(2, 9), url }))}
         onLibrary={openLibraryModal ? () => openLibraryModal("model", (url) => onModelImageChange({ id: Math.random().toString(36).substr(2, 9), url }), () => {}) : undefined}
+        verifyAs="model"
       />
       <ImageSlot
         label="Ảnh trang phục" sublabel="Sản phẩm rõ nét"
@@ -35,6 +36,7 @@ export function TryOnPanel({
         onFileChange={(f) => onGarmentImageChange(fileToStudioImage(f))}
         onPaste={() => onPaste((f) => onGarmentImageChange(fileToStudioImage(f)))}
         onGallery={() => openGallery((url) => onGarmentImageChange({ id: Math.random().toString(36).substr(2, 9), url }))}
+        verifyAs="product"
       />
     </div>
   );

@@ -33,6 +33,7 @@ export function FaceSwapPanel({
           onFileChange={(f) => onModelImageChange(fileToStudioImage(f))}
           onPaste={() => onPaste((f) => onModelImageChange(fileToStudioImage(f)))}
           onGallery={() => openGallery((url) => onModelImageChange(mkImg(url)))}
+          verifyAs="model"
         />
         <ImageSlot
           label="Ảnh khuôn mặt" sublabel="Mặt cần swap vào" required
@@ -40,6 +41,7 @@ export function FaceSwapPanel({
           onFileChange={(f) => onFaceRefChange(fileToStudioImage(f))}
           onPaste={() => onPaste((f) => onFaceRefChange(fileToStudioImage(f)))}
           onGallery={() => openGallery((url) => onFaceRefChange(mkImg(url)))}
+          verifyAs="face"
         />
       </div>
 

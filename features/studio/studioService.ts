@@ -389,6 +389,39 @@ export async function modelSwap(options: {
   return startJob('/api/ai/model-swap', fd);
 }
 
+// ─── Tác vụ phụ (gợi ý prompt / verify ảnh) ───────────────────────────────────
+// Không trừ credit, không phải job (trả về ngay, không cần polling).
+
+export async function suggestPrompt(tool: string, userHint: string): Promise<string> {
+  const res = await apiFetch('/api/ai/suggest-prompt', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tool, userHint }),
+  });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Gợi ý prompt thất bại');
+  return json.data.prompt as string;
+}
+
+export type VerifyImageType = 'face' | 'product' | 'model' | 'background';
+
+export interface VerifyImageResult {
+  ok: boolean;
+  issues: string[];
+}
+
+export async function verifyImage(image: File | string, expectedType: VerifyImageType): Promise<VerifyImageResult> {
+  const fd = new FormData();
+  if (image instanceof File) fd.append('image', image);
+  else fd.append('imageUrl', image);
+  fd.append('expectedType', expectedType);
+
+  const response = await apiClient.post('/api/ai/verify-image', fd);
+  const json = response.data;
+  if (!json.success) throw new Error(json.error || 'Verify ảnh thất bại');
+  return json.data as VerifyImageResult;
+}
+
 export async function imageToVideo(options: {
   image: File | string;
   prompt?: string;

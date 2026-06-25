@@ -9,8 +9,10 @@ import type {
   VideoDuration, VideoResolution, StudioImage,
 } from "../types";
 import type { TryOnCategory } from "@/features/studio/studioService";
+import { suggestPrompt } from "@/features/studio/studioService";
 import { ChevronDown, Loader2, Sparkles, ScanFace, ImageIcon, Mountain } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 // ── Dropdown button ──────────────────────────────────────────────────────────
 
@@ -107,6 +109,41 @@ function ActionBtn({ icon: Icon, label, active, onClick }: {
     >
       <Icon className="size-3.5" />
       {label}
+    </button>
+  );
+}
+
+// ── Prompt suggest button ─────────────────────────────────────────────────────
+// Tác vụ phụ: gợi ý prompt tiếng Anh bằng Gemini — user luôn xem & có thể sửa lại trước khi Chạy.
+
+function PromptSuggestBtn({ tool, value, onChange }: {
+  tool: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  const handleClick = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const suggestion = await suggestPrompt(tool, value);
+      if (suggestion) onChange(suggestion);
+    } catch {
+      toast.error("Gợi ý prompt thất bại, thử lại sau.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={loading}
+      title="Gợi ý prompt bằng AI"
+      className="cursor-pointer shrink-0 flex items-center justify-center size-6 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+    >
+      {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
     </button>
   );
 }
@@ -314,14 +351,17 @@ export function ToolContextBar({
   if (selectedTool === AIToolType.TRY_ON) {
     return (
       <div className="px-4 pt-3 pb-3 flex flex-col">
-        <div className="min-h-[40px] flex items-center mb-2">
+        <div className="min-h-[40px] flex items-center gap-1.5 mb-2">
           {toModel === "max" ? (
-            <input
-              value={toPrompt}
-              onChange={(e) => onToPromptChange(e.target.value)}
-              placeholder='Tuỳ chỉnh (tuỳ chọn): "remove scarf", "tuck in shirt", "roll up sleeves"...'
-              className={inputCls}
-            />
+            <>
+              <input
+                value={toPrompt}
+                onChange={(e) => onToPromptChange(e.target.value)}
+                placeholder='Tuỳ chỉnh (tuỳ chọn): "remove scarf", "tuck in shirt", "roll up sleeves"...'
+                className={cn(inputCls, "flex-1")}
+              />
+              <PromptSuggestBtn tool="try_on_max" value={toPrompt} onChange={onToPromptChange} />
+            </>
           ) : (
             <p className="text-[11px] text-muted-foreground/40 italic">
               Chọn Try-On Max để thêm prompt tuỳ chỉnh
@@ -350,13 +390,14 @@ export function ToolContextBar({
   if (selectedTool === AIToolType.PRODUCT_TO_MODEL) {
     return (
       <div className="px-4 pt-3 pb-3 flex flex-col">
-        <div className="min-h-[40px] flex items-center mb-2">
+        <div className="min-h-[40px] flex items-center gap-1.5 mb-2">
           <input
             value={p2mPrompt}
             onChange={(e) => onP2mPromptChange(e.target.value)}
             placeholder='Tùy chọn: "Blonde hair, studio photoshoot", "office setting", "casual outdoor"...'
-            className={inputCls}
+            className={cn(inputCls, "flex-1")}
           />
+          <PromptSuggestBtn tool="product_to_model" value={p2mPrompt} onChange={onP2mPromptChange} />
         </div>
         <BottomRow
           left={
@@ -401,13 +442,14 @@ export function ToolContextBar({
   if (selectedTool === AIToolType.MODEL_SWAP) {
     return (
       <div className="px-4 pt-3 pb-3 flex flex-col">
-        <div className="min-h-[40px] flex items-center mb-2">
+        <div className="min-h-[40px] flex items-center gap-1.5 mb-2">
           <input
             value={msPrompt}
             onChange={(e) => onMsPromptChange(e.target.value)}
             placeholder='Tùy chọn: "same pose", "outdoor", "studio lighting"...'
-            className={inputCls}
+            className={cn(inputCls, "flex-1")}
           />
+          <PromptSuggestBtn tool="model_swap" value={msPrompt} onChange={onMsPromptChange} />
         </div>
         <BottomRow
           right={
@@ -429,13 +471,14 @@ export function ToolContextBar({
   if (selectedTool === AIToolType.FACE_TO_MODEL) {
     return (
       <div className="px-4 pt-3 pb-3 flex flex-col">
-        <div className="min-h-[40px] flex items-center mb-2">
+        <div className="min-h-[40px] flex items-center gap-1.5 mb-2">
           <input
             value={f2mPrompt}
             onChange={(e) => onF2mPromptChange(e.target.value)}
             placeholder='Tùy chọn: "athletic build", "slender frame", "curvy figure"...'
-            className={inputCls}
+            className={cn(inputCls, "flex-1")}
           />
+          <PromptSuggestBtn tool="face_to_model" value={f2mPrompt} onChange={onF2mPromptChange} />
         </div>
         <BottomRow
           right={
@@ -461,13 +504,14 @@ export function ToolContextBar({
   if (selectedTool === AIToolType.EDIT) {
     return (
       <div className="px-4 pt-3 pb-3 flex flex-col">
-        <div className="min-h-[40px] flex items-center mb-2">
+        <div className="min-h-[40px] flex items-center gap-1.5 mb-2">
           <input
             value={genericPrompt}
             onChange={(e) => onGenericPromptChange(e.target.value)}
             placeholder='Mô tả thay đổi: "add a black leather bag", "turn slightly left", "studio lighting"...'
-            className={inputCls}
+            className={cn(inputCls, "flex-1")}
           />
+          <PromptSuggestBtn tool="edit" value={genericPrompt} onChange={onGenericPromptChange} />
         </div>
         <BottomRow
           right={
@@ -487,13 +531,14 @@ export function ToolContextBar({
   if (selectedTool === AIToolType.CREATE_MODEL) {
     return (
       <div className="px-4 pt-3 pb-3 flex flex-col">
-        <div className="min-h-[40px] flex items-center mb-2">
+        <div className="min-h-[40px] flex items-center gap-1.5 mb-2">
           <input
             value={genericPrompt}
             onChange={(e) => onGenericPromptChange(e.target.value)}
             placeholder='Mô tả model: "Full body shot, woman wearing a white t-shirt, studio"...'
-            className={inputCls}
+            className={cn(inputCls, "flex-1")}
           />
+          <PromptSuggestBtn tool="create_model" value={genericPrompt} onChange={onGenericPromptChange} />
         </div>
         <BottomRow
           right={
@@ -513,13 +558,14 @@ export function ToolContextBar({
   if (selectedTool === AIToolType.IMAGE_TO_VIDEO) {
     return (
       <div className="px-4 pt-3 pb-3 flex flex-col">
-        <div className="min-h-[40px] flex items-center mb-2">
+        <div className="min-h-[40px] flex items-center gap-1.5 mb-2">
           <input
             value={genericPrompt}
             onChange={(e) => onGenericPromptChange(e.target.value)}
             placeholder="Mô tả chuyển động (tùy chọn — để trống để AI tự quyết)"
-            className={inputCls}
+            className={cn(inputCls, "flex-1")}
           />
+          <PromptSuggestBtn tool="image_to_video" value={genericPrompt} onChange={onGenericPromptChange} />
         </div>
         <BottomRow
           right={

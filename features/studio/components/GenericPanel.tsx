@@ -56,7 +56,7 @@ export function GenericPanel({ images, onImagesChange, onPaste, openGallery }: P
         <div
           tabIndex={0}
           onPaste={handleNativePaste}
-          className="flex-1 min-h-0 rounded-3xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 cursor-default select-none
+          className="flex-1 min-h-0 rounded-3xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 cursor-default select-none @container
             hover:border-primary/30 hover:bg-card
             focus:outline-none focus:border-primary/60 focus:bg-primary/5
             transition-all"

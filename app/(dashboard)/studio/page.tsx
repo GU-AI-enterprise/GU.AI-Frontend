@@ -760,7 +760,7 @@ function StudioPageInner() {
 
       {/* ── Bottom Tool Bar ── */}
       <div className="shrink-0 bg-background/80 backdrop-blur-xl px-3 py-3 sm:px-6 sm:pb-4">
-        <div className="border border-border/60 rounded-2xl overflow-hidden">
+        <div className="border border-border/60 rounded-2xl">
 
           {/* Tool tabs */}
           <div className="flex items-stretch border-b border-border/40">

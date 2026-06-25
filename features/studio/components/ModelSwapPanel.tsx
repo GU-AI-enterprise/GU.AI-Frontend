@@ -31,6 +31,7 @@ export function ModelSwapPanel({
           onFileChange={(f) => onModelImageChange(fileToStudioImage(f))}
           onPaste={() => onPaste((f) => onModelImageChange(fileToStudioImage(f)))}
           onGallery={() => openGallery((url) => onModelImageChange(mkImg(url)))}
+          verifyAs="model"
         />
         <ImageSlot
           label="Ảnh mặt ref" sublabel="Tuỳ chọn"
@@ -39,6 +40,7 @@ export function ModelSwapPanel({
           onPaste={() => onPaste((f) => onFaceRefChange(fileToStudioImage(f)))}
           onGallery={() => openGallery((url) => onFaceRefChange(mkImg(url)))}
           onLibrary={openLibraryModal ? () => openLibraryModal("model", (url) => onFaceRefChange(mkImg(url)), () => {}) : undefined}
+          verifyAs="face"
         />
       </div>
 
