@@ -3,9 +3,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Search, Lock, Wand2, UserRound } from "lucide-react";
+import { Search, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import GuaiLoader from "@/components/shared/guai-loader";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { getAppModels, type AppModel } from "@/features/models/appModelService";
 import { PLAN_VISUALS } from "@/features/credit/planMeta";
 
@@ -83,19 +84,21 @@ const ModelCard = React.memo(function ModelCard({ model, onUse }: { model: AppMo
           </div>
         )}
 
-        {/* Hover CTA (unlocked) */}
+        {/* Hover info (unlocked) — kiểu giống LibraryCard: gradient reveal tên + tags khi hover */}
         {model.unlocked && (
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-foreground text-[11px] font-semibold shadow-lg">
-              <Wand2 className="size-3" />
-              Dùng trong Studio
-            </span>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 gap-1">
+            <h3 className="text-sm font-semibold text-white leading-snug truncate">{model.name}</h3>
+            {model.tags && model.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {model.tags.slice(0, 3).map((tag) => (
+                  <span key={tag} className="px-1.5 py-0.5 rounded-md bg-white/20 text-[10px] text-white/90">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
-      </div>
-
-      <div className="px-3 py-2.5">
-        <p className="text-sm font-semibold text-foreground truncate">{model.name}</p>
       </div>
     </div>
   );
@@ -139,7 +142,7 @@ export default function ModelsPage() {
       {/* Header */}
       <div className="mb-7">
         <h1 className="font-serif text-3xl font-light text-foreground tracking-tight mb-1 flex items-center gap-2.5">
-          <UserRound className="size-7 text-primary" />
+          <img src="/images/model_icon.png" alt="" className="size-7 object-contain" />
           Người <span className="font-normal italic text-primary">mẫu</span>
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -160,25 +163,21 @@ export default function ModelsPage() {
       </div>
 
       {/* Gender filter */}
-      <div className="flex gap-2 overflow-x-auto pb-4 mb-2 scrollbar-hide">
-        {(["all", "female", "male", "unisex"] as GenderFilter[]).map((g) => {
-          const active = gender === g;
-          return (
-            <button
-              key={g}
-              onClick={() => setGender(g)}
-              className={cn(
-                "whitespace-nowrap px-4 py-2 rounded-full border text-sm font-semibold transition-all",
-                active
-                  ? "bg-foreground text-background border-foreground shadow-md shadow-black/10"
-                  : "bg-card text-muted-foreground border-border hover:bg-secondary hover:text-foreground",
-              )}
-            >
-              {GENDER_LABEL[g]}
-            </button>
-          );
-        })}
-      </div>
+      <ToggleGroup
+        value={[gender]}
+        onValueChange={(vals) => { if (vals.length) setGender(vals[0] as GenderFilter); }}
+        className="mb-5 overflow-x-auto"
+      >
+        {(["all", "female", "male", "unisex"] as GenderFilter[]).map((g) => (
+          <ToggleGroupItem
+            key={g}
+            value={g}
+            className="rounded-full data-[state=on]:bg-foreground data-[state=on]:text-background"
+          >
+            {GENDER_LABEL[g]}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
 
       {/* Grid */}
       {loading ? (

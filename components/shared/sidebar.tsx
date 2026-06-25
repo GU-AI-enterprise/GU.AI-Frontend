@@ -21,14 +21,13 @@ import {
   Sun,
   Moon,
   MessageCircle,
-  BookOpen,
+  TextSearch,
   ChevronUp,
   Archive,
   Plus,
   Layers,
   Workflow,
   GitCompare,
-  UserRound,
 } from "lucide-react";
 import Logo from "@/components/shared/logo";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -45,8 +44,8 @@ import { useSidebar } from "@/contexts/SidebarContext";
 const mainNav = [
   { href: "/dashboard", label: "Tổng quan", Icon: LayoutDashboard, iconSrc: null },
   { href: "/studio", label: "Studio", Icon: null, iconSrc: "/icons/logo_only.png" },
-  { href: "/models", label: "Người mẫu", Icon: UserRound, iconSrc: null },
-  { href: "/library", label: "Thư viện", Icon: BookOpen, iconSrc: null },
+  { href: "/models", label: "Người mẫu", Icon: null, iconSrc: "/images/model_icon.png" },
+  { href: "/library", label: "Thư viện", Icon: TextSearch, iconSrc: null },
 ];
 
 const archiveNav = [

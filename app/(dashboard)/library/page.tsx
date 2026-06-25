@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
   Search, Sparkles, Image as ImageIcon,
-  Layers, Copy, Wand2, AlignLeft, Check, LayoutGrid, X, Maximize2
+  Layers, Copy, Wand2, AlignLeft, Check, LayoutGrid, X, Maximize2, TextSearch
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/apiFetch";
 import GuaiLoader from "@/components/shared/guai-loader";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   ActionBar,
   ActionBarClose,
@@ -445,7 +446,8 @@ export default function LibraryPage() {
 
       {/* ── Header ── */}
       <div className="mb-7">
-        <h1 className="font-serif text-3xl font-light text-foreground tracking-tight mb-1">
+        <h1 className="font-serif text-3xl font-light text-foreground tracking-tight mb-1 flex items-center gap-2.5">
+          <TextSearch className="size-7 text-primary" />
           Thư <span className="font-normal italic text-primary">viện</span>
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -465,33 +467,32 @@ export default function LibraryPage() {
       </div>
 
       {/* ── Categories ── */}
-      <div className="flex gap-2 overflow-x-auto pb-4 mb-2 scrollbar-hide">
+      <ToggleGroup
+        value={[activeCat]}
+        onValueChange={(vals) => { if (vals.length) setActiveCat(vals[0] as Cat); }}
+        className="mb-5 overflow-x-auto"
+      >
         {CATS.map(c => {
           const count = counts[c.id] ?? 0;
           const active = activeCat === c.id;
           return (
-            <button
+            <ToggleGroupItem
               key={c.id}
-              onClick={() => setActiveCat(c.id)}
-              className={cn(
-                "flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-full border text-sm font-semibold transition-all",
-                active
-                  ? "bg-foreground text-background border-foreground shadow-md shadow-black/10"
-                  : "bg-card text-muted-foreground border-border hover:bg-secondary hover:text-foreground",
-              )}
+              value={c.id}
+              className="rounded-full data-[state=on]:bg-foreground data-[state=on]:text-background"
             >
               <c.Icon className="size-4" />
               {c.label}
               <span className={cn(
-                "ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] leading-none transition-colors",
-                active ? "bg-background/20" : "bg-muted text-muted-foreground group-hover:bg-border",
+                "ml-1 px-1.5 py-0.5 rounded-md text-[10px] leading-none transition-colors",
+                active ? "bg-background/20" : "bg-muted text-muted-foreground",
               )}>
                 {count}
               </span>
-            </button>
+            </ToggleGroupItem>
           );
         })}
-      </div>
+      </ToggleGroup>
 
       {/* ── Grid ── */}
       {loading ? (

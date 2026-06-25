@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/action-bar";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { Lightbox } from "@/components/shared/lightbox";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { SaveToAlbumModal } from "@/components/shared/save-to-album-modal";
 import { getImages, archiveImage, bulkArchive, type DBAsset } from "@/features/archive/imageService";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -171,32 +172,22 @@ export default function GalleryPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-xl w-fit mb-6 border border-border/50">
-          <button
-            onClick={() => setActiveTab("image")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === "image"
-                ? "bg-background text-foreground shadow-sm border border-border/60"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
+        <ToggleGroup
+          value={[activeTab]}
+          onValueChange={(vals) => { if (vals.length) setActiveTab(vals[0] as ActiveTab); }}
+          className="mb-6"
+        >
+          <ToggleGroupItem value="image" className="data-[state=on]:bg-background data-[state=on]:shadow-sm data-[state=on]:border data-[state=on]:border-border/60">
             <ImageIcon className="size-3.5" />
             Ảnh
             {!loading && <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === "image" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{imageCount}</span>}
-          </button>
-          <button
-            onClick={() => setActiveTab("video")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === "video"
-                ? "bg-background text-foreground shadow-sm border border-border/60"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
+          </ToggleGroupItem>
+          <ToggleGroupItem value="video" className="data-[state=on]:bg-background data-[state=on]:shadow-sm data-[state=on]:border data-[state=on]:border-border/60">
             <Film className="size-3.5" />
             Video
             {!loading && <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === "video" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{videoCount}</span>}
-          </button>
-        </div>
+          </ToggleGroupItem>
+        </ToggleGroup>
 
         {/* Search */}
         <div className="mb-8">

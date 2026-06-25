@@ -1,6 +1,6 @@
 "use client";
 
-import { Upload, ClipboardPaste, GalleryHorizontal, Layers, UserRound } from "lucide-react";
+import { Upload, ClipboardPaste, GalleryHorizontal, Layers } from "lucide-react";
 
 interface Props {
   onUpload: () => void;
@@ -35,7 +35,7 @@ export function DropZoneContent({ onUpload, onPaste, onGallery, onLibrary, libra
         {onLibrary && (
           <button onClick={(e) => { e.stopPropagation(); onLibrary(); }} className={btnCls}>
             {libraryKind === "model" ? (
-              <><UserRound className="size-3 @sm:size-3.5" /> Người mẫu</>
+              <><img src="/images/model_icon.png" alt="" className="size-3 @sm:size-3.5 object-contain" /> Người mẫu</>
             ) : (
               <><Layers className="size-3 @sm:size-3.5" /> Thư viện</>
             )}
