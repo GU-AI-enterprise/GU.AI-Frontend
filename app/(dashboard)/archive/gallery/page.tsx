@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  ImageIcon, Search, Download, Archive,
+  ImageIcon, CalendarIcon, Download, Archive,
   FolderHeart, Plus, CheckSquare, X, Layers, Film, Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ import {
 import GuaiLoader from "@/components/shared/guai-loader";
 import { Lightbox } from "@/components/shared/lightbox";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { SaveToAlbumModal } from "@/components/shared/save-to-album-modal";
 import { getImages, archiveImage, bulkArchive, type DBAsset } from "@/features/archive/imageService";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -35,7 +37,11 @@ export default function GalleryPage() {
   const pendingLightbox = useAppSelector(selectPendingLightbox);
   const authReady = useRequireAuth();
   const { assets, setAssets, loading, refresh: fetchImages } = useGallery();
-  const [searchQuery, setSearchQuery] = useState("");
+  // "Từ ngày" và "Đến ngày" là 2 state hoàn toàn độc lập — cái này không bao giờ ghi đè cái kia.
+  const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
+  const [toDate, setToDate] = useState<Date | undefined>(undefined);
+  const [fromOpen, setFromOpen] = useState(false);
+  const [toOpen, setToOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>("image");
 
   const [lightboxUrl, setLightboxUrl]             = useState<string | null>(null);
@@ -70,8 +76,17 @@ export default function GalleryPage() {
   useEffect(() => {
     setSelectMode(false);
     setSelectedIds(new Set());
-    setSearchQuery("");
+    setFromDate(undefined);
+    setToDate(undefined);
   }, [activeTab]);
+
+  const pickFrom = (day: Date | undefined) => { setFromDate(day); setFromOpen(false); };
+  const pickTo   = (day: Date | undefined) => { setToDate(day); setToOpen(false); };
+  const clearDateRange = () => { setFromDate(undefined); setToDate(undefined); };
+
+  // "Đến ngày" chỉ hiển thị giá trị riêng nếu người dùng đã tự chọn; nếu chưa, hiển thị (và lọc)
+  // tạm theo "Từ ngày" — đúng ý "chỉ pick bên trái thì bên phải tự động lấy ngày bên trái".
+  const effectiveToDate = toDate ?? fromDate;
 
   const executeArchive = async (id: string) => {
     try {
@@ -119,21 +134,32 @@ export default function GalleryPage() {
 
   const tabAssets = assets.filter(a => a.type === activeTab && a.category !== "model");
 
-  const filteredAssets = tabAssets.filter(img =>
-    !searchQuery || img.url.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+  const toMs = (s: string) => new Date(s.split("/").reverse().join("-")).getTime();
+
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const endOfDay   = (d: Date) => startOfDay(d) + 24 * 60 * 60 * 1000 - 1;
+
+  const filteredAssets = tabAssets.filter(img => {
+    const fromRef = fromDate ?? effectiveToDate;
+    if (!fromRef) return true;
+    const t = new Date(img.created_at).getTime();
+    const toRef = effectiveToDate ?? fromRef;
+    const from = Math.min(startOfDay(fromRef), startOfDay(toRef));
+    const to = Math.max(endOfDay(fromRef), endOfDay(toRef));
+    return t >= from && t <= to;
+  });
 
   const groupedByDate = filteredAssets.reduce<Record<string, DBAsset[]>>((acc, img) => {
-    const date = new Date(img.created_at).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+    const date = formatDate(img.created_at);
     if (!acc[date]) acc[date] = [];
     acc[date].push(img);
     return acc;
   }, {});
 
-  const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
-    const toMs = (s: string) => new Date(s.split("/").reverse().join("-")).getTime();
-    return toMs(b) - toMs(a);
-  });
+  const sortedDates = Object.keys(groupedByDate).sort((a, b) => toMs(b) - toMs(a));
 
   const imageCount = assets.filter(a => a.type === "image" && a.category !== "model").length;
   const videoCount = assets.filter(a => a.type === "video").length;
@@ -171,35 +197,60 @@ export default function GalleryPage() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <ToggleGroup
-          value={[activeTab]}
-          onValueChange={(vals) => { if (vals.length) setActiveTab(vals[0] as ActiveTab); }}
-          className="mb-6"
-        >
-          <ToggleGroupItem value="image" className="data-[state=on]:bg-background data-[state=on]:shadow-sm data-[state=on]:border data-[state=on]:border-border/60">
-            <ImageIcon className="size-3.5" />
-            Ảnh
-            {!loading && <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === "image" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{imageCount}</span>}
-          </ToggleGroupItem>
-          <ToggleGroupItem value="video" className="data-[state=on]:bg-background data-[state=on]:shadow-sm data-[state=on]:border data-[state=on]:border-border/60">
-            <Film className="size-3.5" />
-            Video
-            {!loading && <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === "video" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{videoCount}</span>}
-          </ToggleGroupItem>
-        </ToggleGroup>
+        {/* Tabs + Date range filter */}
+        <div className="flex flex-wrap items-center gap-3 mb-8">
+          <ToggleGroup
+            value={[activeTab]}
+            onValueChange={(vals) => { if (vals.length) setActiveTab(vals[0] as ActiveTab); }}
+          >
+            <ToggleGroupItem value="image" className="data-[state=on]:bg-background data-[state=on]:shadow-sm data-[state=on]:border data-[state=on]:border-border/60">
+              <ImageIcon className="size-3.5" />
+              Ảnh
+              {!loading && <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === "image" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{imageCount}</span>}
+            </ToggleGroupItem>
+            <ToggleGroupItem value="video" className="data-[state=on]:bg-background data-[state=on]:shadow-sm data-[state=on]:border data-[state=on]:border-border/60">
+              <Film className="size-3.5" />
+              Video
+              {!loading && <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === "video" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{videoCount}</span>}
+            </ToggleGroupItem>
+          </ToggleGroup>
 
-        {/* Search */}
-        <div className="mb-8">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder={isVideo ? "Tìm kiếm video..." : "Tìm kiếm ảnh..."}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
-            />
+          <div className="flex items-center gap-1.5 ml-auto">
+            <Popover open={fromOpen} onOpenChange={setFromOpen}>
+              <PopoverTrigger className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-border/60 bg-background text-sm text-foreground hover:bg-secondary/50 transition-colors">
+                <CalendarIcon className="size-3.5 text-muted-foreground" />
+                {fromDate ? formatDate(fromDate.toISOString()) : "Từ ngày"}
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-auto">
+                <Calendar mode="single" selected={fromDate} onSelect={pickFrom} />
+              </PopoverContent>
+            </Popover>
+
+            <span className="text-xs text-muted-foreground">–</span>
+
+            <Popover open={toOpen} onOpenChange={setToOpen}>
+              <PopoverTrigger className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-border/60 bg-background text-sm text-foreground hover:bg-secondary/50 transition-colors">
+                <CalendarIcon className="size-3.5 text-muted-foreground" />
+                {effectiveToDate ? formatDate(effectiveToDate.toISOString()) : "Đến ngày"}
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-auto">
+                <Calendar
+                  mode="single"
+                  selected={effectiveToDate}
+                  onSelect={pickTo}
+                  disabled={fromDate ? { before: fromDate } : undefined}
+                />
+              </PopoverContent>
+            </Popover>
+
+            {(fromDate || toDate) && (
+              <button
+                onClick={clearDateRange}
+                className="rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
           </div>
         </div>
 

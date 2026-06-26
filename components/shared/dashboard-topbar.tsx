@@ -5,7 +5,6 @@ import { ChevronRight, Menu } from "lucide-react";
 import NotificationCenter from "@/components/notification/NotificationCenter";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useTranslations } from "next-intl";
-import { LanguageToggle } from "@/components/shared/language-toggle";
 
 type RouteKey =
   | "overview" | "aiStudio" | "archive" | "allPhotos" | "models"
@@ -66,7 +65,6 @@ export default function DashboardTopBar() {
 
       {/* Right side */}
       <div className="flex items-center gap-2">
-        <LanguageToggle />
         <NotificationCenter variant="header" />
       </div>
     </header>

@@ -3,20 +3,25 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Search, Lock } from "lucide-react";
+import { Lock, Users, Venus, Mars } from "lucide-react";
 import { cn } from "@/lib/utils";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { getAppModels, type AppModel } from "@/features/models/appModelService";
 import { PLAN_VISUALS } from "@/features/credit/planMeta";
 
-type GenderFilter = "all" | "male" | "female" | "unisex";
+type GenderFilter = "all" | "male" | "female";
 
 const GENDER_LABEL: Record<GenderFilter, string> = {
   all: "Tất cả",
   female: "Nữ",
   male: "Nam",
-  unisex: "Unisex",
+};
+
+const GENDER_ICON: Record<GenderFilter, React.ElementType> = {
+  all: Users,
+  female: Venus,
+  male: Mars,
 };
 
 function useCols(): number {
@@ -108,7 +113,6 @@ export default function ModelsPage() {
   const router = useRouter();
   const [models, setModels] = useState<AppModel[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
   const [gender, setGender] = useState<GenderFilter>("all");
   const cols = useCols();
 
@@ -120,16 +124,9 @@ export default function ModelsPage() {
   }, []);
 
   const filtered = useMemo(() => {
-    let result = models;
-    if (gender !== "all") result = result.filter((m) => m.gender === gender);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter((m) =>
-        m.name.toLowerCase().includes(q) || (m.tags ?? []).some((t) => t.toLowerCase().includes(q))
-      );
-    }
-    return result;
-  }, [models, gender, search]);
+    if (gender === "all") return models;
+    return models.filter((m) => m.gender === gender);
+  }, [models, gender]);
 
   const unlockedCount = models.filter((m) => m.unlocked).length;
 
@@ -151,32 +148,25 @@ export default function ModelsPage() {
         </p>
       </div>
 
-      {/* Search */}
-      <div className="relative mb-5 max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Tìm kiếm người mẫu..."
-          className="w-full h-10 pl-9 pr-4 text-sm bg-secondary/50 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all placeholder:text-muted-foreground/60"
-        />
-      </div>
-
       {/* Gender filter */}
       <ToggleGroup
         value={[gender]}
         onValueChange={(vals) => { if (vals.length) setGender(vals[0] as GenderFilter); }}
         className="mb-5 overflow-x-auto"
       >
-        {(["all", "female", "male", "unisex"] as GenderFilter[]).map((g) => (
-          <ToggleGroupItem
-            key={g}
-            value={g}
-            className="rounded-full data-[state=on]:bg-foreground data-[state=on]:text-background"
-          >
-            {GENDER_LABEL[g]}
-          </ToggleGroupItem>
-        ))}
+        {(["all", "female", "male"] as GenderFilter[]).map((g) => {
+          const Icon = GENDER_ICON[g];
+          return (
+            <ToggleGroupItem
+              key={g}
+              value={g}
+              className="gap-1.5 rounded-full data-[state=on]:bg-foreground data-[state=on]:text-background"
+            >
+              <Icon className="size-3.5" />
+              {GENDER_LABEL[g]}
+            </ToggleGroupItem>
+          );
+        })}
       </ToggleGroup>
 
       {/* Grid */}
@@ -196,9 +186,9 @@ export default function ModelsPage() {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-32 text-muted-foreground">
-          <Search className="size-12 mb-4 opacity-20" />
+          <Users className="size-12 mb-4 opacity-20" />
           <p className="text-sm font-medium mb-1">Không tìm thấy người mẫu</p>
-          <p className="text-xs opacity-60">Thử tìm với từ khóa khác hoặc bộ lọc khác</p>
+          <p className="text-xs opacity-60">Thử chọn bộ lọc khác</p>
         </div>
       )}
     </div>

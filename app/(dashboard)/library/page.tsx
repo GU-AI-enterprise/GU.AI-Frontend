@@ -8,7 +8,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { cn, normalizeVN } from "@/lib/utils";
 import { apiClient } from "@/lib/apiFetch";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -393,12 +393,12 @@ export default function LibraryPage() {
     let result = items;
     if (activeCat !== "all") result = result.filter(i => i.cat === activeCat);
     if (search.trim()) {
-      const q = search.toLowerCase();
+      const q = normalizeVN(search);
       result = result.filter(i =>
-        i.title.toLowerCase().includes(q) ||
-        i.desc.toLowerCase().includes(q) ||
-        i.tags.some(t => t.toLowerCase().includes(q)) ||
-        (i.promptText ?? "").toLowerCase().includes(q),
+        normalizeVN(i.title).includes(q) ||
+        normalizeVN(i.desc).includes(q) ||
+        i.tags.some(t => normalizeVN(t).includes(q)) ||
+        normalizeVN(i.promptText ?? "").includes(q),
       );
     }
     return result;
