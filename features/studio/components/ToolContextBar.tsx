@@ -10,7 +10,7 @@ import type {
 } from "../types";
 import type { TryOnCategory } from "@/features/studio/studioService";
 import { suggestPrompt } from "@/features/studio/studioService";
-import { ChevronDown, Loader2, Sparkles, ScanFace, ImageIcon, Mountain } from "lucide-react";
+import { ChevronDown, Loader2, Sparkles, ScanFace, ImageIcon, Mountain, Terminal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -83,7 +83,7 @@ function RunBtn({ onClick, disabled, isProcessing }: {
       {isProcessing ? (
         <><Loader2 className="size-3.5 animate-spin" />Đang chạy</>
       ) : (
-        <><Sparkles className="size-3.5" />Chạy</>
+        <><Terminal className="size-3.5" />Chạy</>
       )}
     </button>
   );
