@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useState, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
@@ -57,6 +58,7 @@ import { FaceToModelPanel } from "@/features/studio/components/FaceToModelPanel"
 import { EditPanel } from "@/features/studio/components/EditPanel";
 import { GenericPanel } from "@/features/studio/components/GenericPanel";
 import { StudioPickerModal } from "@/features/studio/components/StudioPickerModal";
+import { StudioChatPanel } from "@/components/studio/studio-chat-panel";
 
 // ─── Inner page (needs Suspense because of useSearchParams) ───────────────────
 
@@ -146,6 +148,7 @@ function StudioPageInner() {
   // ── UI state ──────────────────────────────────────────────────────────────
   const [guideToolId,      setGuideToolId]      = useState<string | null>(null);
   const [showGallery,      setShowGallery]       = useState(false);
+  const [chatOpen,         setChatOpen]          = useState(false);
   const [galleryMode,      setGalleryMode]       = useState<"model" | "library">("library");
   const [lightboxUrl,      setLightboxUrl]       = useState<string | null>(null);
   const [saveAlbumAssetId, setSaveAlbumAssetId]  = useState<string | null>(null);
@@ -850,6 +853,13 @@ function StudioPageInner() {
                 <BookOpen className="size-3.5" />
                 <span>{t("guide")}</span>
               </button>
+              <button
+                onClick={() => setChatOpen(true)}
+                title="Trợ lý AI"
+                className="cursor-pointer relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 ring-1 ring-border/60 hover:ring-primary/40 transition-all"
+              >
+                <Image src="/icons/logo_only.png" alt="Trợ lý AI" fill className="object-contain p-1.5" />
+              </button>
             </div>
           </div>
 
@@ -935,6 +945,8 @@ function StudioPageInner() {
           onClose={() => setLibraryModalConfig(null)}
         />
       )}
+
+      <StudioChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   );
 }

@@ -406,6 +406,20 @@ export async function suggestPrompt(tool: string, userHint: string, image?: File
   return json.data.prompt as string;
 }
 
+// Chat hỏi-đáp của Trợ lý AI Studio — chỉ trả lời text, không lập plan/chạy tool nào,
+// không lưu hội thoại ở server (client tự giữ history và gửi kèm mỗi lượt).
+export interface StudioChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export async function studioChat(messages: StudioChatMessage[]): Promise<string> {
+  const response = await apiClient.post('/api/ai/studio-chat', { messages });
+  const json = response.data;
+  if (!json.success) throw new Error(json.error || 'Trợ lý AI trả lời thất bại');
+  return json.data.reply as string;
+}
+
 export type VerifyImageType = 'face' | 'product' | 'model' | 'background';
 
 export interface VerifyImageResult {
