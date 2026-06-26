@@ -120,7 +120,7 @@ export function StudioChatPanel({ open, onClose }: StudioChatPanelProps) {
         />
 
         {/* Header */}
-        <div className="flex flex-shrink-0 items-center justify-between border-b border-border bg-card px-4 py-3">
+        <div className="flex flex-shrink-0 items-center justify-between bg-card px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="relative flex size-9 items-center justify-center overflow-hidden rounded-full bg-primary/10">
               <Image src="/icons/logo_only.png" alt="Trợ lý AI" fill className="object-contain p-1.5" />
