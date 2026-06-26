@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, Suspense } from "react";
+import { useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import Image from "next/image";
@@ -9,33 +9,44 @@ function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
+  const ranRef = useRef(false);
 
   useEffect(() => {
-    const handleCallback = async () => {
-      // OAuth PKCE flow (Google, etc.) or password-recovery flow — both arrive with ?code=
-      const code = searchParams.get("code");
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) {
-          router.push("/login?error=oauth_failed");
-          return;
-        }
-        if (searchParams.get("type") === "recovery") {
-          router.push("/reset-password");
-          return;
-        }
-        router.push("/dashboard");
-        return;
-      }
+    // Tránh chạy 2 lần (React Strict Mode ở dev mount effect 2 lần) — code PKCE chỉ dùng được 1 lần,
+    // chạy lần 2 sẽ luôn lỗi "invalid grant" và làm mất kết quả của lần chạy đầu (đã thành công).
+    if (ranRef.current) return;
+    ranRef.current = true;
 
-      // Email verification callback — Supabase already confirmed the email
-      // server-side when the user clicked the link. Just redirect to login.
-      setTimeout(() => router.push("/login?verified=true"), 2500);
+    const handleCallback = async () => {
+      try {
+        // OAuth PKCE flow (Google, etc.) or password-recovery flow — both arrive with ?code=
+        const code = searchParams.get("code");
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            console.error("[auth/callback] exchangeCodeForSession lỗi:", error.message);
+            router.push(`/login?error=oauth_failed&reason=${encodeURIComponent(error.message)}`);
+            return;
+          }
+          if (searchParams.get("type") === "recovery") {
+            router.push("/reset-password");
+            return;
+          }
+          router.push("/dashboard");
+          router.refresh();
+          return;
+        }
+
+        // Email verification callback — Supabase đã xác nhận email server-side khi user bấm link.
+        setTimeout(() => router.push("/login?verified=true"), 2500);
+      } catch (err: any) {
+        console.error("[auth/callback] exception:", err);
+        router.push(`/login?error=oauth_failed&reason=${encodeURIComponent(err?.message ?? "unknown")}`);
+      }
     };
 
     handleCallback();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [router, searchParams, supabase]);
 
   return (
     <div className="flex flex-col min-h-[60vh] items-center justify-center text-center p-6 space-y-6 bg-background">
