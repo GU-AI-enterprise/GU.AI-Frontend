@@ -17,6 +17,17 @@ const getCroppedImg = async (imageSrc: string, pixelCrop: any, width: number, he
   image.src = imageSrc;
   await new Promise(resolve => { image.onload = resolve; });
 
+  // Nếu user chưa từng mở tab này (Cropper chưa mount nên onCropComplete chưa fire),
+  // pixelCrop vẫn null — tự tính 1 crop căn giữa full ảnh theo đúng aspect, giống mặc định của Cropper.
+  if (!pixelCrop) {
+    const targetAspect = width / height;
+    const imgW = image.naturalWidth;
+    const imgH = image.naturalHeight;
+    const cropW = imgW / imgH > targetAspect ? imgH * targetAspect : imgW;
+    const cropH = imgW / imgH > targetAspect ? imgH : imgW / targetAspect;
+    pixelCrop = { x: (imgW - cropW) / 2, y: (imgH - cropH) / 2, width: cropW, height: cropH };
+  }
+
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
