@@ -12,7 +12,7 @@ import {
   Sparkles,
   ChevronRight, ChevronLeft, Loader2,
   Download, RefreshCw, AlertCircle, FolderHeart,
-  BookOpen, SplitSquareHorizontal, ArrowRightCircle,
+  BookOpen, SplitSquareHorizontal, ArrowRightCircle, ShoppingCart
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
@@ -59,6 +59,7 @@ import { EditPanel } from "@/features/studio/components/EditPanel";
 import { GenericPanel } from "@/features/studio/components/GenericPanel";
 import { StudioPickerModal } from "@/features/studio/components/StudioPickerModal";
 import { StudioChatPanel } from "@/components/studio/studio-chat-panel";
+import { EcommerceExportModal } from "@/features/studio/components/EcommerceExportModal";
 
 // ─── Inner page (needs Suspense because of useSearchParams) ───────────────────
 
@@ -158,6 +159,7 @@ function StudioPageInner() {
   const [canScrollLeft,    setCanScrollLeft]     = useState(false);
   const [canScrollRight,   setCanScrollRight]    = useState(false);
   const [showComparison,   setShowComparison]    = useState(false);
+  const [isEcommerceModalOpen, setIsEcommerceModalOpen] = useState(false);
 
   const galleryCallbackRef  = useRef<((url: string) => void) | null>(null);
   const toolbarRef          = useRef<HTMLDivElement>(null);
@@ -776,6 +778,15 @@ function StudioPageInner() {
                       <span>{effectiveResultAssetId ? t("saveToAlbum") : t("saving")}</span>
                     </button>
                     {!isVideo && effectiveResultUrl && (
+                      <button
+                        onClick={() => setIsEcommerceModalOpen(true)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors border border-emerald-500/20"
+                      >
+                        <ShoppingCart className="size-3.5" />
+                        <span>Xuất sàn TMĐT</span>
+                      </button>
+                    )}
+                    {!isVideo && effectiveResultUrl && (
                       <DropdownMenu>
                         <DropdownMenuTrigger className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
                           <ArrowRightCircle className="size-3.5" />
@@ -964,7 +975,16 @@ function StudioPageInner() {
         />
       )}
 
-      <StudioChatPanel open={chatOpen} onClose={() => setChatOpen(false)} contextImages={chatContextImages} />
+      <StudioChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
+
+      {/* Ecommerce Export Modal */}
+      {isEcommerceModalOpen && effectiveResultUrl && (
+        <EcommerceExportModal
+          isOpen={isEcommerceModalOpen}
+          onClose={() => setIsEcommerceModalOpen(false)}
+          imageUrl={effectiveResultUrl}
+        />
+      )}
     </div>
   );
 }
