@@ -162,6 +162,7 @@ function StudioPageInner() {
   const galleryCallbackRef  = useRef<((url: string) => void) | null>(null);
   const toolbarRef          = useRef<HTMLDivElement>(null);
   const isToolSwitchRef     = useRef(false); // false on initial mount, true on subsequent tool changes
+  const skipResetRef        = useRef(false); // true khi chuyển tool do "Tiếp tục với" — bỏ qua reset để giữ ảnh vừa set
 
   const [isFakeAI, setIsFakeAI] = useState(false);
 
@@ -240,6 +241,7 @@ function StudioPageInner() {
       default:                          setImages([img]); break; // GenericPanel: create-model/image-to-video/reframe/upscale/remove-bg
     }
     fullReset();
+    skipResetRef.current = true; // tool-switch effect sắp chạy do đổi ?tool= — bỏ qua để không xoá ảnh vừa set
     router.push(`/studio?tool=${TOOL_SLUG[targetTool]}`);
   }, [fullReset, router]);
 
@@ -343,6 +345,10 @@ function StudioPageInner() {
 
   // ── Reset state on tool switch ────────────────────────────────────────────
   useEffect(() => {
+    if (skipResetRef.current) {
+      skipResetRef.current = false;
+      return;
+    }
     if (isToolSwitchRef.current) {
       // User actively switched tools — clear persisted job state
       dispatch(clearActiveJob());
@@ -570,6 +576,18 @@ function StudioPageInner() {
       case AIToolType.FACE_TO_MODEL:    return f2mFaceImage;
       case AIToolType.EDIT:             return editSource;
       default:                          return null;
+    }
+  })();
+
+  // Tất cả ảnh user đang chuẩn bị cho tool hiện tại — hiện trong khung chat AI để trả lời sát ảnh thật.
+  const chatContextImages: StudioImage[] = (() => {
+    switch (selectedTool) {
+      case AIToolType.TRY_ON:           return [toModelImage, toGarment].filter((i): i is StudioImage => !!i);
+      case AIToolType.PRODUCT_TO_MODEL: return [p2mProduct, p2mPromptImg, p2mFaceRef, p2mBgRef].filter((i): i is StudioImage => !!i);
+      case AIToolType.MODEL_SWAP:       return [msImage, msFaceRef].filter((i): i is StudioImage => !!i);
+      case AIToolType.FACE_TO_MODEL:    return [f2mFaceImage].filter((i): i is StudioImage => !!i);
+      case AIToolType.EDIT:             return [editSource, editMask, editContext].filter((i): i is StudioImage => !!i);
+      default:                          return images;
     }
   })();
 
@@ -946,7 +964,7 @@ function StudioPageInner() {
         />
       )}
 
-      <StudioChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
+      <StudioChatPanel open={chatOpen} onClose={() => setChatOpen(false)} contextImages={chatContextImages} />
     </div>
   );
 }

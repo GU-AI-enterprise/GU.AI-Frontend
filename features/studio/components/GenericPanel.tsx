@@ -74,16 +74,16 @@ export function GenericPanel({ images, onImagesChange, onPaste, openGallery }: P
           />
         </div>
       ) : (
-        <div className="flex-1 min-h-0 flex items-center justify-center gap-3 flex-wrap overflow-hidden">
+        <div className="flex-1 min-h-0 flex items-center justify-center gap-3 overflow-x-auto overflow-y-hidden p-4">
           {images.map((img, index) => (
             <motion.div
               key={img.id}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.05 }}
-              className="relative group"
+              className="relative group h-full max-h-96 shrink-0"
             >
-              <div className="w-28 h-36 rounded-2xl overflow-hidden border border-border bg-card shadow-md">
+              <div className="h-full aspect-[3/4] rounded-2xl overflow-hidden border border-border bg-card shadow-md">
                 <img src={img.url} alt="Input" className="w-full h-full object-cover" />
               </div>
               <button
@@ -97,7 +97,7 @@ export function GenericPanel({ images, onImagesChange, onPaste, openGallery }: P
           {images.length < 5 && (
             <button
               onClick={() => fileRef.current?.click()}
-              className="w-28 h-36 rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary/30 hover:text-foreground transition-all"
+              className="h-full max-h-96 aspect-[3/4] shrink-0 rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary/30 hover:text-foreground transition-all"
             >
               <Upload className="size-5 mb-1" />
               <span className="text-[10px]">Thêm ảnh</span>

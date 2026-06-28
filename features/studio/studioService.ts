@@ -413,8 +413,14 @@ export interface StudioChatMessage {
   content: string;
 }
 
-export async function studioChat(messages: StudioChatMessage[]): Promise<string> {
-  const response = await apiClient.post('/api/ai/studio-chat', { messages });
+/** Ảnh user đang chuẩn bị dùng cho tác vụ — gửi kèm câu hỏi mới nhất để trợ lý xem & trả lời sát hơn. */
+export interface StudioChatImage {
+  mimeType: string;
+  data: string;
+}
+
+export async function studioChat(messages: StudioChatMessage[], images?: StudioChatImage[]): Promise<string> {
+  const response = await apiClient.post('/api/ai/studio-chat', { messages, images });
   const json = response.data;
   if (!json.success) throw new Error(json.error || 'Trợ lý AI trả lời thất bại');
   return json.data.reply as string;

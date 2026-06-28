@@ -8,6 +8,44 @@ export function urlToStudioImage(url: string): StudioImage {
   return { id: Math.random().toString(36).substr(2, 9), url };
 }
 
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+const CHAT_IMAGE_MAX_DIM = 1024; // ảnh gốc có thể vài MB — resize trước khi gửi để tránh request quá lớn
+
+// Đọc 1 ảnh (blob: local hoặc URL từ storage) thành base64 để gửi cho trợ lý AI xem trực tiếp —
+// dùng fetch+FileReader thay vì gửi URL cho backend vì ảnh vừa chọn thường vẫn là blob: local,
+// server không truy cập được. Resize + nén JPEG trước vì ảnh gốc full-res sẽ vượt giới hạn body JSON.
+export async function imageUrlToBase64(url: string): Promise<{ mimeType: string; data: string }> {
+  const blob = await fetch(url).then((r) => r.blob());
+
+  try {
+    const bitmap = await createImageBitmap(blob);
+    const scale = Math.min(1, CHAT_IMAGE_MAX_DIM / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Không tạo được canvas context");
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+    const [, mimeType, data] = dataUrl.match(/^data:(.+);base64,(.*)$/) ?? [];
+    return { mimeType: mimeType || "image/jpeg", data: data || "" };
+  } catch {
+    // Fallback: gửi ảnh gốc nếu resize thất bại (định dạng lạ, browser không hỗ trợ createImageBitmap)
+    const dataUrl = await blobToDataUrl(blob);
+    const [, mimeType, data] = dataUrl.match(/^data:(.+);base64,(.*)$/) ?? [];
+    return { mimeType: mimeType || blob.type || "image/png", data: data || "" };
+  }
+}
+
 export function computeEditCost(
   genMode: GenMode = 'balanced',
   resolution: GenResolution = '1k',

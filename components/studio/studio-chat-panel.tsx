@@ -4,12 +4,14 @@ import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { X, Send } from "lucide-react";
+import { X, Send, ImageIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { LoaderOne } from "@/components/ui/loader";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { studioChat, type StudioChatMessage } from "@/features/studio/studioService";
+import { studioChat, type StudioChatMessage, type StudioChatImage } from "@/features/studio/studioService";
+import { imageUrlToBase64 } from "@/features/studio/helpers";
+import type { StudioImage } from "@/features/studio/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -44,12 +46,16 @@ const MAX_WIDTH = 720;
 const DEFAULT_WIDTH = 380;
 const WIDTH_STORAGE_KEY = "studio-chat-width";
 
+const MAX_CONTEXT_IMAGES = 4;
+
 interface StudioChatPanelProps {
   open: boolean;
   onClose: () => void;
+  /** Ảnh user đang chuẩn bị dùng cho tool hiện tại — hiện trên khung chat để trợ lý trả lời sát ảnh thật. */
+  contextImages?: StudioImage[];
 }
 
-export function StudioChatPanel({ open, onClose }: StudioChatPanelProps) {
+export function StudioChatPanel({ open, onClose, contextImages = [] }: StudioChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -95,7 +101,17 @@ export function StudioChatPanel({ open, onClose }: StudioChatPanelProps) {
     setIsTyping(true);
 
     try {
-      const reply = await studioChat(history.map(({ role, content }) => ({ role, content })));
+      let images: StudioChatImage[] = [];
+      if (contextImages.length > 0) {
+        const results = await Promise.allSettled(
+          contextImages.slice(0, MAX_CONTEXT_IMAGES).map((img) => imageUrlToBase64(img.url))
+        );
+        images = results
+          .filter((r): r is PromiseFulfilledResult<StudioChatImage> => r.status === "fulfilled")
+          .map((r) => r.value);
+      }
+
+      const reply = await studioChat(history.map(({ role, content }) => ({ role, content })), images);
       setMessages((prev) => [...prev, { id: `${Date.now()}-assistant`, role: "assistant", content: reply }]);
     } catch (err: any) {
       toast.error(err.message || "Trợ lý AI trả lời thất bại, thử lại sau.");
@@ -183,8 +199,21 @@ export function StudioChatPanel({ open, onClose }: StudioChatPanelProps) {
           </ScrollArea>
         </div>
 
+        {/* Ảnh đang chuẩn bị cho tác vụ — hiện để trợ lý trả lời dựa trên ảnh thật */}
+        {contextImages.length > 0 && (
+          <div className="flex-shrink-0 flex items-center gap-1.5 border-t border-border bg-background px-3 pt-2.5">
+            <ImageIcon className="size-3 shrink-0 text-muted-foreground" />
+            <span className="text-[10px] text-muted-foreground shrink-0">Ảnh đang dùng:</span>
+            <div className="flex items-center gap-1.5 overflow-x-auto">
+              {contextImages.slice(0, MAX_CONTEXT_IMAGES).map((img) => (
+                <img key={img.id} src={img.url} alt="" className="size-8 shrink-0 rounded-lg object-cover border border-border" />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Input */}
-        <form onSubmit={handleSend} className="flex-shrink-0 flex items-end gap-2 border-t border-border bg-background p-3">
+        <form onSubmit={handleSend} className={cn("flex-shrink-0 flex items-end gap-2 bg-background p-3", contextImages.length === 0 && "border-t border-border")}>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
