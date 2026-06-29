@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { selectCreditBalance, setBalance } from "@/features/credit/creditSlice";
+import { selectCreditBalance, setBalance, selectPlanType } from "@/features/credit/creditSlice";
 import {
   Sparkles,
   ChevronRight, ChevronLeft, Loader2,
@@ -69,6 +69,8 @@ function StudioPageInner() {
   const searchParams  = useSearchParams();
   const dispatch      = useAppDispatch();
   const creditBalance = useAppSelector(selectCreditBalance);
+  const planType      = useAppSelector(selectPlanType);
+  const canUseAiChat  = planType === "basic" || planType === "pro";
   const dbCredits     = useFashnToolCredits();
   const t             = useTranslations("studio");
   const [authLoading, setAuthLoading] = useState(true);
@@ -885,8 +887,9 @@ function StudioPageInner() {
               </button>
               <button
                 onClick={() => setChatOpen(true)}
-                title="Trợ lý AI"
-                className="cursor-pointer relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 ring-1 ring-border/60 hover:ring-primary/40 transition-all"
+                disabled={!canUseAiChat}
+                title={canUseAiChat ? "Trợ lý AI" : "Nâng cấp gói để dùng Trợ lý AI"}
+                className="cursor-pointer relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 ring-1 ring-border/60 hover:ring-primary/40 transition-all disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:ring-border/60"
               >
                 <Image src="/icons/logo_only.png" alt="Trợ lý AI" fill className="object-contain p-1.5" />
               </button>

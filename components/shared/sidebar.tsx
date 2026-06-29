@@ -28,9 +28,14 @@ import {
   Layers,
   Workflow,
   GitCompare,
+  Crown,
 } from "lucide-react";
 import Logo from "@/components/shared/logo";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuGroup,
+} from "@/components/ui/dropdown-menu";
 import SupportChatWidget from "@/components/support/support-chat-widget";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { fetchCredit, selectCreditBalance, setPlanType, selectPlanType } from "@/features/credit/creditSlice";
@@ -75,8 +80,6 @@ export default function Sidebar() {
   const [archiveFlyout, setArchiveFlyout] = useState(false);
   const [archiveFlyoutPos, setArchiveFlyoutPos] = useState<{ top: number; left: number } | null>(null);
   const [tooltip, setTooltip] = useState<{ label: string; top: number } | null>(null);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [userMenuPos, setUserMenuPos] = useState<{ bottom: number; left: number } | null>(null);
   const [chatForceOpen, setChatForceOpen] = useState(false);
   const [isFakeAI, setIsFakeAI] = useState(false);
   const isDev = process.env.NODE_ENV !== "production";
@@ -100,8 +103,6 @@ export default function Sidebar() {
   };
 
   const archiveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const userBtnRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   // "icon-only" mode: only on desktop when collapsed
   const isCollapsed = !isMobile && collapsed;
@@ -127,24 +128,10 @@ export default function Sidebar() {
     getTopupInfo().then(info => dispatch(setPlanType(info.plan_type))).catch(() => { });
   }, [session?.access_token, dispatch]);
 
-  // ── Close user menu on outside click ────────────────────────────────────────
-  useEffect(() => {
-    if (!userMenuOpen) return;
-    const onDown = (e: MouseEvent) => {
-      const target = e.target as Node;
-      const insideBtn = userBtnRef.current?.contains(target);
-      const insideMenu = menuRef.current?.contains(target);
-      if (!insideBtn && !insideMenu) setUserMenuOpen(false);
-    };
-    document.addEventListener("mousedown", onDown, true);
-    return () => document.removeEventListener("mousedown", onDown, true);
-  }, [userMenuOpen]);
-
   const toggle = () => {
     const next = !collapsed;
     setCollapsed(next);
     localStorage.setItem("sidebar-collapsed", String(next));
-    setUserMenuOpen(false);
   };
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
@@ -152,16 +139,6 @@ export default function Sidebar() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/");
-  };
-
-  const openUserMenu = () => {
-    if (!userBtnRef.current) return;
-    const rect = userBtnRef.current.getBoundingClientRect();
-    setUserMenuPos({
-      bottom: window.innerHeight - rect.bottom,
-      left: rect.right + 8,
-    });
-    setUserMenuOpen(v => !v);
   };
 
   // ── User info ────────────────────────────────────────────────────────────────
@@ -346,6 +323,31 @@ export default function Sidebar() {
         </nav>
         </ScrollArea>
 
+        {/* ── Upgrade CTA (chỉ hiện cho gói Free) ── */}
+        {planType === "free" && (
+          <div className="px-3 pb-2">
+            {isCollapsed ? (
+              <div className="flex flex-col items-center gap-1.5 py-1">
+                <Link
+                  href="/topup"
+                  title="Nâng cấp gói"
+                  className="flex items-center justify-center size-9 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-sm hover:opacity-90 transition-opacity"
+                >
+                  <Crown className="size-4" />
+                </Link>
+              </div>
+            ) : (
+              <Link
+                href="/topup"
+                className="flex items-center justify-center gap-1.5 w-full h-9 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-xs font-semibold shadow-sm hover:opacity-90 transition-opacity"
+              >
+                <Crown className="size-3.5" />
+                Nâng cấp gói
+              </Link>
+            )}
+          </div>
+        )}
+
         {/* ── Credit + Plan ── */}
         {credit !== null && (
           <div className="px-3 pb-2 border-t border-sidebar-border pt-3">
@@ -424,54 +426,156 @@ export default function Sidebar() {
 
         {/* ── User card (bottom) ── */}
         <div className="px-3 py-3 border-t border-sidebar-border">
-          <button
-            ref={userBtnRef}
-            onClick={openUserMenu}
-            onMouseEnter={(e) => {
-              if (isCollapsed) {
-                const rect = e.currentTarget.getBoundingClientRect();
-                setTooltip({ label: displayName, top: rect.top + rect.height / 2 });
-              }
-            }}
-            onMouseLeave={() => setTooltip(null)}
-            className={`cursor-pointer w-full flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-2"} h-11 rounded-xl hover:bg-sidebar-accent transition-colors group`}
-          >
-            {/* Avatar */}
-            <div className="shrink-0 relative">
-              <PlanAvatarRing planType={planType}>
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt={displayName} referrerPolicy="no-referrer"
-                    className={`size-8 rounded-full object-cover ${avatarBorderClass}`} />
-                ) : (
-                  <div className={`size-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground ${avatarBorderClass}`}>
-                    {initials}
-                  </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              onMouseEnter={(e: React.MouseEvent<HTMLElement>) => {
+                if (isCollapsed) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setTooltip({ label: displayName, top: rect.top + rect.height / 2 });
+                }
+              }}
+              onMouseLeave={() => setTooltip(null)}
+              className={`cursor-pointer w-full flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-2"} h-11 rounded-xl hover:bg-sidebar-accent transition-colors group`}
+            >
+              {/* Avatar */}
+              <div className="shrink-0 relative">
+                <PlanAvatarRing planType={planType}>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={displayName} referrerPolicy="no-referrer"
+                      className={`size-8 rounded-full object-cover ${avatarBorderClass}`} />
+                  ) : (
+                    <div className={`size-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground ${avatarBorderClass}`}>
+                      {initials}
+                    </div>
+                  )}
+                </PlanAvatarRing>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-sidebar border-0 leading-none">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
                 )}
-              </PlanAvatarRing>
-              {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-sidebar border-0 leading-none">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-            </div>
+              </div>
 
-            {/* Name + email */}
-            {!isCollapsed && (
-              <>
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">{displayName}</p>
+              {/* Name + email */}
+              {!isCollapsed && (
+                <>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">{displayName}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <PlanBadgeWrap planType={planType} className="shrink-0 inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                        <span className={`size-1 rounded-full ${plan.dotClass}`} />
+                        {plan.label}
+                      </PlanBadgeWrap>
+                      <p className="text-[11px] text-sidebar-foreground/50 truncate leading-tight">{email}</p>
+                    </div>
+                  </div>
+                  <ChevronUp className="size-3.5 text-sidebar-foreground/40 group-hover:text-sidebar-foreground/70 transition-colors shrink-0" />
+                </>
+              )}
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent side="right" align="end" sideOffset={8} className="w-64 rounded-2xl p-0 overflow-hidden">
+              {/* User info header */}
+              <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border">
+                <PlanAvatarRing planType={planType} className="shrink-0">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={displayName} referrerPolicy="no-referrer"
+                      className={`size-9 rounded-full object-cover ${avatarBorderClass}`} />
+                  ) : (
+                    <div className={`size-9 rounded-full bg-primary flex items-center justify-center text-sm font-bold text-primary-foreground ${avatarBorderClass}`}>
+                      {initials}
+                    </div>
+                  )}
+                </PlanAvatarRing>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <PlanBadgeWrap planType={planType} className="shrink-0 inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-                      <span className={`size-1 rounded-full ${plan.dotClass}`} />
+                    <PlanBadgeWrap planType={planType} className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      <span className={`size-1.5 rounded-full ${plan.dotClass}`} />
                       {plan.label}
                     </PlanBadgeWrap>
-                    <p className="text-[11px] text-sidebar-foreground/50 truncate leading-tight">{email}</p>
+                    <p className="text-xs text-muted-foreground truncate">{email}</p>
                   </div>
                 </div>
-                <ChevronUp className="size-3.5 text-sidebar-foreground/40 group-hover:text-sidebar-foreground/70 transition-colors shrink-0" />
-              </>
-            )}
-          </button>
+              </div>
+
+              {/* Account links */}
+              <div className="p-1.5">
+                <DropdownMenuItem render={<Link href="/profile" />} className="gap-2.5 px-3 py-2 rounded-xl">
+                  <User className="size-4 text-muted-foreground" />
+                  Hồ sơ
+                </DropdownMenuItem>
+              </div>
+
+              <DropdownMenuSeparator className="mx-0" />
+
+              {/* Theme toggle */}
+              <div className="p-1.5">
+                <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl">
+                  <Sun className="size-4 text-muted-foreground shrink-0" />
+                  <span className="flex-1 text-sm text-foreground">Giao diện</span>
+                  <div className="flex items-center gap-0.5 bg-muted rounded-lg p-0.5">
+                    <button
+                      onClick={() => setTheme("light")}
+                      className={`cursor-pointer flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${theme === "light" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                      <Sun className="size-3" /> Sáng
+                    </button>
+                    <button
+                      onClick={() => setTheme("dark")}
+                      className={`cursor-pointer flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${theme === "dark" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                      <Moon className="size-3" /> Tối
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Help & Support */}
+              {!isStaff && (
+                <>
+                  <DropdownMenuSeparator className="mx-0" />
+                  <DropdownMenuGroup className="p-1.5">
+                    <DropdownMenuLabel>Trợ giúp</DropdownMenuLabel>
+                    <DropdownMenuItem
+                      onClick={() => { setChatForceOpen(true); setTimeout(() => setChatForceOpen(false), 200); }}
+                      className="gap-2.5 px-3 py-2 rounded-xl"
+                    >
+                      <span className="text-muted-foreground relative shrink-0">
+                        <MessageCircle className="size-4" />
+                        {unreadCount > 0 && (
+                          <span className="absolute -top-1 -right-1 flex size-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white leading-none">
+                            {unreadCount > 9 ? "9+" : unreadCount}
+                          </span>
+                        )}
+                      </span>
+                      Chat với chúng tôi
+                      {unreadCount > 0 && (
+                        <span className="ml-auto flex items-center justify-center rounded-full bg-red-500 px-1.5 min-w-[18px] h-[16px] text-[9px] font-bold text-white leading-none">
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
+                      )}
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </>
+              )}
+
+              {/* Logout */}
+              <DropdownMenuSeparator className="mx-0" />
+              <div className="p-1.5">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  variant="destructive"
+                  className="gap-2.5 px-3 py-2 rounded-xl"
+                >
+                  <LogOut className="size-4" />
+                  Đăng xuất
+                </DropdownMenuItem>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 
@@ -487,7 +591,7 @@ export default function Sidebar() {
       )}
 
       {/* ── Tooltip ── */}
-      {isCollapsed && tooltip && !archiveFlyout && !userMenuOpen && (
+      {isCollapsed && tooltip && !archiveFlyout && (
         <div
           className="fixed z-50 px-2.5 py-1.5 rounded-md bg-popover text-popover-foreground text-xs font-medium shadow-md border border-border pointer-events-none"
           style={{ left: "68px", top: tooltip.top, transform: "translateY(-50%)" }}
@@ -518,128 +622,8 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* ── User menu popup (fixed, escapes overflow) ── */}
-      {userMenuOpen && userMenuPos && (
-        <div
-          ref={menuRef}
-          className="fixed z-50 w-64 rounded-2xl border border-border bg-popover shadow-xl overflow-hidden"
-          style={{ bottom: userMenuPos.bottom, left: userMenuPos.left }}
-        >
-          {/* User info header */}
-          <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border">
-            <PlanAvatarRing planType={planType} className="shrink-0">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={displayName} referrerPolicy="no-referrer"
-                  className={`size-9 rounded-full object-cover ${avatarBorderClass}`} />
-              ) : (
-                <div className={`size-9 rounded-full bg-primary flex items-center justify-center text-sm font-bold text-primary-foreground ${avatarBorderClass}`}>
-                  {initials}
-                </div>
-              )}
-            </PlanAvatarRing>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <PlanBadgeWrap planType={planType} className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                  <span className={`size-1.5 rounded-full ${plan.dotClass}`} />
-                  {plan.label}
-                </PlanBadgeWrap>
-                <p className="text-xs text-muted-foreground truncate">{email}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Account links */}
-          <div className="p-1.5">
-            <MenuItem icon={<User className="size-4" />} label="Hồ sơ" href="/profile" onClick={() => setUserMenuOpen(false)} />
-          </div>
-
-          <div className="border-t border-border/60 p-1.5">
-            {/* Theme toggle */}
-            <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl">
-              <Sun className="size-4 text-muted-foreground shrink-0" />
-              <span className="flex-1 text-sm text-foreground">Giao diện</span>
-              <div className="flex items-center gap-0.5 bg-muted rounded-lg p-0.5">
-                <button
-                  onClick={() => setTheme("light")}
-                  className={`cursor-pointer flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${theme === "light" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                >
-                  <Sun className="size-3" /> Sáng
-                </button>
-                <button
-                  onClick={() => setTheme("dark")}
-                  className={`cursor-pointer flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${theme === "dark" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                >
-                  <Moon className="size-3" /> Tối
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Help & Support */}
-          {!isStaff && (
-            <div className="border-t border-border/60 p-1.5">
-              <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                Trợ giúp
-              </div>
-              <button
-                onClick={() => { setUserMenuOpen(false); setChatForceOpen(true); setTimeout(() => setChatForceOpen(false), 200); }}
-                className="cursor-pointer w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-foreground hover:bg-accent transition-colors"
-              >
-                <span className="text-muted-foreground relative shrink-0">
-                  <MessageCircle className="size-4" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex size-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white leading-none">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </span>
-                  )}
-                </span>
-                Chat với chúng tôi
-                {unreadCount > 0 && (
-                  <span className="ml-auto flex items-center justify-center rounded-full bg-red-500 px-1.5 min-w-[18px] h-[16px] text-[9px] font-bold text-white leading-none">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </button>
-            </div>
-          )}
-
-          {/* Logout */}
-          <div className="border-t border-border/60 p-1.5">
-            <button
-              onClick={handleLogout}
-              className="cursor-pointer w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-            >
-              <LogOut className="size-4" />
-              Đăng xuất
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* ── Support chat widget (triggered from menu, no float button) ── */}
       <SupportChatWidget forceOpen={chatForceOpen} hideFloatButton />
     </>
-  );
-}
-
-// ── MenuItem ────────────────────────────────────────────────────────────────────
-function MenuItem({ icon, label, href, onClick }: {
-  icon: React.ReactNode;
-  label: string;
-  href: string;
-  onClick?: () => void;
-}) {
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-foreground hover:bg-accent transition-colors"
-    >
-      <span className="text-muted-foreground">{icon}</span>
-      {label}
-    </Link>
   );
 }
