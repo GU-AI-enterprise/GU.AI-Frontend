@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { ToolGuideModal } from "@/components/shared/tool-guide-modal";
 import { TOOL_GUIDES } from "@/constants/toolGuides";
@@ -750,65 +751,65 @@ function StudioPageInner() {
                   </div>
                   <div className="flex items-center gap-2 p-3 border-t border-border shrink-0 flex-wrap">
                     {isMobile && (
-                      <button onClick={fullReset} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
+                      <button onClick={fullReset} title={t("backToInput")} className="cursor-pointer flex items-center justify-center p-2.5 rounded-xl bg-secondary text-foreground hover:bg-secondary/70 transition-colors">
                         <ChevronLeft className="size-3.5" />
-                        <span>{t("backToInput")}</span>
                       </button>
                     )}
                     {!isVideo && beforeUrl && (
                       <button
                         onClick={() => setShowComparison(v => !v)}
-                        className={`cursor-pointer flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                        title={t("compare")}
+                        className={`cursor-pointer flex items-center justify-center p-2.5 rounded-xl transition-colors ${
                           showComparison
                             ? "bg-primary text-primary-foreground hover:bg-primary/90"
                             : "bg-secondary text-foreground hover:bg-secondary/70"
                         }`}
                       >
                         <SplitSquareHorizontal className="size-3.5" />
-                        <span>{t("compare")}</span>
                       </button>
                     )}
                     <button
                       onClick={() => effectiveResultAssetId && setSaveAlbumAssetId(effectiveResultAssetId)}
                       disabled={!effectiveResultAssetId}
                       title={effectiveResultAssetId ? t("saveToAlbum") : t("saving")}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="cursor-pointer flex items-center justify-center p-2.5 rounded-xl bg-secondary text-foreground hover:bg-secondary/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <FolderHeart className="size-3.5" />
-                      <span>{effectiveResultAssetId ? t("saveToAlbum") : t("saving")}</span>
                     </button>
                     {!isVideo && effectiveResultUrl && (
                       <button
                         onClick={() => setIsEcommerceModalOpen(true)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors border border-emerald-500/20"
+                        title="Xuất sàn TMĐT"
+                        className="cursor-pointer flex items-center justify-center p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors border border-emerald-500/20"
                       >
                         <ShoppingCart className="size-3.5" />
-                        <span>Xuất sàn TMĐT</span>
                       </button>
                     )}
                     {!isVideo && effectiveResultUrl && (
                       <DropdownMenu>
-                        <DropdownMenuTrigger className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors">
+                        <DropdownMenuTrigger title={t("continueWith")} className="cursor-pointer flex items-center justify-center p-2.5 rounded-xl bg-secondary text-foreground hover:bg-secondary/70 transition-colors">
                           <ArrowRightCircle className="size-3.5" />
-                          <span>{t("continueWith")}</span>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start">
-                          {TOOLS.filter(tool => tool.id !== selectedTool).map(tool => (
-                            <DropdownMenuItem
-                              key={tool.id}
-                              onClick={() => continueWithImage(tool.id, effectiveResultUrl!)}
-                            >
-                              <tool.Icon className="size-3.5" />
-                              {tool.name}
-                            </DropdownMenuItem>
-                          ))}
+                          <DropdownMenuGroup>
+                            <DropdownMenuLabel>Chuyển ảnh sang công cụ khác</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {TOOLS.filter(tool => tool.id !== selectedTool).map(tool => (
+                              <DropdownMenuItem
+                                key={tool.id}
+                                onClick={() => continueWithImage(tool.id, effectiveResultUrl!)}
+                              >
+                                <tool.Icon className="size-3.5" />
+                                {tool.name}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuGroup>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
                     {!isMobile && (
-                      <button onClick={fullReset} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70 transition-colors ml-auto">
+                      <button onClick={fullReset} title={t("retryBtn")} className="cursor-pointer flex items-center justify-center p-2.5 rounded-xl bg-secondary text-foreground hover:bg-secondary/70 transition-colors ml-auto">
                         <RefreshCw className="size-3.5" />
-                        <span>{t("retryBtn")}</span>
                       </button>
                     )}
                   </div>
@@ -822,7 +823,7 @@ function StudioPageInner() {
                     <p className="text-sm font-medium text-destructive">{t("processingFailed")}</p>
                     <p className="text-xs text-muted-foreground truncate">{jobError}</p>
                   </div>
-                  <button onClick={fullReset} className="text-xs underline text-muted-foreground hover:text-foreground">{t("retryBtn")}</button>
+                  <button onClick={fullReset} className="cursor-pointer text-xs underline text-muted-foreground hover:text-foreground">{t("retryBtn")}</button>
                 </div>
               </div>
 

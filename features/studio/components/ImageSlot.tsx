@@ -79,7 +79,7 @@ export function ImageSlot({ label, sublabel, image, onClear, onFileChange, onPas
           />
           <button
             onClick={onClear}
-            className="absolute top-3 right-3 p-1.5 rounded-full bg-background/80 backdrop-blur-sm text-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow"
+            className="cursor-pointer absolute top-3 right-3 p-1.5 rounded-full bg-background/80 backdrop-blur-sm text-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow"
           >
             <X className="size-3.5" />
           </button>

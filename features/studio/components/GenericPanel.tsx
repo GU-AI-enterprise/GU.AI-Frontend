@@ -88,7 +88,7 @@ export function GenericPanel({ images, onImagesChange, onPaste, openGallery }: P
               </div>
               <button
                 onClick={() => onImagesChange(images.filter(i => i.id !== img.id))}
-                className="absolute -top-2 -right-2 p-1 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                className="cursor-pointer absolute -top-2 -right-2 p-1 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
               >
                 <X className="size-3" />
               </button>
@@ -97,7 +97,7 @@ export function GenericPanel({ images, onImagesChange, onPaste, openGallery }: P
           {images.length < 5 && (
             <button
               onClick={() => fileRef.current?.click()}
-              className="h-full max-h-96 aspect-[3/4] shrink-0 rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary/30 hover:text-foreground transition-all"
+              className="cursor-pointer h-full max-h-96 aspect-[3/4] shrink-0 rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary/30 hover:text-foreground transition-all"
             >
               <Upload className="size-5 mb-1" />
               <span className="text-[10px]">Thêm ảnh</span>

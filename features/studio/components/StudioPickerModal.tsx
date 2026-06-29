@@ -35,7 +35,7 @@ const LIB_CAT_LABEL: Record<string, string> = {
   example: "Ví dụ",
 };
 
-const cardCls = "group relative rounded-xl overflow-hidden border border-border bg-card hover:border-primary/50 hover:shadow-lg hover:-translate-y-1 transition-all aspect-[3/4]";
+const cardCls = "cursor-pointer group relative rounded-xl overflow-hidden border border-border bg-card hover:border-primary/50 hover:shadow-lg hover:-translate-y-1 transition-all aspect-[3/4]";
 const imgCls = "object-cover transition-transform duration-500 group-hover:scale-105 bg-secondary/50";
 const gridCls = "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3";
 
@@ -93,13 +93,13 @@ export function StudioPickerModal({ mode, defaultTab = "gallery", onClose, onSel
             {onUpload && (
               <button
                 onClick={onUpload}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-secondary text-foreground hover:bg-secondary/80 rounded-xl transition-colors"
+                className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-secondary text-foreground hover:bg-secondary/80 rounded-xl transition-colors"
               >
                 <Upload className="size-4" />
                 Tải ảnh lên
               </button>
             )}
-            <button onClick={onClose} className="p-2 rounded-full hover:bg-secondary transition-colors">
+            <button onClick={onClose} className="cursor-pointer p-2 rounded-full hover:bg-secondary transition-colors">
               <X className="size-4" />
             </button>
           </div>
@@ -121,7 +121,7 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
     <button
       onClick={onClick}
       className={cn(
-        "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap",
+        "cursor-pointer px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap",
         active ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
       )}
     >
@@ -161,7 +161,7 @@ function ModelTab({ onSelect }: { onSelect: (url: string) => void }) {
           <div
             key={model.id}
             onClick={() => handlePick(model)}
-            className={cn(cardCls, "cursor-pointer", !model.unlocked && "opacity-90")}
+            className={cn(cardCls, !model.unlocked && "opacity-90")}
           >
             <Image
               src={model.image_url}

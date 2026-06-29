@@ -137,7 +137,7 @@ export const EcommerceExportModal: React.FC<EcommerceExportModalProps> = ({ isOp
             <ShoppingCart className="size-5 text-emerald-500" />
             Trình xuất sàn Thương mại điện tử
           </h2>
-          <button onClick={onClose} className="p-2 bg-secondary rounded-full hover:bg-secondary/70">
+          <button onClick={onClose} className="cursor-pointer p-2 bg-secondary rounded-full hover:bg-secondary/70">
             <X className="size-4" />
           </button>
         </div>
@@ -158,7 +158,7 @@ export const EcommerceExportModal: React.FC<EcommerceExportModalProps> = ({ isOp
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === tab ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                    className={`cursor-pointer px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === tab ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                   >
                     {tab === '1:1' ? 'Shopee (1:1)' : tab === '9:16' ? 'TikTok (9:16)' : 'Insta (4:5)'}
                   </button>
@@ -234,13 +234,13 @@ export const EcommerceExportModal: React.FC<EcommerceExportModalProps> = ({ isOp
 
         {/* Footer */}
         <div className="p-4 border-t border-border flex justify-end gap-3 bg-muted/10">
-          <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-medium bg-secondary hover:bg-secondary/80 transition-colors">
+          <button onClick={onClose} className="cursor-pointer px-5 py-2.5 rounded-xl text-sm font-medium bg-secondary hover:bg-secondary/80 transition-colors">
             Hủy
           </button>
           <button 
             onClick={handleExport} 
             disabled={loading}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 transition-colors shadow-sm"
+            className="cursor-pointer flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 transition-colors shadow-sm"
           >
             <Download className="size-4" />
             Tải ZIP & Hoàn tất
