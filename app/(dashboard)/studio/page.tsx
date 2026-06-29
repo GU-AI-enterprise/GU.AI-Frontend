@@ -975,7 +975,7 @@ function StudioPageInner() {
         />
       )}
 
-      <StudioChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
+      <StudioChatPanel open={chatOpen} onClose={() => setChatOpen(false)} contextImages={chatContextImages} />
 
       {/* Ecommerce Export Modal */}
       {isEcommerceModalOpen && effectiveResultUrl && (
