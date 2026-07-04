@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import GuaiLoader from "@/components/shared/guai-loader";
 import { supabase } from "@/lib/supabase";
-import { syncImage } from "@/features/archive/imageService";
+import { syncImage, uploadFile } from "@/features/archive/imageService";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 
@@ -117,24 +117,13 @@ export default function UploadPage() {
       );
 
       const file = uploadItem.file;
-      const fileExt = file.name.split(".").pop();
-      const uniqueFilename = `${userId}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-      const bucketName = "images";
 
-      // Upload to Supabase Storage
-      const { error } = await supabase.storage.from(bucketName).upload(uniqueFilename, file, {
-        cacheControl: "3600",
-        upsert: false,
-      });
-
-      if (error) throw new Error(error.message);
+      // Upload lên bucket 'assets' qua backend (bypass RLS)
+      const publicUrl = await uploadFile(file, "assets");
 
       setUploadFiles(prev =>
         prev.map(item => item.id === uploadItem.id ? { ...item, progress: 70 } : item)
       );
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(uniqueFilename);
 
       // Sync with backend
       await syncImage({
