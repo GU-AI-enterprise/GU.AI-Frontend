@@ -90,7 +90,7 @@ export default function PricingPage() {
 
   // Gói Free (price 0, grants_plan_type "free") chỉ dùng để hiển thị baseline trong bảng so sánh —
   // không cho mua qua PayOS vì không có gì để thanh toán.
-  const sorted = [...packages].filter(p => p.grants_plan_type !== 'free').sort((a, b) => a.sort_order - b.sort_order);
+  const sorted = [...packages].sort((a, b) => a.sort_order - b.sort_order);
   const popularIdx = sorted.length >= 2 ? 1 : -1;
   const planType: PlanType = (topupInfo?.plan_type as PlanType) ?? 'free';
   const planMeta = PLAN_META[planType];
@@ -99,6 +99,7 @@ export default function PricingPage() {
 
   // Static packages for guests (mirrors DB data)
   const staticPackages = [
+    { id: 's0', name: "Dùng Thử",           price: 0,       credits: 10,  planLabel: "Free",   planColor: "text-slate-400",  planBg: "bg-slate-400/10 border-slate-400/20", topupDiscount: 0,  popular: false },
     { id: 's1', name: "Starter",            price: 199000,  credits: 100, planLabel: "Basic",  planColor: "text-blue-400",   planBg: "bg-blue-400/10 border-blue-400/20",   topupDiscount: 5,  popular: false },
     { id: 's2', name: "Gói Cơ Bản",         price: 349000,  credits: 200, planLabel: "Pro",    planColor: "text-violet-400", planBg: "bg-violet-400/10 border-violet-400/20", topupDiscount: 10, popular: true  },
   ];
