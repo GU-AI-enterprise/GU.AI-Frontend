@@ -99,8 +99,8 @@ export default function PricingPage() {
 
   // Static packages for guests (mirrors DB data)
   const staticPackages = [
-    { id: 's1', name: "Starter",            price: 249000,  credits: 100, planLabel: "Basic",  planColor: "text-blue-400",   planBg: "bg-blue-400/10 border-blue-400/20",   topupDiscount: 5,  popular: false },
-    { id: 's2', name: "Gói Cơ Bản",         price: 449000,  credits: 200, planLabel: "Pro",    planColor: "text-violet-400", planBg: "bg-violet-400/10 border-violet-400/20", topupDiscount: 10, popular: true  },
+    { id: 's1', name: "Starter",            price: 199000,  credits: 100, planLabel: "Basic",  planColor: "text-blue-400",   planBg: "bg-blue-400/10 border-blue-400/20",   topupDiscount: 5,  popular: false },
+    { id: 's2', name: "Gói Cơ Bản",         price: 349000,  credits: 200, planLabel: "Pro",    planColor: "text-violet-400", planBg: "bg-violet-400/10 border-violet-400/20", topupDiscount: 10, popular: true  },
   ];
 
   return (

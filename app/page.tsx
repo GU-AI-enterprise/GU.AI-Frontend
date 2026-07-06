@@ -332,25 +332,25 @@ export default function LandingPage() {
             <div className="grid md:grid-cols-3 gap-4">
               {[
                 {
-                  name: "Starter", price: "249.000đ", credits: "100 Credits",
+                  name: "Dùng Thử", price: "Miễn phí", credits: "0 Credits",
+                  badge: { label: "Free", color: "text-slate-400", bg: "bg-slate-400/10 border border-slate-400/20" },
+                  discount: "0% top-up",
+                  features: ["Top-up: 1.580đ / credit", "Mẫu ảo mặc định", "Tính năng cơ bản"],
+                  popular: false, cta: "Bắt đầu ngay", href: "/register",
+                },
+                {
+                  name: "Starter", price: "199.000đ", credits: "100 Credits",
                   badge: { label: "Basic", color: "text-blue-400", bg: "bg-blue-400/10 border border-blue-400/20" },
                   discount: "-5% top-up",
                   features: ["100 credits nạp ngay", "Top-up: 1.501đ / credit", "Mẫu ảo cơ bản"],
                   popular: false, cta: "Mua Starter", href: "/register",
                 },
                 {
-                  name: "Gói Cơ Bản", price: "449.000đ", credits: "200 Credits",
+                  name: "Gói Cơ Bản", price: "349.000đ", credits: "200 Credits",
                   badge: { label: "Pro", color: "text-violet-400", bg: "bg-violet-400/10 border border-violet-400/20" },
                   discount: "-10% top-up",
                   features: ["200 credits nạp ngay", "Top-up: 1.422đ / credit", "50+ mẫu ảo Việt Nam", "20+ bối cảnh cao cấp"],
                   popular: true, cta: "Mua Gói Cơ Bản", href: "/register",
-                },
-                {
-                  name: "Gói Chuyên Nghiệp", price: "990.000đ", credits: "500 Credits",
-                  badge: { label: "Agency", color: "text-amber-400", bg: "bg-amber-400/10 border border-amber-400/20" },
-                  discount: "-15% top-up",
-                  features: ["500 credits nạp ngay", "Top-up: 1.343đ / credit", "Toàn bộ tính năng", "Xử lý ưu tiên hàng đầu"],
-                  popular: false, cta: "Mua Gói Chuyên Nghiệp", href: "/register",
                 },
               ].map((plan, idx) => (
                 <div
