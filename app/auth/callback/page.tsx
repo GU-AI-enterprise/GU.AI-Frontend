@@ -37,8 +37,8 @@ function AuthCallbackContent() {
           return;
         }
 
-        // Email verification callback — Supabase đã xác nhận email server-side khi user bấm link.
-        setTimeout(() => router.push("/login?verified=true"), 2500);
+        // Không có code (link cũ hoặc truy cập trực tiếp) — quay về trang đăng nhập.
+        router.push("/login");
       } catch (err: any) {
         console.error("[auth/callback] exception:", err);
         router.push(`/login?error=oauth_failed&reason=${encodeURIComponent(err?.message ?? "unknown")}`);
@@ -60,10 +60,10 @@ function AuthCallbackContent() {
       />
       <div className="space-y-2">
         <h3 className="font-serif text-xl font-medium text-foreground">
-          Email đã được xác nhận!
+          Đang xác thực...
         </h3>
         <p className="text-xs font-light text-muted-foreground animate-pulse">
-          Đang chuyển đến trang đăng nhập...
+          Vui lòng chờ trong giây lát.
         </p>
       </div>
     </div>

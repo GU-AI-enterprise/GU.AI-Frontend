@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { User, Mail, Lock, Eye, EyeOff, ArrowRight, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { User, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/lib/apiFetch";
 
 export default function RegisterPage() {
-  // Both UIs always in DOM — toggled via CSS only to prevent removeChild
-  // crashes caused by browser extensions injecting into password inputs.
-  const [isPending, setIsPending] = useState(false);
+  const router = useRouter();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -17,9 +16,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState("");
-  const [resendMessage, setResendMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,27 +41,20 @@ export default function RegisterPage() {
         setIsLoading(false);
         return;
       }
-      setIsPending(true);
+
+      // Tài khoản đã xác nhận sẵn — đăng nhập luôn rồi vào dashboard
+      const { createClient } = await import("@/lib/supabase");
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) {
+        router.push("/login");
+        return;
+      }
+      router.push("/dashboard");
+      router.refresh();
     } catch {
       setError("Đăng ký thất bại. Vui lòng thử lại.");
       setIsLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    setIsResending(true);
-    setResendMessage("");
-    try {
-      const res = await apiClient.post("/api/auth/resend-verification", { email });
-      setResendMessage(
-        res.status >= 400
-          ? res.data?.error || "Không thể gửi lại email."
-          : "Email xác nhận đã được gửi lại! Kiểm tra hộp thư."
-      );
-    } catch {
-      setResendMessage("Lỗi kết nối, vui lòng thử lại.");
-    } finally {
-      setIsResending(false);
     }
   };
 
@@ -81,63 +71,7 @@ export default function RegisterPage() {
 
   return (
     <div>
-      {/* ── Pending verification — always in DOM, CSS-toggled ────────────── */}
-      <div className={isPending ? "space-y-6 text-center" : "hidden"}>
-        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-primary">
-          <svg className="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-        </div>
-
-        <div className="space-y-2">
-          <h3 className="font-serif text-2xl font-light text-foreground">Kiểm tra email của bạn</h3>
-          <p className="text-sm font-light text-muted-foreground">Chúng tôi đã gửi link xác nhận đến</p>
-          <p className="text-sm font-semibold text-primary">{email}</p>
-          <p className="text-xs text-muted-foreground/70 leading-relaxed pt-1">
-            Nhấn vào link trong email để kích hoạt tài khoản.<br />
-            Link có hiệu lực trong <strong>24 giờ</strong>.
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-border bg-card/50 p-4 text-left space-y-2.5">
-          {[
-            "Mở email từ GU.AI trong hộp thư của bạn",
-            'Nhấn nút "Xác nhận Email" trong email',
-            "Quay lại trang đăng nhập và đăng nhập vào tài khoản",
-          ].map((text, i) => (
-            <div key={i} className="flex items-start gap-3">
-              <span className="flex-shrink-0 flex size-5 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-bold">
-                {i + 1}
-              </span>
-              <span className="text-xs text-muted-foreground leading-relaxed">{text}</span>
-            </div>
-          ))}
-        </div>
-
-        <p className="text-xs text-muted-foreground/60">
-          Không thấy email? Kiểm tra thư mục <strong>Spam / Junk</strong>.
-        </p>
-
-        <div className={resendMessage ? "text-xs font-medium " + (resendMessage.includes("Lỗi") || resendMessage.includes("thể") ? "text-destructive" : "text-emerald-500") : "hidden"}>
-          {resendMessage}
-        </div>
-
-        <button onClick={handleResend} disabled={isResending}
-          className="inline-flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50">
-          <RefreshCw className={`size-3 ${isResending ? "animate-spin" : ""}`} />
-          {isResending ? "Đang gửi..." : "Gửi lại email xác nhận"}
-        </button>
-
-        <div>
-          <Link href="/login" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-            ← Quay lại đăng nhập
-          </Link>
-        </div>
-      </div>
-
-      {/* ── Register form — always in DOM, CSS-toggled ───────────────────── */}
-      <div className={isPending ? "hidden" : "space-y-5"}>
+      <div className="space-y-5">
         <div className="space-y-1">
           <h2 className="font-serif text-3xl font-light tracking-tight text-foreground">
             Đăng ký <span className="font-normal italic text-primary">tài khoản</span>
