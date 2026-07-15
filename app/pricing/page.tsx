@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Coins, Sparkles, Crown, Loader2, CheckCircle2,
-  TrendingDown, ShoppingBag, BadgePercent, HelpCircle, ArrowRight, Zap,
+  Coins, Loader2, CheckCircle2,
+  TrendingDown, BadgePercent, HelpCircle, ArrowRight, Zap,
 } from "lucide-react";
 import Header from "@/components/shared/header";
 import { supabase } from "@/lib/supabase";
@@ -12,23 +12,20 @@ import {
   getPackages, createPaymentLink, getTopupInfo,
   type CreditPackage, type TopupInfo,
 } from "@/features/payment/paymentService";
+import {
+  PackageCards, PackageComparisonTable, NoRolloverNote,
+  PLAN_META, TOPUP_BASE_RATE, fmt, type PlanType,
+} from "@/features/payment/PackageCards";
 import { daysRemaining } from "@/features/credit/planMeta";
-
-const TOPUP_BASE_RATE = 1580;
-const PKG_ICONS = [ShoppingBag, Sparkles, Crown];
-
-type PlanType = 'free' | 'basic' | 'pro';
-
-const PLAN_META: Record<PlanType, { label: string; color: string; bg: string }> = {
-  free:   { label: 'Free',   color: 'text-slate-400',   bg: 'bg-slate-400/10 border border-slate-400/20' },
-  basic:  { label: 'Basic',  color: 'text-blue-400',    bg: 'bg-blue-400/10 border border-blue-400/20' },
-  pro:    { label: 'Pro',    color: 'text-violet-400',  bg: 'bg-violet-400/10 border border-violet-400/20' },
-};
 
 const faqs = [
   {
     q: "Credit hoạt động như thế nào?",
-    a: "Mỗi lần generate 1 ảnh người mẫu ảo từ 1 sản phẩm, hệ thống trừ 1 credit. Credits không có hạn sử dụng — mua rồi dùng thoải mái.",
+    a: "Mỗi lần generate ảnh/video, hệ thống trừ credit theo công cụ sử dụng. Credits nhận từ gói có hiệu lực trong chu kỳ 30 ngày của gói — credits chưa dùng hết sẽ KHÔNG được chuyển tiếp qua tháng tiếp theo.",
+  },
+  {
+    q: "Các gói khác nhau được dùng những gì?",
+    a: "Free mở khóa 4 người mẫu AI. Basic mở khóa 9 người mẫu AI và Trợ lý AI Studio (chat + gợi ý prompt). Pro mở khóa toàn bộ người mẫu AI và Trợ lý AI Studio, kèm mức giảm giá top-up cao nhất.",
   },
   {
     q: "Top-up pay-as-you-go là gì?",
@@ -47,8 +44,6 @@ const faqs = [
     a: "Có. Chúng tôi hỗ trợ xuất hóa đơn điện tử VAT cho doanh nghiệp đăng ký kinh doanh tại Việt Nam.",
   },
 ];
-
-function fmt(n: number) { return n.toLocaleString("vi-VN"); }
 
 export default function PricingPage() {
   const [loggedIn, setLoggedIn]     = useState(false);
@@ -91,17 +86,16 @@ export default function PricingPage() {
   // Gói Free (price 0, grants_plan_type "free") chỉ dùng để hiển thị baseline trong bảng so sánh —
   // không cho mua qua PayOS vì không có gì để thanh toán.
   const sorted = [...packages].sort((a, b) => a.sort_order - b.sort_order);
-  const popularIdx = sorted.length >= 2 ? 1 : -1;
   const planType: PlanType = (topupInfo?.plan_type as PlanType) ?? 'free';
   const planMeta = PLAN_META[planType];
   const planDaysLeft = planType !== 'free' ? daysRemaining(topupInfo?.plan_expires_at ?? null) : null;
   const discountPct = topupInfo?.discount_pct ?? 0;
 
-  // Static packages for guests (mirrors DB data)
+  // Static packages for guests (mirrors DB data — kể cả description perks)
   const staticPackages = [
-    { id: 's0', name: "Dùng Thử",           price: 0,       credits: 10,  planLabel: "Free",   planColor: "text-slate-400",  planBg: "bg-slate-400/10 border-slate-400/20", topupDiscount: 0,  popular: false },
-    { id: 's1', name: "Starter",            price: 199000,  credits: 100, planLabel: "Basic",  planColor: "text-blue-400",   planBg: "bg-blue-400/10 border-blue-400/20",   topupDiscount: 5,  popular: false },
-    { id: 's2', name: "Gói Cơ Bản",         price: 349000,  credits: 200, planLabel: "Pro",    planColor: "text-violet-400", planBg: "bg-violet-400/10 border-violet-400/20", topupDiscount: 10, popular: true  },
+    { id: 's0', name: "Dùng Thử",           price: 0,       credits: 20,  planLabel: "Free",   planColor: "text-slate-400",  planBg: "bg-slate-400/10 border-slate-400/20", topupDiscount: 0,  popular: false, perks: ["Mở khóa 4 người mẫu AI"] },
+    { id: 's1', name: "Starter",            price: 199000,  credits: 100, planLabel: "Basic",  planColor: "text-blue-400",   planBg: "bg-blue-400/10 border-blue-400/20",   topupDiscount: 5,  popular: false, perks: ["Mở khóa 9 người mẫu AI", "Trợ lý AI Studio (chat + gợi ý prompt)"] },
+    { id: 's2', name: "Gói Cơ Bản",         price: 349000,  credits: 200, planLabel: "Pro",    planColor: "text-violet-400", planBg: "bg-violet-400/10 border-violet-400/20", topupDiscount: 10, popular: true,  perks: ["Mở khóa toàn bộ người mẫu AI", "Trợ lý AI Studio (chat + gợi ý prompt)"] },
   ];
 
   return (
@@ -164,6 +158,7 @@ export default function PricingPage() {
       {/* Package Cards */}
       <section id="packages" className="pb-16 relative z-10 scroll-mt-6">
         <div className="mx-auto max-w-5xl px-6 lg:px-8">
+          <NoRolloverNote className="mb-6" />
           {pkgLoading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -171,177 +166,16 @@ export default function PricingPage() {
           ) : loggedIn && sorted.length > 0 ? (
             /* ── Logged-in: real packages from API ── */
             <>
-              <div className="grid md:grid-cols-3 gap-6 mb-8">
-                {sorted.map((pkg, idx) => {
-                  const Icon         = PKG_ICONS[idx % PKG_ICONS.length];
-                  const isPopular    = idx === popularIdx;
-                  const isBuying     = buying === pkg.id;
-                  const totalCr      = pkg.credit_amount + (pkg.bonus_credit ?? 0);
-                  const grantsPlan   = pkg.grants_plan_type as PlanType | null | undefined;
-                  const grantMeta    = grantsPlan ? PLAN_META[grantsPlan] : null;
-                  const isCurrentPlan = grantsPlan === planType;
-                  const isFreePkg    = grantsPlan === 'free' || Number(pkg.price) <= 0;
-                  const planDiscounts: Record<string, number> = { basic: 5, pro: 10 };
-                  const unlockDiscount = grantsPlan ? (planDiscounts[grantsPlan] ?? 0) : 0;
-
-                  return (
-                    <div
-                      key={pkg.id}
-                      className={`relative flex flex-col rounded-2xl border-2 p-6 transition-all duration-200 ${
-                        isCurrentPlan
-                          ? "border-emerald-500/50 bg-emerald-500/[0.02]"
-                          : isPopular
-                            ? "border-primary bg-primary/[0.02] shadow-[0_0_28px_rgba(var(--color-primary),0.10)] scale-[1.02] z-10"
-                            : "border-border hover:border-primary/40"
-                      }`}
-                    >
-                      {isCurrentPlan && (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-emerald-500 px-3 py-0.5 text-[9px] font-bold text-white uppercase tracking-widest whitespace-nowrap">
-                          Gói hiện tại
-                        </div>
-                      )}
-                      {!isCurrentPlan && isPopular && (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-0.5 text-[9px] font-bold text-primary-foreground uppercase tracking-widest whitespace-nowrap">
-                          Phổ biến
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2.5 mb-4">
-                        <div className={`flex items-center justify-center size-9 rounded-xl ${isPopular ? "bg-primary/15" : "bg-secondary"}`}>
-                          <Icon className={`size-4 ${isPopular ? "text-primary" : "text-muted-foreground"}`} />
-                        </div>
-                        <div>
-                          <span className="font-bold text-sm text-foreground block">{pkg.name}</span>
-                          {grantMeta && (
-                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${grantMeta.bg} ${grantMeta.color}`}>
-                              {grantMeta.label}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="mb-1 flex items-baseline gap-1.5">
-                        <span className="text-3xl font-bold text-foreground tabular-nums">{totalCr.toLocaleString()}</span>
-                        <span className="text-sm text-muted-foreground">credits</span>
-                      </div>
-                      {pkg.bonus_credit > 0 && (
-                        <p className="text-xs text-emerald-500 font-medium mb-2">+{pkg.bonus_credit} bonus credits</p>
-                      )}
-
-                      {unlockDiscount > 0 && (
-                        <div className="flex items-center gap-1.5 mt-2 mb-4">
-                          <span className={`flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full ${isPopular ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
-                            <TrendingDown className="size-3" />
-                            Giảm {unlockDiscount}% top-up vĩnh viễn
-                          </span>
-                        </div>
-                      )}
-
-                      <ul className="space-y-2 mb-5 flex-1">
-                        <li className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <CheckCircle2 className="size-3.5 text-primary shrink-0" />
-                          {totalCr} credits cộng ngay
-                        </li>
-                        {unlockDiscount > 0 && (
-                          <li className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <CheckCircle2 className="size-3.5 text-primary shrink-0" />
-                            Top-up giảm {unlockDiscount}% ({fmt(Math.round(TOPUP_BASE_RATE * (1 - unlockDiscount / 100)))}đ/credit)
-                          </li>
-                        )}
-                        <li className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <CheckCircle2 className="size-3.5 text-primary shrink-0" />
-                          {isFreePkg ? "Không cần thanh toán" : "Thanh toán an toàn qua PayOS"}
-                        </li>
-                      </ul>
-
-                      <div className="mt-auto">
-                        <div className="mb-3">
-                          <span className="text-2xl font-bold text-foreground tabular-nums">{Number(pkg.price).toLocaleString('vi-VN')}đ</span>
-                          {!isFreePkg && <span className="text-xs text-muted-foreground ml-1">/ lần mua</span>}
-                        </div>
-                        {isFreePkg ? (
-                          <div className="w-full flex items-center justify-center rounded-xl py-2.5 text-xs font-semibold bg-secondary/60 text-muted-foreground">
-                            {isCurrentPlan ? "Gói đang dùng" : "Gói mặc định"}
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => handleBuy(pkg)}
-                            disabled={!!buying}
-                            className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                              isCurrentPlan
-                                ? "bg-emerald-500/20 text-emerald-500 border border-emerald-500/30"
-                                : isPopular
-                                  ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_12px_rgba(var(--color-primary),0.2)]"
-                                  : "bg-secondary text-foreground hover:bg-secondary/70"
-                            }`}
-                          >
-                            {isBuying ? (
-                              <><Loader2 className="size-3.5 animate-spin" /><span>Đang xử lý...</span></>
-                            ) : (
-                              <span>{isCurrentPlan ? "Gia hạn / nâng cấp" : "Mua ngay"}</span>
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <PackageCards
+                packages={sorted}
+                planType={planType}
+                buyingId={buying}
+                onBuy={handleBuy}
+              />
 
               {/* Comparison table (logged-in) */}
-              <div className="rounded-2xl border border-border bg-card overflow-hidden mb-6">
-                <div className="px-5 py-4 border-b border-border/60">
-                  <h3 className="text-sm font-semibold text-foreground">So sánh gói & giá top-up</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-border/60 bg-muted/30">
-                        <th className="text-left px-5 py-3 text-muted-foreground font-medium">Gói</th>
-                        <th className="text-center px-4 py-3 text-muted-foreground font-medium">Credits gói</th>
-                        <th className="text-center px-4 py-3 text-muted-foreground font-medium">Giá gói</th>
-                        <th className="text-center px-4 py-3 text-muted-foreground font-medium">Giảm top-up</th>
-                        <th className="text-center px-4 py-3 text-muted-foreground font-medium">Giá / credit top-up</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sorted.map((pkg, idx) => {
-                        const grantsPlan = pkg.grants_plan_type as PlanType | undefined;
-                        const meta = grantsPlan ? PLAN_META[grantsPlan] : null;
-                        const planDiscounts: Record<string, number> = { basic: 5, pro: 10 };
-                        const disc = grantsPlan ? (planDiscounts[grantsPlan] ?? 0) : 0;
-                        const rate = Math.round(TOPUP_BASE_RATE * (1 - disc / 100));
-                        const isPopular = idx === popularIdx;
-                        const isCurrent = grantsPlan === planType;
-                        const totalCr = pkg.credit_amount + (pkg.bonus_credit ?? 0);
-                        return (
-                          <tr key={pkg.id} className={`border-b border-border/40 last:border-0 transition-colors ${isCurrent ? "bg-emerald-500/[0.03]" : isPopular ? "bg-primary/[0.03]" : "hover:bg-muted/20"}`}>
-                            <td className="px-5 py-3.5 font-semibold text-foreground">
-                              <div className="flex items-center gap-2">
-                                {meta && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${meta.bg} ${meta.color}`}>{meta.label}</span>}
-                                {pkg.name}
-                                {isCurrent && <span className="text-[9px] font-bold bg-emerald-500/15 text-emerald-500 px-1.5 py-0.5 rounded-full uppercase">Hiện tại</span>}
-                                {!isCurrent && isPopular && <span className="text-[9px] font-bold bg-primary/15 text-primary px-1.5 py-0.5 rounded-full uppercase">Phổ biến</span>}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3.5 text-center tabular-nums text-foreground font-medium">{totalCr.toLocaleString()}</td>
-                            <td className="px-4 py-3.5 text-center tabular-nums text-foreground font-medium">{Number(pkg.price).toLocaleString('vi-VN')}đ</td>
-                            <td className="px-4 py-3.5 text-center">
-                              {disc > 0 && (
-                                <span className="inline-flex items-center gap-0.5 text-emerald-500 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                                  <TrendingDown className="size-2.5" />-{disc}%
-                                </span>
-                              )}
-                            </td>
-                            <td className={`px-4 py-3.5 text-center tabular-nums font-semibold ${isPopular ? "text-primary" : "text-foreground"}`}>
-                              {fmt(rate)}đ
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+              <div className="mt-8 mb-6">
+                <PackageComparisonTable packages={sorted} planType={planType} />
               </div>
             </>
           ) : (
@@ -368,12 +202,22 @@ export default function PricingPage() {
                       </span>
                     </div>
                     <h3 className="text-lg font-bold text-foreground">{pkg.name}</h3>
-                    <p className="text-xs font-light text-muted-foreground/60 mt-1">Mua một lần · Credits không hết hạn</p>
+                    <p className="text-xs font-light text-muted-foreground/60 mt-1">
+                      {pkg.price === 0 ? "Miễn phí · Credits tặng khi đăng ký" : "Mua một lần · Hiệu lực 30 ngày, credits không chuyển tiếp"}
+                    </p>
                     <div className="mt-6 flex items-baseline gap-1 border-b border-border/40 pb-6">
                       <span className="text-3xl font-serif font-semibold text-foreground">{fmt(pkg.price)}đ</span>
                     </div>
                     <div className="mt-5 space-y-3 flex-1">
                       <div className="text-sm font-semibold text-primary">{pkg.credits} Credits</div>
+                      <ul className="space-y-2">
+                        {pkg.perks.map((perk) => (
+                          <li key={perk} className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <CheckCircle2 className="size-3.5 text-primary shrink-0" />
+                            {perk}
+                          </li>
+                        ))}
+                      </ul>
                       <div className="flex items-center gap-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-2">
                         <TrendingDown className="size-3 text-emerald-500 shrink-0" />
                         <span className="text-xs text-emerald-500 font-semibold">

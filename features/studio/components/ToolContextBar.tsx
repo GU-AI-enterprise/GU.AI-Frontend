@@ -129,8 +129,10 @@ function PromptSuggestBtn({ tool, value, onChange, image }: {
     if (loading) return;
     setLoading(true);
     try {
-      const suggestion = await suggestPrompt(tool, value, image);
-      if (suggestion) onChange(suggestion);
+      const { prompt, explanation } = await suggestPrompt(tool, value, image);
+      if (prompt) onChange(prompt);
+      // AI luôn giải thích vì sao gợi ý như vậy (dựa trên ảnh/ý tưởng) — hiện cho user thấy.
+      if (explanation) toast.info(explanation, { duration: 8000 });
     } catch {
       toast.error("Gợi ý prompt thất bại, thử lại sau.");
     } finally {

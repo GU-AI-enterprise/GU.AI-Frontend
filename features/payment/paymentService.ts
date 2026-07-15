@@ -1,5 +1,15 @@
 import { apiFetch } from '@/lib/apiFetch';
 
+/** Ưu đãi của gói — cột description (JSONB) trong credit_packages. */
+export interface PackageDescription {
+  /** Gói có được dùng Trợ lý AI Studio không (basic trở lên). */
+  ai_assistant?: boolean;
+  /** Số người mẫu AI được mở khóa: free 4, basic 9, pro "all". */
+  models_unlocked?: number | 'all';
+  /** Các dòng ưu đãi bổ sung (tuỳ chọn) hiển thị trên card. */
+  perks?: string[];
+}
+
 export interface CreditPackage {
   id: string;
   name: string;
@@ -8,6 +18,7 @@ export interface CreditPackage {
   bonus_credit: number;
   sort_order: number;
   grants_plan_type?: string | null;
+  description?: PackageDescription | null;
 }
 
 export interface TopupInfo {

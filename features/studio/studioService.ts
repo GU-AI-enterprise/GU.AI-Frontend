@@ -392,8 +392,14 @@ export async function modelSwap(options: {
 // ─── Tác vụ phụ (gợi ý prompt / verify ảnh) ───────────────────────────────────
 // Không trừ credit, không phải job (trả về ngay, không cần polling).
 
+export interface SuggestPromptResult {
+  prompt: string;
+  /** Giải thích tiếng Việt của AI: vì sao gợi ý như vậy (dựa trên ảnh/ý tưởng) — hiển thị cho user. */
+  explanation: string;
+}
+
 /** `image` tuỳ chọn (file hoặc URL) — giúp AI gợi ý prompt bám sát nội dung ảnh thực tế hơn. */
-export async function suggestPrompt(tool: string, userHint: string, image?: File | string): Promise<string> {
+export async function suggestPrompt(tool: string, userHint: string, image?: File | string): Promise<SuggestPromptResult> {
   const fd = new FormData();
   fd.append('tool', tool);
   fd.append('userHint', userHint);
@@ -403,7 +409,10 @@ export async function suggestPrompt(tool: string, userHint: string, image?: File
   const response = await apiClient.post('/api/ai/suggest-prompt', fd);
   const json = response.data;
   if (!json.success) throw new Error(json.error || 'Gợi ý prompt thất bại');
-  return json.data.prompt as string;
+  return {
+    prompt: (json.data.prompt as string) ?? '',
+    explanation: (json.data.explanation as string) ?? '',
+  };
 }
 
 // Chat hỏi-đáp của Trợ lý AI Studio — chỉ trả lời text, không lập plan/chạy tool nào,
