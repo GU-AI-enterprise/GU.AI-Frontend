@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/components/providers/AuthProvider";
@@ -40,6 +41,9 @@ export const metadata: Metadata = {
   },
 };
 
+// Chỉ set ở production (.env trên server deploy) — để trống ở .env local để không lẫn dữ liệu dev vào GA.
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -73,6 +77,7 @@ export default async function RootLayout({
             </StoreProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
+        {GA_MEASUREMENT_ID && <GoogleAnalytics gaId={GA_MEASUREMENT_ID} />}
       </body>
     </html>
   );
