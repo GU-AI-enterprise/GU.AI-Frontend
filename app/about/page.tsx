@@ -15,27 +15,27 @@ import {
   Globe,
   ShieldCheck,
 } from "lucide-react";
+import { personAvatar, botttsAvatar } from "@/features/about/funAvatar";
 
+// Kiểu tóc nam/nữ (enum avataaars) dùng lại giữa các thành viên cho đa dạng.
+const HAIR_MALE_1   = ["shortFlat"];
+const HAIR_MALE_2   = ["shortRound"];
+const HAIR_MALE_3   = ["shortWaved"];
+const HAIR_MALE_4   = ["theCaesarAndSidePart"];
+const HAIR_FEMALE_1 = ["bob"];
+
+// Team thật của GU.AI — avatar sinh tự động theo tên (hài hước, không dùng ảnh AI giả làm ảnh thật).
 const TEAM = [
-  {
-    name: "Nguyễn Minh Khoa",
-    role: "Co-founder & CEO",
-    desc: "10+ năm kinh nghiệm trong AI & Computer Vision. Từng làm việc tại Google Brain và VinAI.",
-    avatar: "/images/vietnamese_male.png",
-  },
-  {
-    name: "Trần Thị Linh",
-    role: "Co-founder & CPO",
-    desc: "Chuyên gia thiết kế sản phẩm với nền tảng thời trang. Cựu giám đốc sáng tạo tại Canifa.",
-    avatar: "/images/vietnamese_female.png",
-  },
-  {
-    name: "Lê Hoàng Nam",
-    role: "CTO",
-    desc: "Full-stack AI engineer. Từng xây dựng hạ tầng ML cho các startup Series B tại Singapore.",
-    avatar: "/images/vietnamese_male.png",
-  },
-];
+  { name: "Hoàng Tấn Đạt",     role: "Developer",         desc: "Phát triển và vận hành nền tảng GU.AI.",                    top: HAIR_MALE_1, glasses: true  },
+  { name: "Phạm Thành Phúc",   role: "Developer",         desc: "Phát triển và vận hành nền tảng GU.AI.",                    top: HAIR_MALE_3, glasses: false },
+  { name: "Phan Doãn Thuận",   role: "Developer",         desc: "Phát triển và vận hành nền tảng GU.AI.",                    top: HAIR_MALE_2, glasses: true  },
+  { name: "Hà Khánh Dương",    role: "Media & Marketing", desc: "Xây dựng nội dung, hình ảnh và truyền thông thương hiệu.",  top: HAIR_MALE_4, glasses: false },
+  { name: "Ngô Thị Hồng Thắm", role: "Media & Marketing", desc: "Xây dựng nội dung, hình ảnh và truyền thông thương hiệu.",  top: HAIR_FEMALE_1, glasses: false },
+  { name: "Phạm Kiên Cường",   role: "Media & Marketing", desc: "Xây dựng nội dung, hình ảnh và truyền thông thương hiệu.",  top: HAIR_MALE_3, glasses: false },
+].map((m) => ({ ...m, avatar: personAvatar(m.name, { top: m.top, glasses: m.glasses }) }));
+
+// Avatar robot vui nhộn cho khối "Sứ mệnh" — thay cho ảnh model AI trước đây, tránh gây hiểu lầm là ảnh người thật.
+const MISSION_AVATARS = ["guai-mission-1", "guai-mission-2", "guai-mission-3", "guai-mission-4"].map(botttsAvatar);
 
 const VALUES = [
   {
@@ -68,13 +68,6 @@ const VALUES = [
     title: "Cộng đồng trước tiên",
     desc: "Chúng tôi lắng nghe từng feedback của khách hàng và cập nhật sản phẩm mỗi tuần dựa trên nhu cầu thực tế.",
   },
-];
-
-const STATS = [
-  { num: "2023",    label: "Năm thành lập"        },
-  { num: "500+",    label: "Thương hiệu tin dùng"  },
-  { num: "1.2M+",   label: "Ảnh đã được tạo"       },
-  { num: "< 10s",   label: "Thời gian tạo ảnh TB"  },
 ];
 
 const fadeUp = {
@@ -114,26 +107,6 @@ export default function AboutPage() {
         </motion.div>
       </section>
 
-      {/* ── Stats ── */}
-      <section className="py-14 border-b border-border/40 bg-secondary/10">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {STATS.map((s, i) => (
-              <motion.div
-                key={i}
-                className="text-center"
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1, duration: 0.5 }}
-              >
-                <div className="font-serif text-3xl sm:text-4xl font-light text-foreground">{s.num}</div>
-                <div className="text-xs font-light text-muted-foreground mt-2 tracking-wide">{s.label}</div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── Mission ── */}
       <section className="py-20 border-b border-border/40">
         <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
@@ -162,9 +135,9 @@ export default function AboutPage() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            {["/images/vietnamese_female.png", "/images/japanese_female.png", "/images/vietnamese_male.png", "/images/indian_female.png"].map((src, i) => (
-              <div key={i} className={`aspect-[3/4] rounded-2xl overflow-hidden border border-border shadow-md ${i === 1 ? "mt-6" : ""} ${i === 3 ? "mt-6" : ""}`}>
-                <img src={src} alt="" className="size-full object-cover" />
+            {MISSION_AVATARS.map((src, i) => (
+              <div key={i} className={`aspect-[3/4] rounded-2xl overflow-hidden border border-border shadow-md bg-secondary/40 ${i === 1 ? "mt-6" : ""} ${i === 3 ? "mt-6" : ""}`}>
+                <img src={src} alt="" className="size-full object-contain p-6" />
               </div>
             ))}
           </motion.div>
@@ -206,7 +179,7 @@ export default function AboutPage() {
       <section className="py-20 border-b border-border/40">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-12">
-            <span className="text-xs font-semibold uppercase tracking-wider text-primary">Đội ngũ sáng lập</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-primary">Đội ngũ</span>
             <h2 className="font-serif text-3xl sm:text-4xl font-light tracking-tight text-foreground mt-2">
               Con người đằng sau <span className="italic text-primary">GU.AI</span>
             </h2>
@@ -220,9 +193,9 @@ export default function AboutPage() {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.5 }}
+                transition={{ delay: i * 0.06, duration: 0.5 }}
               >
-                <div className="relative mx-auto w-28 h-36 rounded-2xl overflow-hidden border border-border shadow-md mb-4 group-hover:border-primary/40 transition-colors">
+                <div className="relative mx-auto size-28 rounded-full overflow-hidden border border-border shadow-md mb-4 bg-secondary/40 group-hover:border-primary/40 transition-colors">
                   <img src={member.avatar} alt={member.name} className="size-full object-cover" />
                 </div>
                 <h3 className="text-sm font-semibold text-foreground">{member.name}</h3>
